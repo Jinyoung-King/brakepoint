@@ -3,7 +3,7 @@ import { Image, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, Vi
 import * as ImagePicker from 'expo-image-picker';
 
 import { useAppState } from '../state/AppStateContext';
-import type { Difficulty } from '../storage';
+import type { Difficulty, DrinkUnit } from '../storage';
 import {
   ensureNotificationSetup,
   openFullScreenIntentSettings,
@@ -16,10 +16,19 @@ const DIFFICULTIES: { key: Difficulty; label: string }[] = [
   { key: 'hard', label: '어려움' },
 ];
 
+const UNITS: DrinkUnit[] = ['잔', '병', '캔'];
+
 export default function SettingsScreen() {
-  const { state, setLimit, setDifficulty, updateFakeCall, setBrakePercents, setRepeatEveryDrinks } =
-    useAppState();
-  const { limit, difficulty, fakeCall, brakePercents, repeatEveryDrinks } = state;
+  const {
+    state,
+    setLimit,
+    setDifficulty,
+    updateFakeCall,
+    setBrakePercents,
+    setRepeatEveryDrinks,
+    setUnit,
+  } = useAppState();
+  const { limit, difficulty, fakeCall, brakePercents, repeatEveryDrinks, unit } = state;
 
   const brake1 = brakePercents[0] ?? 60;
   const brake2 = brakePercents[1] ?? 80;
@@ -77,6 +86,25 @@ export default function SettingsScreen() {
           placeholder="5"
         />
         <Text style={styles.help}>설정한 브레이크 %에서 인지 게이트가 발동합니다.</Text>
+      </View>
+
+      {/* 단위 */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>단위</Text>
+        <View style={styles.segment}>
+          {UNITS.map((u) => {
+            const active = u === unit;
+            return (
+              <Pressable
+                key={u}
+                style={[styles.segmentItem, active && styles.segmentItemActive]}
+                onPress={() => setUnit(u)}
+              >
+                <Text style={[styles.segmentText, active && styles.segmentTextActive]}>{u}</Text>
+              </Pressable>
+            );
+          })}
+        </View>
       </View>
 
       {/* 브레이크 지점 */}

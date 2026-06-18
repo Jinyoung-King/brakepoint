@@ -22,7 +22,8 @@
         "USE_FULL_SCREEN_INTENT",
         "WAKE_LOCK",
         "SCHEDULE_EXACT_ALARM",
-        "USE_EXACT_ALARM"
+        "USE_EXACT_ALARM",
+        "android.permission.MODIFY_AUDIO_SETTINGS"
       ]
     },
     "web": {
@@ -43,6 +44,12 @@
         "projectId": "8c663838-b5f8-4c35-8aed-a89e78b70e1f"
       }
     },
-    "owner": "jiny.king"
+    "owner": "jiny.king",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/8c663838-b5f8-4c35-8aed-a89e78b70e1f"
+    }
   }
 }

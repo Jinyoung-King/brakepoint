@@ -25,16 +25,27 @@ export default function FakeCallScreen({ navigation }: Props) {
   const [elapsed, setElapsed] = useState(0);
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // 링톤 + 진동 (ringing 동안만)
+  // 링톤 + 진동 (ringing 동안만). 오디오/진동 호출은 기기/타이밍에 따라
+  // 예외가 날 수 있어 전부 방어적으로 감싼다(여기서 터지면 앱이 강제종료됨).
   useEffect(() => {
     setAudioModeAsync({ playsInSilentMode: true }).catch(() => {});
-    player.loop = true;
-    player.volume = 1.0;
-    player.play();
-    Vibration.vibrate(RING_VIBRATION, true);
+    try {
+      player.loop = true;
+      player.volume = 1.0;
+      player.play();
+    } catch {
+      // 오디오 실패해도 통화 UI는 떠야 함
+    }
+    try {
+      Vibration.vibrate(RING_VIBRATION, true);
+    } catch {}
     return () => {
-      Vibration.cancel();
-      player.pause();
+      try {
+        Vibration.cancel();
+      } catch {}
+      try {
+        player.pause();
+      } catch {}
       if (timer.current) clearInterval(timer.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -50,8 +61,12 @@ export default function FakeCallScreen({ navigation }: Props) {
   }, [navigation]);
 
   const stopRinging = () => {
-    Vibration.cancel();
-    player.pause();
+    try {
+      Vibration.cancel();
+    } catch {}
+    try {
+      player.pause();
+    } catch {}
   };
 
   const accept = () => {

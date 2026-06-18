@@ -10,11 +10,17 @@ export type FakeCallConfig = {
   periodMin: number; // 가짜 전화 주기(분)
 };
 
+export type DrinkUnit = '잔' | '병' | '캔';
+
 export type SessionRecord = {
   id: string;
   endedAt: number; // 종료 시각 (epoch ms)
-  count: number; // 그 술자리에서 마신 잔수
+  count: number; // 그 술자리에서 마신 양
   limit: number; // 그때 설정돼 있던 한계
+  unit?: DrinkUnit; // 그때 단위
+  cigs?: number; // 그 술자리 흡연 개비
+  place?: string; // 장소
+  memo?: string; // 한줄 메모
 };
 
 export type AppState = {
@@ -27,6 +33,8 @@ export type AppState = {
   brakePercents: number[]; // 브레이크 임계값(주량 대비 %). 각 지점에서 인지게이트 발동
   repeatEveryDrinks: number; // 100% 초과 후 N잔마다 인지게이트
   onboarded: boolean; // 첫 실행 설정 완료 여부
+  unit: DrinkUnit; // 카운트 단위 (잔/병/캔)
+  cigs: number; // 현재 술자리 흡연 개비
 };
 
 export const DEFAULT_STATE: AppState = {
@@ -44,6 +52,8 @@ export const DEFAULT_STATE: AppState = {
   brakePercents: [60, 80],
   repeatEveryDrinks: 3,
   onboarded: false,
+  unit: '잔',
+  cigs: 0,
 };
 
 const KEY = 'brakepoint:appState';

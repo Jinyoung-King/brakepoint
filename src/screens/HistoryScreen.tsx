@@ -35,13 +35,21 @@ export default function HistoryScreen() {
   const renderItem = ({ item }: { item: SessionRecord }) => {
     const over = item.count >= item.limit;
     const brake = !over && item.count >= item.limit * 0.8;
+    const u = item.unit ?? '잔';
+    const meta = [item.place, item.cigs ? `🚬 ${item.cigs}개비` : null].filter(Boolean).join('  ·  ');
     return (
       <View style={styles.row}>
-        <View>
+        <View style={styles.rowLeft}>
           <Text style={styles.rowCount}>
-            {item.count} <Text style={styles.rowLimit}>/ {item.limit}잔</Text>
+            {item.count}{' '}
+            <Text style={styles.rowLimit}>
+              / {item.limit}
+              {u}
+            </Text>
           </Text>
           <Text style={styles.rowDate}>{fmtDate(item.endedAt)}</Text>
+          {!!meta && <Text style={styles.rowMeta}>{meta}</Text>}
+          {!!item.memo && <Text style={styles.rowMemo}>“{item.memo}”</Text>}
         </View>
         {over ? (
           <View style={[styles.badge, styles.badgeOver]}>
@@ -113,7 +121,7 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     backgroundColor: '#fff',
     borderWidth: 1,
     borderColor: '#eee',
@@ -121,9 +129,12 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 16,
   },
+  rowLeft: { flex: 1, paddingRight: 12 },
   rowCount: { fontSize: 20, fontWeight: '700', color: '#222' },
   rowLimit: { fontSize: 14, fontWeight: '500', color: '#999' },
   rowDate: { fontSize: 13, color: '#888', marginTop: 2 },
+  rowMeta: { fontSize: 13, color: '#666', marginTop: 4 },
+  rowMemo: { fontSize: 13, color: '#444', marginTop: 3, fontStyle: 'italic' },
   badge: { paddingVertical: 4, paddingHorizontal: 10, borderRadius: 8 },
   badgeOver: { backgroundColor: '#fde0e0' },
   badgeBrake: { backgroundColor: '#fdeccf' },

@@ -7,6 +7,7 @@ import RootNavigator from './src/navigation/RootNavigator';
 import { navigationRef } from './src/navigation/navigationRef';
 import { AppStateProvider, useAppState } from './src/state/AppStateContext';
 import FakeCallController from './src/fakeCall/FakeCallController';
+import ErrorBoundary from './src/ErrorBoundary';
 
 // AsyncStorage 로드가 끝난 뒤에야 네비게이터를 띄운다
 // (onboarded 값이 정해져야 시작 화면을 올바르게 고를 수 있음)
@@ -16,7 +17,9 @@ function Root() {
   return (
     <NavigationContainer ref={navigationRef}>
       <FakeCallController />
-      <RootNavigator />
+      <ErrorBoundary>
+        <RootNavigator />
+      </ErrorBoundary>
       <StatusBar style="auto" />
     </NavigationContainer>
   );
