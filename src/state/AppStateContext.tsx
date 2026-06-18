@@ -13,7 +13,8 @@ type AppStateContextValue = {
   state: AppState;
   ready: boolean; // AsyncStorage 로드 완료 여부 (초기 깜빡임 방지)
   addDrink: () => void;
-  resetCount: () => void;
+  endSession: () => void; // 현재 술자리를 기록에 저장하고 잔수 초기화
+  clearHistory: () => void;
   setLimit: (limit: number) => void;
   setDrinkingMode: (on: boolean) => void;
   setDifficulty: (difficulty: Difficulty) => void;
@@ -45,7 +46,13 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     state,
     ready,
     addDrink: () => setState((s) => ({ ...s, count: s.count + 1 })),
-    resetCount: () => setState((s) => ({ ...s, count: 0 })),
+    endSession: () =>
+      setState((s) => {
+        if (s.count <= 0) return s;
+        const rec = { id: String(Date.now()), endedAt: Date.now(), count: s.count, limit: s.limit };
+        return { ...s, count: 0, history: [rec, ...s.history] };
+      }),
+    clearHistory: () => setState((s) => ({ ...s, history: [] })),
     setLimit: (limit) => setState((s) => ({ ...s, limit })),
     setDrinkingMode: (drinkingMode) => setState((s) => ({ ...s, drinkingMode })),
     setDifficulty: (difficulty) => setState((s) => ({ ...s, difficulty })),

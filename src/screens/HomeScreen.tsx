@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View, Pressable, Switch } from 'react-native';
+import { Alert, StyleSheet, Text, View, Pressable, Switch } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import type { RootStackParamList } from '../navigation/RootNavigator';
@@ -9,7 +9,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
 const THRESHOLD = 0.8; // 80% 인지 게이트 발동 지점
 
 export default function HomeScreen({ navigation }: Props) {
-  const { state, ready, addDrink, resetCount, setDrinkingMode } = useAppState();
+  const { state, ready, addDrink, endSession, setDrinkingMode } = useAppState();
 
   if (!ready) {
     return (
@@ -33,6 +33,17 @@ export default function HomeScreen({ navigation }: Props) {
   };
 
   const brakeCount = Math.ceil(limit * THRESHOLD);
+
+  const onEndSession = () => {
+    if (count <= 0) {
+      Alert.alert('기록할 잔이 없어요', '마신 잔이 0이라 기록하지 않아요.');
+      return;
+    }
+    Alert.alert('술자리 종료', `오늘 ${count}잔. 기록에 저장하고 잔수를 초기화할까요?`, [
+      { text: '취소', style: 'cancel' },
+      { text: '종료', onPress: endSession },
+    ]);
+  };
 
   return (
     <View style={styles.container}>
@@ -72,10 +83,13 @@ export default function HomeScreen({ navigation }: Props) {
         <Switch value={drinkingMode} onValueChange={setDrinkingMode} />
       </View>
 
-      {/* 보조: 초기화 / 설정 */}
+      {/* 보조: 종료 / 기록 / 설정 */}
       <View style={styles.footerRow}>
-        <Pressable onPress={resetCount} hitSlop={8}>
-          <Text style={styles.link}>잔수 초기화</Text>
+        <Pressable onPress={onEndSession} hitSlop={8}>
+          <Text style={styles.link}>술자리 종료</Text>
+        </Pressable>
+        <Pressable onPress={() => navigation.navigate('History')} hitSlop={8}>
+          <Text style={styles.link}>기록</Text>
         </Pressable>
         <Pressable onPress={() => navigation.navigate('Settings')} hitSlop={8}>
           <Text style={styles.link}>설정</Text>

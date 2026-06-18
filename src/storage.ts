@@ -10,12 +10,20 @@ export type FakeCallConfig = {
   periodMin: number; // 가짜 전화 주기(분)
 };
 
+export type SessionRecord = {
+  id: string;
+  endedAt: number; // 종료 시각 (epoch ms)
+  count: number; // 그 술자리에서 마신 잔수
+  limit: number; // 그때 설정돼 있던 한계
+};
+
 export type AppState = {
   limit: number; // 목표 한계 잔수 N
   count: number; // 현재 마신 잔수
   drinkingMode: boolean; // 음주모드 ON/OFF
   difficulty: Difficulty; // 인지 게이트 난이도
   fakeCall: FakeCallConfig; // 가짜 전화 설정
+  history: SessionRecord[]; // 종료된 술자리 기록 (최신순)
 };
 
 export const DEFAULT_STATE: AppState = {
@@ -29,6 +37,7 @@ export const DEFAULT_STATE: AppState = {
     photoUri: null,
     periodMin: 45,
   },
+  history: [],
 };
 
 const KEY = 'brakepoint:appState';
