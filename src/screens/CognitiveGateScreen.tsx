@@ -32,6 +32,7 @@ export default function CognitiveGateScreen({ navigation }: Props) {
   const [recallInput, setRecallInput] = useState('');
   const [wrong, setWrong] = useState(false);
   const revealTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const recallRef = useRef<TextInput>(null);
 
   // 새 라운드 시작: 문제 생성 후 숫자 노출 → 일정 시간 뒤 입력 단계
   const newRound = useCallback(() => {
@@ -48,6 +49,7 @@ export default function CognitiveGateScreen({ navigation }: Props) {
   useEffect(() => {
     setAudioModeAsync({ playsInSilentMode: true }).catch(() => {});
     player.loop = true;
+    player.volume = 1.0;
     player.play();
     Vibration.vibrate(VIBRATION_PATTERN, true);
     newRound();
@@ -66,15 +68,22 @@ export default function CognitiveGateScreen({ navigation }: Props) {
     return () => sub.remove();
   }, []);
 
-  const submit = () => {
-    const mathOk = mathInput.trim() !== '' && Number(mathInput) === math.answer;
-    const recallOk = recallInput.trim() === secret;
+  // 값을 인자로 받아 평가 (자동 제출 시 setState 반영 전 값으로도 정확히 판정)
+  const evaluate = (mathVal: string, recallVal: string) => {
+    const mathOk = mathVal.trim() !== '' && Number(mathVal) === math.answer;
+    const recallOk = recallVal.trim() === secret;
     if (mathOk && recallOk) {
       navigation.goBack(); // 언마운트되며 알람 정리됨
     } else {
       setWrong(true);
       newRound(); // 틀리면 새 문제로 계속
     }
+  };
+
+  // 4자리 다 입력되고 산수도 채워졌으면 자동 제출
+  const onRecallChange = (t: string) => {
+    setRecallInput(t);
+    if (t.length === 4 && mathInput.trim() !== '') evaluate(mathInput, t);
   };
 
   if (phase === 'reveal') {
@@ -101,25 +110,30 @@ export default function CognitiveGateScreen({ navigation }: Props) {
           placeholder="답"
           placeholderTextColor="#777"
           autoFocus
+          returnKeyType="next"
+          onSubmitEditing={() => recallRef.current?.focus()}
         />
       </View>
 
       <View style={styles.block}>
         <Text style={styles.label}>아까 본 4자리 숫자</Text>
         <TextInput
+          ref={recallRef}
           style={styles.input}
           keyboardType="number-pad"
           value={recallInput}
-          onChangeText={setRecallInput}
+          onChangeText={onRecallChange}
           placeholder="0000"
           placeholderTextColor="#777"
           maxLength={4}
+          returnKeyType="done"
+          onSubmitEditing={() => evaluate(mathInput, recallInput)}
         />
       </View>
 
       {wrong && <Text style={styles.wrong}>틀렸어요. 새 문제로 다시.</Text>}
 
-      <Pressable style={styles.submitBtn} onPress={submit}>
+      <Pressable style={styles.submitBtn} onPress={() => evaluate(mathInput, recallInput)}>
         <Text style={styles.submitText}>해제</Text>
       </Pressable>
     </View>

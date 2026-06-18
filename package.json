@@ -11,7 +11,7 @@
     "expo-audio": "~56.0.12",
     "expo-device": "~56.0.4",
     "expo-image-picker": "~56.0.18",
-    "expo-notifications": "~56.0.18",
+    "expo-intent-launcher": "~56.0.4",
     "expo-status-bar": "~56.0.4",
     "react": "19.2.3",
     "react-native": "0.85.3",

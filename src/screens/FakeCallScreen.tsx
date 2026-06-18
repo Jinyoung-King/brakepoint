@@ -29,6 +29,7 @@ export default function FakeCallScreen({ navigation }: Props) {
   useEffect(() => {
     setAudioModeAsync({ playsInSilentMode: true }).catch(() => {});
     player.loop = true;
+    player.volume = 1.0;
     player.play();
     Vibration.vibrate(RING_VIBRATION, true);
     return () => {

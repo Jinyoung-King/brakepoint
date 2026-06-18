@@ -32,24 +32,31 @@ export default function HomeScreen({ navigation }: Props) {
     }
   };
 
+  const brakeCount = Math.ceil(limit * THRESHOLD);
+
   return (
     <View style={styles.container}>
-      {/* 한계 / 현재 잔수 */}
+      {/* 현재 잔수 */}
       <View style={styles.counterBlock}>
-        <Text style={styles.countBig}>{count}</Text>
-        <Text style={styles.muted}>한계 {limit}잔</Text>
+        <View style={styles.countRow}>
+          <Text style={[styles.countBig, overThreshold && styles.countOver]}>{count}</Text>
+          <Text style={styles.countLimit}> / {limit}잔</Text>
+        </View>
+        <Text style={styles.muted}>오늘 마신 잔</Text>
       </View>
 
-      {/* 진행률 바 (80% 빨간선) */}
-      <View style={styles.track}>
-        <View
-          style={[styles.fill, { width: `${pct * 100}%` }, overThreshold && styles.fillOver]}
-        />
-        <View style={[styles.thresholdLine, { left: `${THRESHOLD * 100}%` }]} />
+      {/* 진행률 카드 (80% 빨간선) */}
+      <View style={styles.card}>
+        <View style={styles.track}>
+          <View
+            style={[styles.fill, { width: `${pct * 100}%` }, overThreshold && styles.fillOver]}
+          />
+          <View style={[styles.thresholdLine, { left: `${THRESHOLD * 100}%` }]} />
+        </View>
+        <Text style={[styles.brakeText, overThreshold && styles.warnText]}>
+          {overThreshold ? '⚠️ 브레이크 구간 (80% 초과)' : `${brakeCount}잔에서 브레이크 (80%)`}
+        </Text>
       </View>
-      <Text style={[styles.muted, overThreshold && styles.warnText]}>
-        {overThreshold ? '브레이크 구간 (80% 초과)' : `80%에서 브레이크 (${Math.ceil(limit * THRESHOLD)}잔)`}
-      </Text>
 
       {/* +1잔 */}
       <Pressable style={styles.addBtn} onPress={onAddDrink}>
@@ -57,8 +64,11 @@ export default function HomeScreen({ navigation }: Props) {
       </Pressable>
 
       {/* 음주모드 토글 */}
-      <View style={styles.row}>
-        <Text style={styles.rowLabel}>음주모드</Text>
+      <View style={styles.modeCard}>
+        <View style={styles.modeText}>
+          <Text style={styles.modeTitle}>음주모드</Text>
+          <Text style={styles.muted}>켜면 주기마다 가짜 전화가 와요</Text>
+        </View>
         <Switch value={drinkingMode} onValueChange={setDrinkingMode} />
       </View>
 
@@ -76,11 +86,15 @@ export default function HomeScreen({ navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, paddingHorizontal: 24, paddingTop: 48, alignItems: 'center', gap: 24 },
+  container: { flex: 1, paddingHorizontal: 24, paddingTop: 32, alignItems: 'center', gap: 24 },
   counterBlock: { alignItems: 'center', gap: 4 },
-  countBig: { fontSize: 72, fontWeight: '800' },
-  muted: { fontSize: 15, color: '#666' },
-  warnText: { color: '#d12c2c', fontWeight: '600' },
+  countRow: { flexDirection: 'row', alignItems: 'baseline' },
+  countBig: { fontSize: 80, fontWeight: '800', color: '#222' },
+  countOver: { color: '#d12c2c' },
+  countLimit: { fontSize: 24, fontWeight: '600', color: '#999' },
+  muted: { fontSize: 14, color: '#888' },
+  warnText: { color: '#d12c2c', fontWeight: '700' },
+  card: { width: '100%', gap: 10 },
   track: {
     width: '100%',
     height: 24,
@@ -92,16 +106,27 @@ const styles = StyleSheet.create({
   fill: { position: 'absolute', left: 0, top: 0, bottom: 0, backgroundColor: '#3a7afe' },
   fillOver: { backgroundColor: '#d12c2c' },
   thresholdLine: { position: 'absolute', top: 0, bottom: 0, width: 2, backgroundColor: '#d12c2c' },
+  brakeText: { fontSize: 14, color: '#888', textAlign: 'center' },
   addBtn: {
+    width: '100%',
     backgroundColor: '#222',
-    paddingVertical: 18,
-    paddingHorizontal: 48,
+    paddingVertical: 20,
     borderRadius: 16,
-    marginTop: 8,
+    alignItems: 'center',
   },
   addBtnText: { color: '#fff', fontSize: 24, fontWeight: '700' },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  rowLabel: { fontSize: 17 },
+  modeCard: {
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#f5f5f7',
+    borderRadius: 14,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+  },
+  modeText: { gap: 2 },
+  modeTitle: { fontSize: 17, fontWeight: '600', color: '#222' },
   footerRow: { flexDirection: 'row', gap: 28, marginTop: 'auto', marginBottom: 32 },
   link: { fontSize: 15, color: '#3a7afe' },
 });

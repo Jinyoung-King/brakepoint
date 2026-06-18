@@ -1,10 +1,14 @@
 import { useState } from 'react';
-import { Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Image, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 
 import { useAppState } from '../state/AppStateContext';
 import type { Difficulty } from '../storage';
-import { ensureNotificationSetup, triggerTestCall } from '../fakeCall/notifications';
+import {
+  ensureNotificationSetup,
+  openFullScreenIntentSettings,
+  triggerTestCall,
+} from '../fakeCall/notifications';
 
 const DIFFICULTIES: { key: Difficulty; label: string }[] = [
   { key: 'easy', label: '쉬움' },
@@ -136,6 +140,17 @@ export default function SettingsScreen() {
         >
           <Text style={styles.testBtnText}>지금 테스트 (8초 후 — 화면 잠가보세요)</Text>
         </Pressable>
+
+        {Platform.OS === 'android' && (
+          <>
+            <Pressable style={styles.permBtn} onPress={openFullScreenIntentSettings}>
+              <Text style={styles.permBtnText}>전체 화면 알림 허용 (Android 14+)</Text>
+            </Pressable>
+            <Text style={styles.help}>
+              잠금화면 위로 통화가 안 뜨고 해제해야 보이면, 위 버튼에서 "전체 화면 알림"을 켜주세요.
+            </Text>
+          </>
+        )}
       </View>
     </ScrollView>
   );
@@ -181,4 +196,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   testBtnText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  permBtn: {
+    marginTop: 8,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#3a7afe',
+    alignItems: 'center',
+  },
+  permBtnText: { color: '#3a7afe', fontSize: 15, fontWeight: '600' },
 });

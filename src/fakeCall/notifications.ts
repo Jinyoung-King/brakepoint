@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 import notifee, {
   AndroidCategory,
   AndroidImportance,
@@ -6,10 +7,26 @@ import notifee, {
   TriggerType,
   type Notification,
 } from '@notifee/react-native';
+import * as IntentLauncher from 'expo-intent-launcher';
 
 import type { FakeCallConfig } from '../storage';
 
 export const FAKE_CALL_CHANNEL = 'fake-call';
+const PACKAGE_NAME = 'kr.co.cruxdata.brakepoint'; // app.json android.package
+
+// Android 14+는 USE_FULL_SCREEN_INTENT가 기본 차단이라 사용자가 직접 켜야 함.
+// 해당 설정 화면으로 보냄. (실패 시 일반 알림 설정으로 폴백)
+export async function openFullScreenIntentSettings(): Promise<void> {
+  if (Platform.OS !== 'android') return;
+  try {
+    await IntentLauncher.startActivityAsync(
+      'android.settings.MANAGE_APP_USE_FULL_SCREEN_INTENT',
+      { data: `package:${PACKAGE_NAME}` }
+    );
+  } catch {
+    await notifee.openNotificationSettings();
+  }
+}
 const FAKE_CALL_NOTIF_ID = 'fake-call'; // 고정 ID로 중복 방지/취소 용이
 
 // 권한 + 통화용 채널 준비. 권한 허용 여부 반환.
