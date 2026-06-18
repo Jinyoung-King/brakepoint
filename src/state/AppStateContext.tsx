@@ -19,6 +19,9 @@ type AppStateContextValue = {
   setDrinkingMode: (on: boolean) => void;
   setDifficulty: (difficulty: Difficulty) => void;
   updateFakeCall: (patch: Partial<FakeCallConfig>) => void;
+  setBrakePercents: (percents: number[]) => void;
+  setRepeatEveryDrinks: (n: number) => void;
+  completeOnboarding: () => void;
 };
 
 const AppStateContext = createContext<AppStateContextValue | null>(null);
@@ -57,6 +60,9 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     setDrinkingMode: (drinkingMode) => setState((s) => ({ ...s, drinkingMode })),
     setDifficulty: (difficulty) => setState((s) => ({ ...s, difficulty })),
     updateFakeCall: (patch) => setState((s) => ({ ...s, fakeCall: { ...s.fakeCall, ...patch } })),
+    setBrakePercents: (brakePercents) => setState((s) => ({ ...s, brakePercents })),
+    setRepeatEveryDrinks: (repeatEveryDrinks) => setState((s) => ({ ...s, repeatEveryDrinks })),
+    completeOnboarding: () => setState((s) => ({ ...s, onboarded: true })),
   };
 
   return <AppStateContext.Provider value={value}>{children}</AppStateContext.Provider>;

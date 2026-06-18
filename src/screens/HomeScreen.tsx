@@ -1,4 +1,5 @@
 import { Alert, StyleSheet, Text, View, Pressable, Switch } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import type { RootStackParamList } from '../navigation/RootNavigator';
@@ -6,33 +7,30 @@ import { useAppState } from '../state/AppStateContext';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
 
-const THRESHOLD = 0.8; // 80% 인지 게이트 발동 지점
-
 export default function HomeScreen({ navigation }: Props) {
-  const { state, ready, addDrink, endSession, setDrinkingMode } = useAppState();
+  const { state, addDrink, endSession, setDrinkingMode } = useAppState();
+  const insets = useSafeAreaInsets();
 
-  if (!ready) {
-    return (
-      <View style={styles.container}>
-        <Text style={styles.muted}>불러오는 중…</Text>
-      </View>
-    );
-  }
-
-  const { limit, count, drinkingMode } = state;
+  const { limit, count, drinkingMode, brakePercents, repeatEveryDrinks } = state;
   const pct = limit > 0 ? Math.min(count / limit, 1) : 0;
-  const thresholdCount = limit * THRESHOLD;
-  const overThreshold = limit > 0 && count >= thresholdCount;
+  const brakeCounts = brakePercents.map((p) => Math.ceil((limit * p) / 100));
+  const firstBrake = brakeCounts.length ? Math.min(...brakeCounts) : Infinity;
+  const overLimit = limit > 0 && count >= limit;
+  const inBrake = limit > 0 && count >= firstBrake;
 
-  // +1잔: 80% 선을 '넘는 순간'에만 인지 게이트 발동 (이미 넘었으면 재발동 안 함)
-  const onAddDrink = () => {
-    addDrink();
-    if (limit > 0 && count < thresholdCount && count + 1 >= thresholdCount) {
-      navigation.navigate('CognitiveGate');
-    }
+  // 이번 잔으로 어떤 브레이크 지점에 '도달'했으면 인지게이트 발동
+  const shouldTrigger = (n: number) => {
+    if (limit <= 0) return false;
+    const hitFixed = brakeCounts.includes(n);
+    const repeat = n >= limit && (n - limit) % Math.max(1, repeatEveryDrinks) === 0;
+    return hitFixed || repeat;
   };
 
-  const brakeCount = Math.ceil(limit * THRESHOLD);
+  const onAddDrink = () => {
+    const next = count + 1;
+    addDrink();
+    if (shouldTrigger(next)) navigation.navigate('CognitiveGate');
+  };
 
   const onEndSession = () => {
     if (count <= 0) {
@@ -45,28 +43,32 @@ export default function HomeScreen({ navigation }: Props) {
     ]);
   };
 
+  const brakeText = overLimit
+    ? `⚠️ 한계 초과 — 이후 ${repeatEveryDrinks}잔마다 알람`
+    : inBrake
+      ? '⚠️ 브레이크 구간'
+      : `브레이크 ${brakePercents.join('·')}% (${brakeCounts.join('·')}잔)`;
+
   return (
     <View style={styles.container}>
       {/* 현재 잔수 */}
       <View style={styles.counterBlock}>
         <View style={styles.countRow}>
-          <Text style={[styles.countBig, overThreshold && styles.countOver]}>{count}</Text>
+          <Text style={[styles.countBig, inBrake && styles.countOver]}>{count}</Text>
           <Text style={styles.countLimit}> / {limit}잔</Text>
         </View>
         <Text style={styles.muted}>오늘 마신 잔</Text>
       </View>
 
-      {/* 진행률 카드 (80% 빨간선) */}
+      {/* 진행률 카드 (브레이크 지점마다 빨간선) */}
       <View style={styles.card}>
         <View style={styles.track}>
-          <View
-            style={[styles.fill, { width: `${pct * 100}%` }, overThreshold && styles.fillOver]}
-          />
-          <View style={[styles.thresholdLine, { left: `${THRESHOLD * 100}%` }]} />
+          <View style={[styles.fill, { width: `${pct * 100}%` }, inBrake && styles.fillOver]} />
+          {brakePercents.map((p) => (
+            <View key={p} style={[styles.thresholdLine, { left: `${Math.min(p, 100)}%` }]} />
+          ))}
         </View>
-        <Text style={[styles.brakeText, overThreshold && styles.warnText]}>
-          {overThreshold ? '⚠️ 브레이크 구간 (80% 초과)' : `${brakeCount}잔에서 브레이크 (80%)`}
-        </Text>
+        <Text style={[styles.brakeText, inBrake && styles.warnText]}>{brakeText}</Text>
       </View>
 
       {/* +1잔 */}
@@ -84,7 +86,7 @@ export default function HomeScreen({ navigation }: Props) {
       </View>
 
       {/* 보조: 종료 / 기록 / 설정 */}
-      <View style={styles.footerRow}>
+      <View style={[styles.footerRow, { marginBottom: insets.bottom + 16 }]}>
         <Pressable onPress={onEndSession} hitSlop={8}>
           <Text style={styles.link}>술자리 종료</Text>
         </Pressable>
@@ -141,6 +143,6 @@ const styles = StyleSheet.create({
   },
   modeText: { gap: 2 },
   modeTitle: { fontSize: 17, fontWeight: '600', color: '#222' },
-  footerRow: { flexDirection: 'row', gap: 28, marginTop: 'auto', marginBottom: 32 },
+  footerRow: { flexDirection: 'row', gap: 28, marginTop: 'auto' },
   link: { fontSize: 15, color: '#3a7afe' },
 });

@@ -5,6 +5,8 @@ import SettingsScreen from '../screens/SettingsScreen';
 import CognitiveGateScreen from '../screens/CognitiveGateScreen';
 import FakeCallScreen from '../screens/FakeCallScreen';
 import HistoryScreen from '../screens/HistoryScreen';
+import OnboardingScreen from '../screens/OnboardingScreen';
+import { useAppState } from '../state/AppStateContext';
 
 // 앱 전역 라우트 정의. 화면이 받을 파라미터가 생기면 여기서 타입 확장.
 export type RootStackParamList = {
@@ -13,13 +15,21 @@ export type RootStackParamList = {
   CognitiveGate: undefined;
   FakeCall: undefined;
   History: undefined;
+  Onboarding: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export default function RootNavigator() {
+  const { state } = useAppState();
+
   return (
-    <Stack.Navigator initialRouteName="Home">
+    <Stack.Navigator initialRouteName={state.onboarded ? 'Home' : 'Onboarding'}>
+      <Stack.Screen
+        name="Onboarding"
+        component={OnboardingScreen}
+        options={{ headerShown: false, gestureEnabled: false }}
+      />
       <Stack.Screen name="Home" component={HomeScreen} options={{ title: 'brakepoint' }} />
       <Stack.Screen name="Settings" component={SettingsScreen} options={{ title: '설정' }} />
       <Stack.Screen name="History" component={HistoryScreen} options={{ title: '기록' }} />

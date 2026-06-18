@@ -17,12 +17,19 @@ const DIFFICULTIES: { key: Difficulty; label: string }[] = [
 ];
 
 export default function SettingsScreen() {
-  const { state, setLimit, setDifficulty, updateFakeCall } = useAppState();
-  const { limit, difficulty, fakeCall } = state;
+  const { state, setLimit, setDifficulty, updateFakeCall, setBrakePercents, setRepeatEveryDrinks } =
+    useAppState();
+  const { limit, difficulty, fakeCall, brakePercents, repeatEveryDrinks } = state;
+
+  const brake1 = brakePercents[0] ?? 60;
+  const brake2 = brakePercents[1] ?? 80;
 
   // 숫자 입력은 로컬 문자열로 두고 유효할 때만 커밋 (지우는 도중 0 강제 방지)
   const [limitText, setLimitText] = useState(String(limit));
   const [periodText, setPeriodText] = useState(String(fakeCall.periodMin));
+  const [brake1Text, setBrake1Text] = useState(String(brake1));
+  const [brake2Text, setBrake2Text] = useState(String(brake2));
+  const [repeatText, setRepeatText] = useState(String(repeatEveryDrinks));
 
   const onLimitChange = (t: string) => {
     setLimitText(t);
@@ -33,6 +40,18 @@ export default function SettingsScreen() {
     setPeriodText(t);
     const n = parseInt(t, 10);
     if (Number.isFinite(n) && n >= 1) updateFakeCall({ periodMin: n });
+  };
+  const onBrakeChange = (which: 0 | 1) => (t: string) => {
+    (which === 0 ? setBrake1Text : setBrake2Text)(t);
+    const n = parseInt(t, 10);
+    if (Number.isFinite(n) && n >= 1 && n <= 100) {
+      setBrakePercents(which === 0 ? [n, brake2] : [brake1, n]);
+    }
+  };
+  const onRepeatChange = (t: string) => {
+    setRepeatText(t);
+    const n = parseInt(t, 10);
+    if (Number.isFinite(n) && n >= 1) setRepeatEveryDrinks(n);
   };
 
   const pickPhoto = async () => {
@@ -57,7 +76,47 @@ export default function SettingsScreen() {
           onChangeText={onLimitChange}
           placeholder="5"
         />
-        <Text style={styles.help}>80%인 {Math.ceil(limit * 0.8)}잔에서 브레이크가 걸립니다.</Text>
+        <Text style={styles.help}>설정한 브레이크 %에서 인지 게이트가 발동합니다.</Text>
+      </View>
+
+      {/* 브레이크 지점 */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>브레이크 지점</Text>
+        <View style={styles.brakeRow}>
+          <View style={styles.brakeCol}>
+            <Text style={styles.label}>1차 (%)</Text>
+            <TextInput
+              style={styles.input}
+              keyboardType="number-pad"
+              value={brake1Text}
+              onChangeText={onBrakeChange(0)}
+              placeholder="60"
+            />
+            <Text style={styles.help}>{Math.ceil((limit * brake1) / 100)}잔</Text>
+          </View>
+          <View style={styles.brakeCol}>
+            <Text style={styles.label}>2차 (%)</Text>
+            <TextInput
+              style={styles.input}
+              keyboardType="number-pad"
+              value={brake2Text}
+              onChangeText={onBrakeChange(1)}
+              placeholder="80"
+            />
+            <Text style={styles.help}>{Math.ceil((limit * brake2) / 100)}잔</Text>
+          </View>
+        </View>
+        <Text style={styles.label}>한계 초과 후 반복 (몇 잔마다)</Text>
+        <TextInput
+          style={styles.input}
+          keyboardType="number-pad"
+          value={repeatText}
+          onChangeText={onRepeatChange}
+          placeholder="3"
+        />
+        <Text style={styles.help}>
+          1차·2차에서 한 번씩, 한계({limit}잔) 초과 후엔 {repeatEveryDrinks}잔마다 인지 게이트가 뜹니다.
+        </Text>
       </View>
 
       {/* 난이도 */}
@@ -170,6 +229,8 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     fontSize: 17,
   },
+  brakeRow: { flexDirection: 'row', gap: 12 },
+  brakeCol: { flex: 1, gap: 6 },
   segment: { flexDirection: 'row', gap: 8 },
   segmentItem: {
     flex: 1,

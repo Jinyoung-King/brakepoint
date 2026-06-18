@@ -24,6 +24,9 @@ export type AppState = {
   difficulty: Difficulty; // 인지 게이트 난이도
   fakeCall: FakeCallConfig; // 가짜 전화 설정
   history: SessionRecord[]; // 종료된 술자리 기록 (최신순)
+  brakePercents: number[]; // 브레이크 임계값(주량 대비 %). 각 지점에서 인지게이트 발동
+  repeatEveryDrinks: number; // 100% 초과 후 N잔마다 인지게이트
+  onboarded: boolean; // 첫 실행 설정 완료 여부
 };
 
 export const DEFAULT_STATE: AppState = {
@@ -38,6 +41,9 @@ export const DEFAULT_STATE: AppState = {
     periodMin: 45,
   },
   history: [],
+  brakePercents: [60, 80],
+  repeatEveryDrinks: 3,
+  onboarded: false,
 };
 
 const KEY = 'brakepoint:appState';
