@@ -21,6 +21,7 @@ type AppStateContextValue = {
   setDrinkingMode: (on: boolean) => void;
   setDifficulty: (difficulty: Difficulty) => void;
   setUnit: (unit: DrinkUnit) => void;
+  setCalendarSync: (on: boolean) => void;
   updateFakeCall: (patch: Partial<FakeCallConfig>) => void;
   setBrakePercents: (percents: number[]) => void;
   setRepeatEveryDrinks: (n: number) => void;
@@ -73,6 +74,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     setDrinkingMode: (drinkingMode) => setState((s) => ({ ...s, drinkingMode })),
     setDifficulty: (difficulty) => setState((s) => ({ ...s, difficulty })),
     setUnit: (unit) => setState((s) => ({ ...s, unit })),
+    setCalendarSync: (calendarSync) => setState((s) => ({ ...s, calendarSync })),
     updateFakeCall: (patch) => setState((s) => ({ ...s, fakeCall: { ...s.fakeCall, ...patch } })),
     setBrakePercents: (brakePercents) => setState((s) => ({ ...s, brakePercents })),
     setRepeatEveryDrinks: (repeatEveryDrinks) => setState((s) => ({ ...s, repeatEveryDrinks })),

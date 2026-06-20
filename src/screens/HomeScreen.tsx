@@ -5,16 +5,28 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import type { RootStackParamList } from '../navigation/RootNavigator';
 import { useAppState } from '../state/AppStateContext';
+import { useMorningSchedule } from '../calendar/useMorningSchedule';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
+
+const fmtTime = (ms: number) => {
+  const d = new Date(ms);
+  return `${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`;
+};
 
 export default function HomeScreen({ navigation }: Props) {
   const { state, addDrink, addCig, endSession, setDrinkingMode } = useAppState();
   const insets = useSafeAreaInsets();
 
-  const { limit, count, cigs, unit, drinkingMode, brakePercents, repeatEveryDrinks } = state;
+  const { limit, count, cigs, unit, drinkingMode, brakePercents, repeatEveryDrinks, calendarSync } =
+    state;
+
+  // 내일 아침 일정이 있으면 브레이크를 10%p 강화
+  const morning = useMorningSchedule(calendarSync);
+  const effPercents = morning ? brakePercents.map((p) => Math.max(20, p - 10)) : brakePercents;
+
   const pct = limit > 0 ? Math.min(count / limit, 1) : 0;
-  const brakeCounts = brakePercents.map((p) => Math.ceil((limit * p) / 100));
+  const brakeCounts = effPercents.map((p) => Math.ceil((limit * p) / 100));
   const firstBrake = brakeCounts.length ? Math.min(...brakeCounts) : Infinity;
   const overLimit = limit > 0 && count >= limit;
   const inBrake = limit > 0 && count >= firstBrake;
@@ -55,10 +67,19 @@ export default function HomeScreen({ navigation }: Props) {
     ? `⚠️ 한계 초과 — 이후 ${repeatEveryDrinks}${unit}마다 알람`
     : inBrake
       ? '⚠️ 브레이크 구간'
-      : `브레이크 ${brakePercents.join('·')}% (${brakeCounts.join('·')}${unit})`;
+      : `브레이크 ${effPercents.join('·')}% (${brakeCounts.join('·')}${unit})`;
 
   return (
     <View style={styles.container}>
+      {/* 내일 아침 일정 경고 */}
+      {morning && (
+        <View style={styles.scheduleBanner}>
+          <Text style={styles.scheduleText}>
+            📅 내일 {fmtTime(morning.startMs)} {morning.title} — 오늘은 적당히! (브레이크 강화됨)
+          </Text>
+        </View>
+      )}
+
       {/* 현재 잔수 */}
       <View style={styles.counterBlock}>
         <View style={styles.countRow}>
@@ -157,7 +178,15 @@ export default function HomeScreen({ navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, paddingHorizontal: 24, paddingTop: 32, alignItems: 'center', gap: 20 },
+  container: { flex: 1, paddingHorizontal: 24, paddingTop: 24, alignItems: 'center', gap: 18 },
+  scheduleBanner: {
+    width: '100%',
+    backgroundColor: '#fdeccf',
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+  },
+  scheduleText: { fontSize: 13, color: '#8a5a00', fontWeight: '600' },
   counterBlock: { alignItems: 'center', gap: 4 },
   countRow: { flexDirection: 'row', alignItems: 'baseline' },
   countBig: { fontSize: 76, fontWeight: '800', color: '#222' },

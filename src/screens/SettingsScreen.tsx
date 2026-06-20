@@ -1,5 +1,15 @@
 import { useState } from 'react';
-import { Image, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import {
+  Image,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 
 import { useAppState } from '../state/AppStateContext';
@@ -27,8 +37,10 @@ export default function SettingsScreen() {
     setBrakePercents,
     setRepeatEveryDrinks,
     setUnit,
+    setCalendarSync,
   } = useAppState();
-  const { limit, difficulty, fakeCall, brakePercents, repeatEveryDrinks, unit } = state;
+  const { limit, difficulty, fakeCall, brakePercents, repeatEveryDrinks, unit, calendarSync } =
+    state;
 
   const brake1 = brakePercents[0] ?? 60;
   const brake2 = brakePercents[1] ?? 80;
@@ -168,6 +180,17 @@ export default function SettingsScreen() {
         </View>
       </View>
 
+      {/* 일정 연동 */}
+      <View style={styles.section}>
+        <View style={styles.toggleRow}>
+          <Text style={styles.sectionTitle}>다음날 일정 연동</Text>
+          <Switch value={calendarSync} onValueChange={setCalendarSync} />
+        </View>
+        <Text style={styles.help}>
+          켜면 캘린더에서 내일 정오 이전 일정을 확인해, 일정이 있으면 브레이크를 10%p 강화합니다.
+        </Text>
+      </View>
+
       {/* 가짜 전화 */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>가짜 전화 발신자</Text>
@@ -257,6 +280,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     fontSize: 17,
   },
+  toggleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   brakeRow: { flexDirection: 'row', gap: 12 },
   brakeCol: { flex: 1, gap: 6 },
   segment: { flexDirection: 'row', gap: 8 },

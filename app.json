@@ -37,6 +37,12 @@
           "enableBackgroundPlayback": false
         }
       ],
+      [
+        "expo-calendar",
+        {
+          "calendarPermission": "다음날 일정을 확인해 음주 페이스를 조절하는 데 사용해요."
+        }
+      ],
       "./plugins/withFullScreenIntent"
     ],
     "extra": {

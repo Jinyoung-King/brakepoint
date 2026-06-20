@@ -35,6 +35,7 @@ export type AppState = {
   onboarded: boolean; // 첫 실행 설정 완료 여부
   unit: DrinkUnit; // 카운트 단위 (잔/병/캔)
   cigs: number; // 현재 술자리 흡연 개비
+  calendarSync: boolean; // 다음날 일정 연동(브레이크 강화)
 };
 
 export const DEFAULT_STATE: AppState = {
@@ -54,6 +55,7 @@ export const DEFAULT_STATE: AppState = {
   onboarded: false,
   unit: '잔',
   cigs: 0,
+  calendarSync: true,
 };
 
 const KEY = 'brakepoint:appState';

@@ -1,7 +1,10 @@
 const { withAndroidManifest, AndroidConfig } = require('@expo/config-plugins');
 
 // 라이브러리(expo-image-picker 등)가 매니페스트 머지로 끌고 오는 불필요 권한.
-const REMOVE_PERMISSIONS = ['android.permission.RECORD_AUDIO'];
+const REMOVE_PERMISSIONS = [
+  'android.permission.RECORD_AUDIO',
+  'android.permission.WRITE_CALENDAR', // 읽기만 사용
+];
 
 // 1) MainActivity가 잠금화면 위에서 표시되고 화면을 켜도록 속성 추가
 //    (notifee fullScreenAction이 이 액티비티를 잠금화면 위로 띄움)

@@ -9,6 +9,7 @@
     "@react-navigation/native-stack": "^7.17.5",
     "expo": "~56.0.12",
     "expo-audio": "~56.0.12",
+    "expo-calendar": "~56.0.8",
     "expo-device": "~56.0.4",
     "expo-image-picker": "~56.0.18",
     "expo-intent-launcher": "~56.0.4",
