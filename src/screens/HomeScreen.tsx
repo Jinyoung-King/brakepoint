@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Alert, Modal, StyleSheet, Text, TextInput, View, Pressable, Switch } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -6,7 +6,8 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/RootNavigator';
 import { useAppState } from '../state/AppStateContext';
 import { useMorningSchedule } from '../calendar/useMorningSchedule';
-import { colors, radius } from '../theme';
+import { radius, type Palette } from '../theme';
+import { useColors } from '../useColors';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
 
@@ -18,6 +19,8 @@ const fmtTime = (ms: number) => {
 export default function HomeScreen({ navigation }: Props) {
   const { state, addDrink, addCig, endSession, setDrinkingMode } = useAppState();
   const insets = useSafeAreaInsets();
+  const c = useColors();
+  const styles = useMemo(() => makeStyles(c), [c]);
 
   const { limit, count, cigs, unit, drinkingMode, brakePercents, repeatEveryDrinks, calendarSync } =
     state;
@@ -155,7 +158,7 @@ export default function HomeScreen({ navigation }: Props) {
               value={place}
               onChangeText={setPlace}
               placeholder="예: 연신내 물빛공원"
-              placeholderTextColor={colors.textFaint}
+              placeholderTextColor={c.textFaint}
             />
             <Text style={styles.label}>메모 (선택)</Text>
             <TextInput
@@ -163,7 +166,7 @@ export default function HomeScreen({ navigation }: Props) {
               value={memo}
               onChangeText={setMemo}
               placeholder="예: 비둘기 타다끼 맛있었음"
-              placeholderTextColor={colors.textFaint}
+              placeholderTextColor={c.textFaint}
             />
             <View style={styles.modalBtns}>
               <Pressable onPress={() => setEndOpen(false)} hitSlop={8}>
@@ -180,39 +183,39 @@ export default function HomeScreen({ navigation }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.bg, paddingHorizontal: 20, paddingTop: 20, alignItems: 'center', gap: 16 },
+const makeStyles = (c: Palette) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: c.bg, paddingHorizontal: 20, paddingTop: 20, alignItems: 'center', gap: 16 },
   scheduleBanner: {
     width: '100%',
-    backgroundColor: colors.amberBg,
+    backgroundColor: c.amberBg,
     borderRadius: radius.md,
     paddingVertical: 10,
     paddingHorizontal: 14,
   },
-  scheduleText: { fontSize: 13, color: colors.amber, fontWeight: '600' },
+  scheduleText: { fontSize: 13, color: c.amber, fontWeight: '600' },
   counterBlock: { alignItems: 'center', gap: 2, marginTop: 8 },
   countRow: { flexDirection: 'row', alignItems: 'baseline' },
-  countBig: { fontSize: 80, fontWeight: '800', color: colors.text },
-  countOver: { color: colors.red },
-  countLimit: { fontSize: 24, fontWeight: '600', color: colors.textFaint },
-  muted: { fontSize: 13, color: colors.textMuted },
-  warnText: { color: colors.red, fontWeight: '700' },
+  countBig: { fontSize: 80, fontWeight: '800', color: c.text },
+  countOver: { color: c.red },
+  countLimit: { fontSize: 24, fontWeight: '600', color: c.textFaint },
+  muted: { fontSize: 13, color: c.textMuted },
+  warnText: { color: c.red, fontWeight: '700' },
   card: { width: '100%', gap: 10 },
   track: {
     width: '100%',
     height: 22,
-    backgroundColor: colors.track,
+    backgroundColor: c.track,
     borderRadius: 11,
     overflow: 'hidden',
     position: 'relative',
   },
-  fill: { position: 'absolute', left: 0, top: 0, bottom: 0, backgroundColor: colors.blue, borderRadius: 11 },
-  fillOver: { backgroundColor: colors.red },
+  fill: { position: 'absolute', left: 0, top: 0, bottom: 0, backgroundColor: c.blue, borderRadius: 11 },
+  fillOver: { backgroundColor: c.red },
   thresholdLine: { position: 'absolute', top: 0, bottom: 0, width: 2, backgroundColor: '#fff', opacity: 0.5 },
-  brakeText: { fontSize: 13, color: colors.textMuted, textAlign: 'center' },
+  brakeText: { fontSize: 13, color: c.textMuted, textAlign: 'center' },
   addBtn: {
     width: '100%',
-    backgroundColor: colors.blue,
+    backgroundColor: c.blue,
     paddingVertical: 18,
     borderRadius: radius.lg,
     alignItems: 'center',
@@ -223,43 +226,43 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: colors.card,
+    backgroundColor: c.card,
     borderRadius: radius.md,
     paddingVertical: 12,
     paddingHorizontal: 16,
   },
-  cigText: { fontSize: 15, color: colors.text },
-  cigBtn: { backgroundColor: colors.cardAlt, paddingVertical: 7, paddingHorizontal: 18, borderRadius: radius.sm },
-  cigBtnText: { fontSize: 16, fontWeight: '700', color: colors.text },
+  cigText: { fontSize: 15, color: c.text },
+  cigBtn: { backgroundColor: c.cardAlt, paddingVertical: 7, paddingHorizontal: 18, borderRadius: radius.sm },
+  cigBtnText: { fontSize: 16, fontWeight: '700', color: c.text },
   modeCard: {
     width: '100%',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: colors.card,
+    backgroundColor: c.card,
     borderRadius: radius.md,
     paddingVertical: 14,
     paddingHorizontal: 16,
   },
   modeText: { gap: 2 },
-  modeTitle: { fontSize: 16, fontWeight: '600', color: colors.text },
+  modeTitle: { fontSize: 16, fontWeight: '600', color: c.text },
   footerRow: { flexDirection: 'row', gap: 28, marginTop: 'auto' },
-  link: { fontSize: 15, color: colors.blue },
+  link: { fontSize: 15, color: c.blue },
   modalBg: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', paddingHorizontal: 24 },
-  modalCard: { backgroundColor: colors.card, borderRadius: radius.lg, padding: 20, gap: 10, borderWidth: 1, borderColor: colors.border },
-  modalTitle: { fontSize: 19, fontWeight: '700', color: colors.text },
-  label: { fontSize: 13, color: colors.textMuted, marginTop: 4 },
+  modalCard: { backgroundColor: c.card, borderRadius: radius.lg, padding: 20, gap: 10, borderWidth: 1, borderColor: c.border },
+  modalTitle: { fontSize: 19, fontWeight: '700', color: c.text },
+  label: { fontSize: 13, color: c.textMuted, marginTop: 4 },
   input: {
     borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.cardAlt,
-    color: colors.text,
+    borderColor: c.border,
+    backgroundColor: c.cardAlt,
+    color: c.text,
     borderRadius: radius.sm,
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 16,
   },
   modalBtns: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 20, marginTop: 8 },
-  saveBtn: { backgroundColor: colors.blue, paddingVertical: 12, paddingHorizontal: 20, borderRadius: radius.sm },
+  saveBtn: { backgroundColor: c.blue, paddingVertical: 12, paddingHorizontal: 20, borderRadius: radius.sm },
   saveBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
 });

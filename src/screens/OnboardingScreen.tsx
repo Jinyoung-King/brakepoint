@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -6,7 +6,8 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/RootNavigator';
 import { useAppState } from '../state/AppStateContext';
 import type { DrinkUnit } from '../storage';
-import { colors, radius } from '../theme';
+import { radius, type Palette } from '../theme';
+import { useColors } from '../useColors';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Onboarding'>;
 
@@ -18,6 +19,8 @@ export default function OnboardingScreen({ navigation }: Props) {
     useAppState();
   const { limit, unit, brakePercents, fakeCall } = state;
   const insets = useSafeAreaInsets();
+  const c = useColors();
+  const styles = useMemo(() => makeStyles(c), [c]);
 
   const [step, setStep] = useState(0);
   const [limitText, setLimitText] = useState(String(limit));
@@ -76,7 +79,7 @@ export default function OnboardingScreen({ navigation }: Props) {
                 commitNum(t, setLimit);
               }}
               placeholder="5"
-              placeholderTextColor={colors.textFaint}
+              placeholderTextColor={c.textFaint}
             />
           </>
         )}
@@ -164,23 +167,23 @@ export default function OnboardingScreen({ navigation }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, paddingHorizontal: 24, backgroundColor: colors.bg },
+const makeStyles = (c: Palette) => StyleSheet.create({
+  container: { flex: 1, paddingHorizontal: 24, backgroundColor: c.bg },
   dots: { flexDirection: 'row', justifyContent: 'center', gap: 24, marginBottom: 8 },
   dotWrap: { alignItems: 'center', gap: 6 },
-  dot: { width: 10, height: 10, borderRadius: 5, backgroundColor: colors.border },
-  dotActive: { backgroundColor: colors.blue },
-  dotLabel: { fontSize: 12, color: colors.textFaint },
-  dotLabelActive: { color: colors.blue, fontWeight: '600' },
+  dot: { width: 10, height: 10, borderRadius: 5, backgroundColor: c.border },
+  dotActive: { backgroundColor: c.blue },
+  dotLabel: { fontSize: 12, color: c.textFaint },
+  dotLabelActive: { color: c.blue, fontWeight: '600' },
   body: { flex: 1, justifyContent: 'center', gap: 12 },
-  title: { fontSize: 26, fontWeight: '800', color: colors.text },
-  desc: { fontSize: 15, color: colors.textMuted, lineHeight: 21, marginBottom: 8 },
-  label: { fontSize: 13, color: colors.textMuted, marginTop: 4 },
+  title: { fontSize: 26, fontWeight: '800', color: c.text },
+  desc: { fontSize: 15, color: c.textMuted, lineHeight: 21, marginBottom: 8 },
+  label: { fontSize: 13, color: c.textMuted, marginTop: 4 },
   input: {
     borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.card,
-    color: colors.text,
+    borderColor: c.border,
+    backgroundColor: c.card,
+    color: c.text,
     borderRadius: radius.sm,
     paddingHorizontal: 14,
     paddingVertical: 12,
@@ -192,17 +195,17 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: radius.sm,
     borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.card,
+    borderColor: c.border,
+    backgroundColor: c.card,
     alignItems: 'center',
   },
-  segItemActive: { backgroundColor: colors.blue, borderColor: colors.blue },
-  segText: { fontSize: 16, color: colors.textMuted },
+  segItemActive: { backgroundColor: c.blue, borderColor: c.blue },
+  segText: { fontSize: 16, color: c.textMuted },
   segTextActive: { color: '#fff', fontWeight: '700' },
   row: { flexDirection: 'row', gap: 12 },
   col: { flex: 1, gap: 6 },
   nav: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  back: { fontSize: 16, color: colors.textMuted },
-  nextBtn: { backgroundColor: colors.blue, paddingVertical: 14, paddingHorizontal: 32, borderRadius: radius.md },
+  back: { fontSize: 16, color: c.textMuted },
+  nextBtn: { backgroundColor: c.blue, paddingVertical: 14, paddingHorizontal: 32, borderRadius: radius.md },
   nextText: { color: '#fff', fontSize: 17, fontWeight: '700' },
 });

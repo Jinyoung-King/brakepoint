@@ -12,6 +12,8 @@ export type FakeCallConfig = {
 
 export type DrinkUnit = '잔' | '병' | '캔';
 
+export type ThemeMode = 'dark' | 'light' | 'system';
+
 export type SessionRecord = {
   id: string;
   endedAt: number; // 종료 시각 (epoch ms)
@@ -36,6 +38,7 @@ export type AppState = {
   unit: DrinkUnit; // 카운트 단위 (잔/병/캔)
   cigs: number; // 현재 술자리 흡연 개비
   calendarSync: boolean; // 다음날 일정 연동(브레이크 강화)
+  theme: ThemeMode; // 앱 테마 (다크/라이트/시스템)
 };
 
 export const DEFAULT_STATE: AppState = {
@@ -56,6 +59,7 @@ export const DEFAULT_STATE: AppState = {
   unit: '잔',
   cigs: 0,
   calendarSync: true,
+  theme: 'dark',
 };
 
 const KEY = 'brakepoint:appState';

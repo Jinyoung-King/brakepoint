@@ -1,8 +1,10 @@
+import { useMemo } from 'react';
 import { Alert, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { useAppState } from '../state/AppStateContext';
 import type { SessionRecord } from '../storage';
-import { colors, radius } from '../theme';
+import { radius, type Palette } from '../theme';
+import { useColors } from '../useColors';
 
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
@@ -21,6 +23,8 @@ const mean = (rs: SessionRecord[]) =>
 export default function HistoryScreen() {
   const { state, clearHistory } = useAppState();
   const { history } = state;
+  const c = useColors();
+  const styles = useMemo(() => makeStyles(c), [c]);
 
   const total = history.length;
   const avg = mean(history);
@@ -105,42 +109,42 @@ export default function HistoryScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { padding: 20, gap: 12, backgroundColor: colors.bg, flexGrow: 1 },
+const makeStyles = (c: Palette) => StyleSheet.create({
+  container: { padding: 20, gap: 12, backgroundColor: c.bg, flexGrow: 1 },
   stats: { flexDirection: 'row', gap: 8, marginBottom: 8 },
   statBox: {
     flex: 1,
-    backgroundColor: colors.card,
+    backgroundColor: c.card,
     borderRadius: radius.md,
     paddingVertical: 14,
     alignItems: 'center',
     gap: 4,
   },
-  statNum: { fontSize: 24, fontWeight: '800', color: colors.text },
-  statNumWarn: { color: colors.red },
-  statLabel: { fontSize: 12, color: colors.textMuted },
+  statNum: { fontSize: 24, fontWeight: '800', color: c.text },
+  statNumWarn: { color: c.red },
+  statLabel: { fontSize: 12, color: c.textMuted },
   row: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    backgroundColor: colors.card,
+    backgroundColor: c.card,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: c.border,
     borderRadius: radius.md,
     paddingVertical: 14,
     paddingHorizontal: 16,
   },
   rowLeft: { flex: 1, paddingRight: 12 },
-  rowCount: { fontSize: 20, fontWeight: '700', color: colors.text },
-  rowLimit: { fontSize: 14, fontWeight: '500', color: colors.textFaint },
-  rowDate: { fontSize: 13, color: colors.textMuted, marginTop: 2 },
-  rowMeta: { fontSize: 13, color: colors.textMuted, marginTop: 4 },
-  rowMemo: { fontSize: 13, color: colors.text, marginTop: 3, fontStyle: 'italic' },
+  rowCount: { fontSize: 20, fontWeight: '700', color: c.text },
+  rowLimit: { fontSize: 14, fontWeight: '500', color: c.textFaint },
+  rowDate: { fontSize: 13, color: c.textMuted, marginTop: 2 },
+  rowMeta: { fontSize: 13, color: c.textMuted, marginTop: 4 },
+  rowMemo: { fontSize: 13, color: c.text, marginTop: 3, fontStyle: 'italic' },
   badge: { paddingVertical: 4, paddingHorizontal: 10, borderRadius: 8 },
-  badgeOver: { backgroundColor: colors.redBg },
-  badgeBrake: { backgroundColor: colors.amberBg },
-  badgeText: { fontSize: 12, fontWeight: '600', color: colors.text },
-  empty: { textAlign: 'center', color: colors.textMuted, fontSize: 15, marginTop: 40, lineHeight: 22 },
+  badgeOver: { backgroundColor: c.redBg },
+  badgeBrake: { backgroundColor: c.amberBg },
+  badgeText: { fontSize: 12, fontWeight: '600', color: c.text },
+  empty: { textAlign: 'center', color: c.textMuted, fontSize: 15, marginTop: 40, lineHeight: 22 },
   clearBtn: { alignItems: 'center', paddingVertical: 16, marginTop: 8 },
-  clearText: { color: colors.red, fontSize: 15 },
+  clearText: { color: c.red, fontSize: 15 },
 });

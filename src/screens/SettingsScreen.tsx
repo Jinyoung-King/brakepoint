@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   Image,
   Platform,
@@ -13,8 +13,9 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 
 import { useAppState } from '../state/AppStateContext';
-import type { Difficulty, DrinkUnit } from '../storage';
-import { colors, radius } from '../theme';
+import type { Difficulty, DrinkUnit, ThemeMode } from '../storage';
+import { radius, type Palette } from '../theme';
+import { useColors } from '../useColors';
 import {
   ensureNotificationSetup,
   openFullScreenIntentSettings,
@@ -29,6 +30,12 @@ const DIFFICULTIES: { key: Difficulty; label: string }[] = [
 
 const UNITS: DrinkUnit[] = ['잔', '병', '캔'];
 
+const THEMES: { key: ThemeMode; label: string }[] = [
+  { key: 'dark', label: '다크' },
+  { key: 'light', label: '라이트' },
+  { key: 'system', label: '시스템' },
+];
+
 export default function SettingsScreen() {
   const {
     state,
@@ -39,9 +46,12 @@ export default function SettingsScreen() {
     setRepeatEveryDrinks,
     setUnit,
     setCalendarSync,
+    setTheme,
   } = useAppState();
-  const { limit, difficulty, fakeCall, brakePercents, repeatEveryDrinks, unit, calendarSync } =
+  const { limit, difficulty, fakeCall, brakePercents, repeatEveryDrinks, unit, calendarSync, theme } =
     state;
+  const c = useColors();
+  const styles = useMemo(() => makeStyles(c), [c]);
 
   const brake1 = brakePercents[0] ?? 60;
   const brake2 = brakePercents[1] ?? 80;
@@ -88,6 +98,27 @@ export default function SettingsScreen() {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
+      {/* 테마 */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>테마</Text>
+        <View style={styles.segment}>
+          {THEMES.map((t) => {
+            const active = t.key === theme;
+            return (
+              <Pressable
+                key={t.key}
+                style={[styles.segmentItem, active && styles.segmentItemActive]}
+                onPress={() => setTheme(t.key)}
+              >
+                <Text style={[styles.segmentText, active && styles.segmentTextActive]}>
+                  {t.label}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      </View>
+
       {/* 주량 */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>주량 (한계 잔수)</Text>
@@ -267,17 +298,17 @@ export default function SettingsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { padding: 20, gap: 28, backgroundColor: colors.bg },
+const makeStyles = (c: Palette) => StyleSheet.create({
+  container: { padding: 20, gap: 28, backgroundColor: c.bg },
   section: { gap: 8 },
-  sectionTitle: { fontSize: 18, fontWeight: '700', color: colors.text },
-  label: { fontSize: 13, color: colors.textMuted, marginTop: 4 },
-  help: { fontSize: 13, color: colors.textFaint },
+  sectionTitle: { fontSize: 18, fontWeight: '700', color: c.text },
+  label: { fontSize: 13, color: c.textMuted, marginTop: 4 },
+  help: { fontSize: 13, color: c.textFaint },
   input: {
     borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.card,
-    color: colors.text,
+    borderColor: c.border,
+    backgroundColor: c.card,
+    color: c.text,
     borderRadius: radius.sm,
     paddingHorizontal: 14,
     paddingVertical: 11,
@@ -292,22 +323,22 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: radius.sm,
     borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.card,
+    borderColor: c.border,
+    backgroundColor: c.card,
     alignItems: 'center',
   },
-  segmentItemActive: { backgroundColor: colors.blue, borderColor: colors.blue },
-  segmentText: { fontSize: 16, color: colors.textMuted },
+  segmentItemActive: { backgroundColor: c.blue, borderColor: c.blue },
+  segmentText: { fontSize: 16, color: c.textMuted },
   segmentTextActive: { color: '#fff', fontWeight: '700' },
   photoRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   avatar: { width: 56, height: 56, borderRadius: 28 },
-  avatarEmpty: { backgroundColor: colors.cardAlt, alignItems: 'center', justifyContent: 'center' },
-  avatarEmptyText: { color: colors.textFaint, fontSize: 12 },
-  photoBtn: { paddingVertical: 8, paddingHorizontal: 14, backgroundColor: colors.cardAlt, borderRadius: radius.sm },
-  photoBtnText: { fontSize: 15, color: colors.text },
+  avatarEmpty: { backgroundColor: c.cardAlt, alignItems: 'center', justifyContent: 'center' },
+  avatarEmptyText: { color: c.textFaint, fontSize: 12 },
+  photoBtn: { paddingVertical: 8, paddingHorizontal: 14, backgroundColor: c.cardAlt, borderRadius: radius.sm },
+  photoBtnText: { fontSize: 15, color: c.text },
   testBtn: {
     marginTop: 12,
-    backgroundColor: colors.green,
+    backgroundColor: c.green,
     paddingVertical: 14,
     borderRadius: radius.md,
     alignItems: 'center',
@@ -318,8 +349,8 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: colors.blue,
+    borderColor: c.blue,
     alignItems: 'center',
   },
-  permBtnText: { color: colors.blue, fontSize: 15, fontWeight: '600' },
+  permBtnText: { color: c.blue, fontSize: 15, fontWeight: '600' },
 });
