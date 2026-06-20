@@ -24,7 +24,10 @@ export default function RootNavigator() {
   const { state } = useAppState();
 
   return (
-    <Stack.Navigator initialRouteName={state.onboarded ? 'Home' : 'Onboarding'}>
+    <Stack.Navigator
+      initialRouteName={state.onboarded ? 'Home' : 'Onboarding'}
+      screenOptions={{ headerShadowVisible: false, headerTitleStyle: { fontWeight: '700' } }}
+    >
       <Stack.Screen
         name="Onboarding"
         component={OnboardingScreen}

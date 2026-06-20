@@ -5,14 +5,18 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import type { RootStackParamList } from '../navigation/RootNavigator';
 import { useAppState } from '../state/AppStateContext';
+import type { DrinkUnit } from '../storage';
+import { colors, radius } from '../theme';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Onboarding'>;
 
 const STEPS = ['주량', '브레이크', '가짜 전화'];
+const UNITS: DrinkUnit[] = ['잔', '병', '캔'];
 
 export default function OnboardingScreen({ navigation }: Props) {
-  const { state, setLimit, setBrakePercents, updateFakeCall, completeOnboarding } = useAppState();
-  const { limit, brakePercents, fakeCall } = state;
+  const { state, setLimit, setUnit, setBrakePercents, updateFakeCall, completeOnboarding } =
+    useAppState();
+  const { limit, unit, brakePercents, fakeCall } = state;
   const insets = useSafeAreaInsets();
 
   const [step, setStep] = useState(0);
@@ -46,7 +50,23 @@ export default function OnboardingScreen({ navigation }: Props) {
         {step === 0 && (
           <>
             <Text style={styles.title}>오늘의 주량은?</Text>
-            <Text style={styles.desc}>최대 몇 잔까지 마실지 정해주세요. 이 값을 기준으로 브레이크가 걸려요.</Text>
+            <Text style={styles.desc}>최대 몇 {unit}까지 마실지 정해주세요. 이 값을 기준으로 브레이크가 걸려요.</Text>
+            <Text style={styles.label}>단위</Text>
+            <View style={styles.segment}>
+              {UNITS.map((u) => {
+                const active = u === unit;
+                return (
+                  <Pressable
+                    key={u}
+                    style={[styles.segItem, active && styles.segItemActive]}
+                    onPress={() => setUnit(u)}
+                  >
+                    <Text style={[styles.segText, active && styles.segTextActive]}>{u}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+            <Text style={styles.label}>한계 ({unit})</Text>
             <TextInput
               style={styles.input}
               keyboardType="number-pad"
@@ -56,9 +76,8 @@ export default function OnboardingScreen({ navigation }: Props) {
                 commitNum(t, setLimit);
               }}
               placeholder="5"
-              autoFocus
+              placeholderTextColor={colors.textFaint}
             />
-            <Text style={styles.unit}>잔</Text>
           </>
         )}
 
@@ -146,30 +165,44 @@ export default function OnboardingScreen({ navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, paddingHorizontal: 24, backgroundColor: '#fff' },
+  container: { flex: 1, paddingHorizontal: 24, backgroundColor: colors.bg },
   dots: { flexDirection: 'row', justifyContent: 'center', gap: 24, marginBottom: 8 },
   dotWrap: { alignItems: 'center', gap: 6 },
-  dot: { width: 10, height: 10, borderRadius: 5, backgroundColor: '#ddd' },
-  dotActive: { backgroundColor: '#3a7afe' },
-  dotLabel: { fontSize: 12, color: '#bbb' },
-  dotLabelActive: { color: '#3a7afe', fontWeight: '600' },
+  dot: { width: 10, height: 10, borderRadius: 5, backgroundColor: colors.border },
+  dotActive: { backgroundColor: colors.blue },
+  dotLabel: { fontSize: 12, color: colors.textFaint },
+  dotLabelActive: { color: colors.blue, fontWeight: '600' },
   body: { flex: 1, justifyContent: 'center', gap: 12 },
-  title: { fontSize: 26, fontWeight: '800', color: '#222' },
-  desc: { fontSize: 15, color: '#777', lineHeight: 21, marginBottom: 8 },
-  label: { fontSize: 14, color: '#666' },
-  unit: { fontSize: 14, color: '#999' },
+  title: { fontSize: 26, fontWeight: '800', color: colors.text },
+  desc: { fontSize: 15, color: colors.textMuted, lineHeight: 21, marginBottom: 8 },
+  label: { fontSize: 13, color: colors.textMuted, marginTop: 4 },
   input: {
     borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 10,
+    borderColor: colors.border,
+    backgroundColor: colors.card,
+    color: colors.text,
+    borderRadius: radius.sm,
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 18,
   },
+  segment: { flexDirection: 'row', gap: 8 },
+  segItem: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: radius.sm,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.card,
+    alignItems: 'center',
+  },
+  segItemActive: { backgroundColor: colors.blue, borderColor: colors.blue },
+  segText: { fontSize: 16, color: colors.textMuted },
+  segTextActive: { color: '#fff', fontWeight: '700' },
   row: { flexDirection: 'row', gap: 12 },
   col: { flex: 1, gap: 6 },
   nav: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  back: { fontSize: 16, color: '#888' },
-  nextBtn: { backgroundColor: '#222', paddingVertical: 14, paddingHorizontal: 32, borderRadius: 12 },
+  back: { fontSize: 16, color: colors.textMuted },
+  nextBtn: { backgroundColor: colors.blue, paddingVertical: 14, paddingHorizontal: 32, borderRadius: radius.md },
   nextText: { color: '#fff', fontSize: 17, fontWeight: '700' },
 });
