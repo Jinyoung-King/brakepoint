@@ -14,7 +14,7 @@ export async function scheduleCheckin(delayMin: number): Promise<void> {
     await notifee.createTriggerNotification(
       {
         id: ID,
-        title: '집에 잘 도착했어요? 🏠',
+        title: '집에 잘 도착했어요?',
         body: '도착했으면 앱에서 "집 도착"을 눌러 알림을 꺼요.',
         android: { channelId: CHANNEL, pressAction: { id: 'default' } },
       },

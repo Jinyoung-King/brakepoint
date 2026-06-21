@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { BackHandler, Image, Pressable, StyleSheet, Text, Vibration, View } from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useAudioPlayer, setAudioModeAsync } from 'expo-audio';
 
@@ -99,13 +100,13 @@ export default function FakeCallScreen({ navigation }: Props) {
           <>
             <View style={styles.actionCol}>
               <Pressable style={[styles.callBtn, styles.declineBtn]} onPress={decline}>
-                <Text style={styles.callBtnIcon}>✕</Text>
+                <MaterialIcons name="call-end" size={30} color="#fff" />
               </Pressable>
               <Text style={styles.actionLabel}>거절</Text>
             </View>
             <View style={styles.actionCol}>
               <Pressable style={[styles.callBtn, styles.acceptBtn]} onPress={accept}>
-                <Text style={styles.callBtnIcon}>✓</Text>
+                <MaterialIcons name="call" size={30} color="#fff" />
               </Pressable>
               <Text style={styles.actionLabel}>받기</Text>
             </View>
@@ -113,7 +114,7 @@ export default function FakeCallScreen({ navigation }: Props) {
         ) : (
           <View style={styles.actionCol}>
             <Pressable style={[styles.callBtn, styles.declineBtn]} onPress={() => navigation.goBack()}>
-              <Text style={styles.callBtnIcon}>✕</Text>
+              <MaterialIcons name="call-end" size={30} color="#fff" />
             </Pressable>
             <Text style={styles.actionLabel}>종료</Text>
           </View>
@@ -137,6 +138,5 @@ const styles = StyleSheet.create({
   callBtn: { width: 72, height: 72, borderRadius: 36, alignItems: 'center', justifyContent: 'center' },
   declineBtn: { backgroundColor: '#e0352b' },
   acceptBtn: { backgroundColor: '#2ecc40' },
-  callBtnIcon: { color: '#fff', fontSize: 30, fontWeight: '700' },
   actionLabel: { color: '#ddd', fontSize: 15 },
 });

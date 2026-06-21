@@ -12,7 +12,7 @@ import {
   Switch,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import type { RootStackParamList } from '../navigation/RootNavigator';
@@ -109,16 +109,16 @@ export default function HomeScreen({ navigation }: Props) {
     }
     // 물 알림: waterEvery 배수를 넘었으면
     if (waterEvery > 0 && Math.floor(prev / waterEvery) < Math.floor(next / waterEvery)) {
-      Alert.alert('💧 물 한 잔', '술 사이에 물 한 잔이면 다음날이 한결 나아요.');
+      Alert.alert('물 한 잔', '술 사이에 물 한 잔이면 다음날이 한결 나아요.');
       return;
     }
     if (n === 1 && gap < QUICK_GAP_MS)
-      Alert.alert('천천히 마셔요', '방금 마셨어요. 한 잔 텀을 좀 더 두는 게 좋아요. 🐢');
+      Alert.alert('천천히 마셔요', '방금 마셨어요. 한 잔 텀을 좀 더 두는 게 좋아요.');
   };
 
   const onArrivedHome = () => {
     cancelCheckin();
-    Alert.alert('잘 들어갔어요 👍', '귀가 체크인 알림을 껐어요.');
+    Alert.alert('잘 들어갔어요', '귀가 체크인 알림을 껐어요.');
   };
 
   const onEndSession = () => {
@@ -186,9 +186,9 @@ export default function HomeScreen({ navigation }: Props) {
   };
 
   const brakeText = overLimit
-    ? `⚠️ 한계 초과 — 이후 ${repeatEveryDrinks}${unit}마다 알람`
+    ? `한계 초과 — 이후 ${repeatEveryDrinks}${unit}마다 알람`
     : inBrake
-      ? '⚠️ 브레이크 구간'
+      ? '브레이크 구간'
       : `브레이크 ${effPercents.join('·')}% (${brakeCounts.join('·')}${unit})`;
 
   return (
@@ -196,8 +196,9 @@ export default function HomeScreen({ navigation }: Props) {
       <ScrollView contentContainerStyle={[styles.container, { paddingBottom: insets.bottom + 24 }]}>
         {morning && (
           <View style={styles.scheduleBanner}>
+            <Ionicons name="calendar-outline" size={16} color={c.amber} />
             <Text style={styles.scheduleText}>
-              📅 내일 {fmtTime(morning.startMs)} {morning.title} — 오늘은 적당히! (브레이크 강화됨)
+              내일 {fmtTime(morning.startMs)} {morning.title} — 오늘은 적당히! (브레이크 강화됨)
             </Text>
           </View>
         )}
@@ -226,7 +227,10 @@ export default function HomeScreen({ navigation }: Props) {
               <View key={p} style={[styles.thresholdLine, { left: `${Math.min(p, 100)}%` }]} />
             ))}
           </View>
-          <Text style={[styles.brakeText, inBrake && styles.warnText]}>{brakeText}</Text>
+          <View style={styles.brakeRow}>
+            {inBrake && <Ionicons name="warning" size={14} color={c.red} />}
+            <Text style={[styles.brakeText, inBrake && styles.warnText]}>{brakeText}</Text>
+          </View>
         </View>
 
         {/* BAC 추정 */}
@@ -251,9 +255,12 @@ export default function HomeScreen({ navigation }: Props) {
                 {fmtTime(now + hoursUntil(bac, 0) * 3600000)}
               </Text>
             )}
-            <Text style={styles.muted}>
-              🔥 약 {alcoholKcal(alcoholGrams(count, unit))}kcal · 😵 숙취 위험 {hangoverForecast(bac).level}
-            </Text>
+            <View style={styles.inlineRow}>
+              <Ionicons name="flame" size={14} color={c.textMuted} />
+              <Text style={styles.muted}>
+                약 {alcoholKcal(alcoholGrams(count, unit))}kcal · 숙취 위험 {hangoverForecast(bac).level}
+              </Text>
+            </View>
             <Text style={styles.disclaimer}>
               {hangoverForecast(bac).tip} · 추정치이니 운전 판단 근거로 쓰지 마세요.
             </Text>
@@ -275,7 +282,10 @@ export default function HomeScreen({ navigation }: Props) {
 
         {/* 흡연 */}
         <View style={styles.rowCard}>
-          <Text style={styles.cigText}>🚬 담배 {cigs}개비</Text>
+          <View style={styles.inlineRow}>
+            <MaterialCommunityIcons name="smoking" size={18} color={c.text} />
+            <Text style={styles.cigText}>담배 {cigs}개비</Text>
+          </View>
           <Pressable style={styles.smallBtn} onPress={addCig}>
             <Text style={styles.smallBtnText}>+1</Text>
           </Pressable>
@@ -294,23 +304,28 @@ export default function HomeScreen({ navigation }: Props) {
         <View style={styles.safeCard}>
           <Text style={styles.modeTitle}>안전 귀가</Text>
           <Pressable style={styles.transitBtn} onPress={openTransit} disabled={transitLoading}>
+            <Ionicons name="bus" size={18} color="#fff" />
             <Text style={styles.transitBtnText}>
-              {transitLoading ? '주소 찾는 중…' : '🚍 대중교통으로 집 가기'}
+              {transitLoading ? '주소 찾는 중…' : '대중교통으로 집 가기'}
             </Text>
           </Pressable>
           <View style={styles.safeBtns}>
             <Pressable style={styles.safeBtn} onPress={openKakaoMap}>
-              <Text style={styles.safeBtnText}>🗺️ 카카오맵</Text>
+              <Ionicons name="map-outline" size={16} color={c.text} />
+              <Text style={styles.safeBtnText}>카카오맵</Text>
             </Pressable>
             <Pressable style={styles.safeBtn} onPress={openNaverMap}>
-              <Text style={styles.safeBtnText}>🗺️ 네이버</Text>
+              <Ionicons name="map-outline" size={16} color={c.text} />
+              <Text style={styles.safeBtnText}>네이버</Text>
             </Pressable>
             <Pressable style={styles.safeBtn} onPress={openTaxi}>
-              <Text style={styles.safeBtnText}>🚕 택시</Text>
+              <MaterialCommunityIcons name="taxi" size={16} color={c.text} />
+              <Text style={styles.safeBtnText}>택시</Text>
             </Pressable>
           </View>
           <Pressable style={styles.arrivedBtn} onPress={onArrivedHome}>
-            <Text style={styles.arrivedBtnText}>집 도착했어요 ✅</Text>
+            <Ionicons name="checkmark-circle" size={18} color="#fff" />
+            <Text style={styles.arrivedBtnText}>집 도착했어요</Text>
           </Pressable>
         </View>
 
@@ -375,8 +390,10 @@ const makeStyles = (c: Palette) =>
   StyleSheet.create({
     root: { flex: 1, backgroundColor: c.bg },
     container: { paddingHorizontal: 20, paddingTop: 16, alignItems: 'center', gap: 14 },
-    scheduleBanner: { width: '100%', backgroundColor: c.amberBg, borderRadius: radius.md, paddingVertical: 10, paddingHorizontal: 14 },
-    scheduleText: { fontSize: 13, color: c.amber, fontWeight: '600' },
+    scheduleBanner: { width: '100%', backgroundColor: c.amberBg, borderRadius: radius.md, paddingVertical: 10, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 8 },
+    scheduleText: { flex: 1, fontSize: 13, color: c.amber, fontWeight: '600' },
+    brakeRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4 },
+    inlineRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
     counterBlock: { alignItems: 'center', gap: 2, marginTop: 4 },
     countRow: { flexDirection: 'row', alignItems: 'baseline' },
     countBig: { fontSize: 72, fontWeight: '800', color: c.text },
@@ -409,11 +426,11 @@ const makeStyles = (c: Palette) =>
     modeTitle: { fontSize: 16, fontWeight: '600', color: c.text },
     safeCard: { width: '100%', backgroundColor: c.card, borderRadius: radius.md, padding: 14, gap: 10 },
     safeBtns: { flexDirection: 'row', gap: 10 },
-    transitBtn: { backgroundColor: c.blue, paddingVertical: 13, borderRadius: radius.sm, alignItems: 'center' },
+    transitBtn: { backgroundColor: c.blue, paddingVertical: 13, borderRadius: radius.sm, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
     transitBtnText: { fontSize: 15, color: '#fff', fontWeight: '700' },
-    safeBtn: { flex: 1, backgroundColor: c.cardAlt, paddingVertical: 12, borderRadius: radius.sm, alignItems: 'center' },
-    safeBtnText: { fontSize: 14, color: c.text, fontWeight: '600' },
-    arrivedBtn: { backgroundColor: c.green, paddingVertical: 11, borderRadius: radius.sm, alignItems: 'center' },
+    safeBtn: { flex: 1, backgroundColor: c.cardAlt, paddingVertical: 12, borderRadius: radius.sm, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4 },
+    safeBtnText: { fontSize: 13, color: c.text, fontWeight: '600' },
+    arrivedBtn: { backgroundColor: c.green, paddingVertical: 11, borderRadius: radius.sm, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
     arrivedBtnText: { fontSize: 14, color: '#fff', fontWeight: '700' },
     footerRow: { flexDirection: 'row', gap: 12, marginTop: 8, width: '100%', justifyContent: 'center' },
     iconBtn: { flex: 1, maxWidth: 110, alignItems: 'center', justifyContent: 'center', gap: 4, paddingVertical: 12, backgroundColor: c.card, borderRadius: radius.md },

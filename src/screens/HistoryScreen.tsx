@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { Alert, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 import { useAppState } from '../state/AppStateContext';
 import type { SessionRecord } from '../storage';
@@ -46,7 +47,7 @@ export default function HistoryScreen() {
     const over = item.count >= item.limit;
     const brake = !over && item.count >= item.limit * 0.8;
     const u = item.unit ?? '잔';
-    const meta = [item.place, item.cigs ? `🚬 ${item.cigs}개비` : null].filter(Boolean).join('  ·  ');
+    const meta = [item.place, item.cigs ? `담배 ${item.cigs}개비` : null].filter(Boolean).join('  ·  ');
     return (
       <View style={styles.row}>
         <View style={styles.rowLeft}>
@@ -84,7 +85,10 @@ export default function HistoryScreen() {
         <View style={{ gap: 12 }}>
           {(streak > 0 || weeklyGoalSessions > 0) && (
             <View style={styles.goalCard}>
-              <Text style={styles.goalText}>🔥 한도 지킴 {streak}연속</Text>
+              <View style={styles.goalStreak}>
+                <Ionicons name="flame" size={16} color={c.amber} />
+                <Text style={styles.goalText}>한도 지킴 {streak}연속</Text>
+              </View>
               {weeklyGoalSessions > 0 && (
                 <Text style={[styles.goalText, weekCount > weeklyGoalSessions && styles.statNumWarn]}>
                   이번 주 {weekCount} / 목표 {weeklyGoalSessions}회
@@ -159,6 +163,7 @@ const makeStyles = (c: Palette) => StyleSheet.create({
   statNumWarn: { color: c.red },
   statLabel: { fontSize: 12, color: c.textMuted },
   goalCard: { backgroundColor: c.card, borderRadius: radius.md, padding: 14, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  goalStreak: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   goalText: { fontSize: 14, color: c.text, fontWeight: '600' },
   chartCard: { backgroundColor: c.card, borderRadius: radius.md, padding: 14, gap: 10 },
   chartTitle: { fontSize: 13, color: c.textMuted },
