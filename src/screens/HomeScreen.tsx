@@ -24,6 +24,7 @@ import { alcoholGrams, estimateBac, hoursUntil, fmtHours, DRIVE_LIMIT } from '..
 import { alcoholKcal, hangoverForecast } from '../stats';
 import { cancelCheckin } from '../checkin';
 import { geocodeAddress } from '../geocode';
+import { getCurrentPlace } from '../location';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
 
@@ -90,6 +91,16 @@ export default function HomeScreen({ navigation }: Props) {
   const [endOpen, setEndOpen] = useState(false);
   const [place, setPlace] = useState('');
   const [memo, setMemo] = useState('');
+  const [placeLoading, setPlaceLoading] = useState(false);
+
+  const fillPlace = async (alertOnFail: boolean) => {
+    setPlaceLoading(true);
+    const p = await getCurrentPlace();
+    setPlaceLoading(false);
+    if (p) setPlace(p);
+    else if (alertOnFail)
+      Alert.alert('위치를 못 가져왔어요', '위치 권한을 허용했는지 확인하거나 직접 입력해주세요.');
+  };
 
   const brakeAt = (n: number) => {
     if (limit <= 0) return false;
@@ -130,6 +141,7 @@ export default function HomeScreen({ navigation }: Props) {
       return;
     }
     setEndOpen(true);
+    if (!place) fillPlace(false); // 현재 위치 자동 입력 (실패해도 조용히)
   };
   const confirmEnd = () => {
     endSession({ place, memo });
@@ -362,7 +374,13 @@ export default function HomeScreen({ navigation }: Props) {
               {count}
               {unit} · 담배 {cigs}개비 · 기록에 저장해요
             </Text>
-            <Text style={styles.label}>장소 (선택)</Text>
+            <View style={styles.labelRow}>
+              <Text style={styles.label}>장소 (선택)</Text>
+              <Pressable style={styles.locBtn} onPress={() => fillPlace(true)} hitSlop={8}>
+                <Ionicons name="location-outline" size={14} color={c.blue} />
+                <Text style={styles.locBtnText}>{placeLoading ? '찾는 중…' : '현재 위치'}</Text>
+              </Pressable>
+            </View>
             <TextInput
               style={styles.input}
               value={place}
@@ -447,6 +465,9 @@ const makeStyles = (c: Palette) =>
     modalCard: { backgroundColor: c.card, borderRadius: radius.lg, padding: 20, gap: 10, borderWidth: 1, borderColor: c.border },
     modalTitle: { fontSize: 19, fontWeight: '700', color: c.text },
     label: { fontSize: 13, color: c.textMuted, marginTop: 4 },
+    labelRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 },
+    locBtn: { flexDirection: 'row', alignItems: 'center', gap: 3 },
+    locBtnText: { fontSize: 13, color: c.blue, fontWeight: '600' },
     input: { borderWidth: 1, borderColor: c.border, backgroundColor: c.cardAlt, color: c.text, borderRadius: radius.sm, paddingHorizontal: 12, paddingVertical: 10, fontSize: 16 },
     modalBtns: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 20, marginTop: 8 },
     saveBtn: { backgroundColor: c.blue, paddingVertical: 12, paddingHorizontal: 20, borderRadius: radius.sm },

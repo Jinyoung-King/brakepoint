@@ -74,23 +74,45 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
           count: s.count + n,
           lastDrinkMs: now,
           sessionStartMs: s.sessionStartMs ?? now,
+          drinkEvents: [...s.drinkEvents, { t: now, n }],
         };
       }),
     addCig: () => setState((s) => ({ ...s, cigs: s.cigs + 1 })),
     endSession: (extra) =>
       setState((s) => {
         if (s.count <= 0 && s.cigs <= 0) return s;
+        const now = Date.now();
+        const d = new Date(now);
+        const sameDay = (ms: number) => {
+          const x = new Date(ms);
+          return (
+            x.getFullYear() === d.getFullYear() &&
+            x.getMonth() === d.getMonth() &&
+            x.getDate() === d.getDate()
+          );
+        };
+        const round = s.history.filter((r) => sameDay(r.endedAt)).length + 1;
         const rec = {
-          id: String(Date.now()),
-          endedAt: Date.now(),
+          id: String(now),
+          endedAt: now,
           count: s.count,
           limit: s.limit,
           unit: s.unit,
           cigs: s.cigs,
           place: extra?.place?.trim() || undefined,
           memo: extra?.memo?.trim() || undefined,
+          round,
+          events: s.drinkEvents,
         };
-        return { ...s, count: 0, cigs: 0, sessionStartMs: null, lastDrinkMs: null, history: [rec, ...s.history] };
+        return {
+          ...s,
+          count: 0,
+          cigs: 0,
+          sessionStartMs: null,
+          lastDrinkMs: null,
+          drinkEvents: [],
+          history: [rec, ...s.history],
+        };
       }),
     clearHistory: () => setState((s) => ({ ...s, history: [] })),
     setLimit: (limit) => setState((s) => ({ ...s, limit })),

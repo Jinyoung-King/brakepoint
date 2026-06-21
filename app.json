@@ -44,6 +44,12 @@
           "calendarPermission": "다음날 일정을 확인해 음주 페이스를 조절하는 데 사용해요."
         }
       ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "술자리 장소를 자동으로 입력하는 데 사용해요."
+        }
+      ],
       "./plugins/withFullScreenIntent",
       "./plugins/withHealthConnectDelegate",
       "./plugins/withHealthConnectActivity",

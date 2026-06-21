@@ -18,6 +18,8 @@ export type Sex = 'male' | 'female';
 
 export type DrinkType = '소주' | '맥주' | '와인' | '양주';
 
+export type DrinkEvent = { t: number; n: number }; // 마신 시각(epoch ms), 그때 추가한 양
+
 export type SessionRecord = {
   id: string;
   endedAt: number; // 종료 시각 (epoch ms)
@@ -27,6 +29,8 @@ export type SessionRecord = {
   cigs?: number; // 그 술자리 흡연 개비
   place?: string; // 장소
   memo?: string; // 한줄 메모
+  round?: number; // 그날 N차
+  events?: DrinkEvent[]; // 시점별 음주 타임라인
 };
 
 export type AppState = {
@@ -52,6 +56,7 @@ export type AppState = {
   homeLng: number | null;
   sessionStartMs: number | null; // 이번 술자리 첫 잔 시각 (BAC 경과시간)
   lastDrinkMs: number | null; // 마지막 잔 시각 (잔 간격)
+  drinkEvents: DrinkEvent[]; // 이번 술자리 시점별 음주 기록
   waterEvery: number; // 몇 잔마다 물 알림 (0=끔)
   weeklyGoalSessions: number; // 주간 목표 술자리 횟수 (0=끔)
   checkinEnabled: boolean; // 귀가 체크인 알림
@@ -86,6 +91,7 @@ export const DEFAULT_STATE: AppState = {
   homeLng: null,
   sessionStartMs: null,
   lastDrinkMs: null,
+  drinkEvents: [],
   waterEvery: 3,
   weeklyGoalSessions: 2,
   checkinEnabled: true,

@@ -1,5 +1,5 @@
-import { useMemo } from 'react';
-import { Alert, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useMemo, useState } from 'react';
+import { Alert, FlatList, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { useAppState } from '../state/AppStateContext';
@@ -29,6 +29,7 @@ export default function HistoryScreen() {
   const weekCount = sessionsThisWeek(history);
   const c = useColors();
   const styles = useMemo(() => makeStyles(c), [c]);
+  const [selected, setSelected] = useState<SessionRecord | null>(null);
 
   const total = history.length;
   const avg = mean(history);
@@ -49,7 +50,7 @@ export default function HistoryScreen() {
     const u = item.unit ?? '잔';
     const meta = [item.place, item.cigs ? `담배 ${item.cigs}개비` : null].filter(Boolean).join('  ·  ');
     return (
-      <View style={styles.row}>
+      <Pressable style={styles.row} onPress={() => setSelected(item)}>
         <View style={styles.rowLeft}>
           <Text style={styles.rowCount}>
             {item.count}{' '}
@@ -58,24 +59,31 @@ export default function HistoryScreen() {
               {u}
             </Text>
           </Text>
-          <Text style={styles.rowDate}>{fmtDate(item.endedAt)}</Text>
+          <Text style={styles.rowDate}>
+            {item.round ? `${item.round}차 · ` : ''}
+            {fmtDate(item.endedAt)}
+          </Text>
           {!!meta && <Text style={styles.rowMeta}>{meta}</Text>}
           {!!item.memo && <Text style={styles.rowMemo}>“{item.memo}”</Text>}
         </View>
-        {over ? (
-          <View style={[styles.badge, styles.badgeOver]}>
-            <Text style={styles.badgeText}>한계 초과</Text>
-          </View>
-        ) : brake ? (
-          <View style={[styles.badge, styles.badgeBrake]}>
-            <Text style={styles.badgeText}>브레이크</Text>
-          </View>
-        ) : null}
-      </View>
+        <View style={styles.rowRight}>
+          {over ? (
+            <View style={[styles.badge, styles.badgeOver]}>
+              <Text style={styles.badgeText}>한계 초과</Text>
+            </View>
+          ) : brake ? (
+            <View style={[styles.badge, styles.badgeBrake]}>
+              <Text style={styles.badgeText}>브레이크</Text>
+            </View>
+          ) : null}
+          <Ionicons name="chevron-forward" size={18} color={c.textFaint} />
+        </View>
+      </Pressable>
     );
   };
 
   return (
+    <View style={styles.root}>
     <FlatList
       contentContainerStyle={styles.container}
       data={history}
@@ -145,11 +153,89 @@ export default function HistoryScreen() {
         ) : null
       }
     />
+
+      {/* 상세보기 */}
+      <Modal
+        visible={!!selected}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setSelected(null)}
+      >
+        <View style={styles.detailBg}>
+          <View style={styles.detailCard}>
+            {selected && (
+              <>
+                <Text style={styles.detailTitle}>
+                  {selected.round ? `${selected.round}차 · ` : ''}
+                  {selected.count}
+                  {selected.unit ?? '잔'}
+                </Text>
+                <Text style={styles.muted}>{fmtDate(selected.endedAt)}</Text>
+                {!!selected.place && <Text style={styles.detailMeta}>📍 {selected.place}</Text>}
+                {!!selected.cigs && <Text style={styles.detailMeta}>담배 {selected.cigs}개비</Text>}
+                {!!selected.memo && <Text style={styles.detailMemo}>“{selected.memo}”</Text>}
+
+                <Text style={styles.detailSection}>시점별 음주</Text>
+                {selected.events && selected.events.length > 0 ? (
+                  <FlatList
+                    data={selected.events}
+                    keyExtractor={(_, i) => String(i)}
+                    style={styles.timeline}
+                    renderItem={({ item, index }) => {
+                      const prev = index > 0 ? selected.events![index - 1].t : null;
+                      const gap = prev ? Math.round((item.t - prev) / 60000) : null;
+                      const cum = selected.events!.slice(0, index + 1).reduce((a, e) => a + e.n, 0);
+                      return (
+                        <View style={styles.tlRow}>
+                          <Text style={styles.tlTime}>{fmtClock(item.t)}</Text>
+                          <Text style={styles.tlText}>
+                            +{item.n}
+                            {selected.unit ?? '잔'} (누적 {cum})
+                            {gap != null ? `  ·  ${gap}분 만에` : ''}
+                          </Text>
+                        </View>
+                      );
+                    }}
+                  />
+                ) : (
+                  <Text style={styles.muted}>시점 기록이 없어요(이전 버전 기록).</Text>
+                )}
+
+                <Pressable style={styles.detailClose} onPress={() => setSelected(null)}>
+                  <Text style={styles.detailCloseText}>닫기</Text>
+                </Pressable>
+              </>
+            )}
+          </View>
+        </View>
+      </Modal>
+    </View>
   );
 }
 
+function fmtClock(ms: number): string {
+  const d = new Date(ms);
+  const p = (n: number) => String(n).padStart(2, '0');
+  return `${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
 const makeStyles = (c: Palette) => StyleSheet.create({
+  root: { flex: 1, backgroundColor: c.bg },
   container: { padding: 20, gap: 12, backgroundColor: c.bg, flexGrow: 1 },
+  rowRight: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  detailBg: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
+  detailCard: { backgroundColor: c.card, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, gap: 6, maxHeight: '80%' },
+  muted: { fontSize: 13, color: c.textMuted },
+  detailTitle: { fontSize: 22, fontWeight: '800', color: c.text },
+  detailMeta: { fontSize: 14, color: c.textMuted, marginTop: 2 },
+  detailMemo: { fontSize: 14, color: c.text, fontStyle: 'italic', marginTop: 2 },
+  detailSection: { fontSize: 13, color: c.textFaint, fontWeight: '600', marginTop: 12 },
+  timeline: { marginTop: 4 },
+  tlRow: { flexDirection: 'row', alignItems: 'baseline', gap: 10, paddingVertical: 5, borderBottomWidth: 1, borderBottomColor: c.border },
+  tlTime: { fontSize: 15, fontWeight: '700', color: c.text, width: 52 },
+  tlText: { fontSize: 14, color: c.textMuted, flex: 1 },
+  detailClose: { marginTop: 14, backgroundColor: c.cardAlt, paddingVertical: 13, borderRadius: radius.md, alignItems: 'center' },
+  detailCloseText: { fontSize: 16, fontWeight: '700', color: c.text },
   stats: { flexDirection: 'row', gap: 8, marginBottom: 8 },
   statBox: {
     flex: 1,
