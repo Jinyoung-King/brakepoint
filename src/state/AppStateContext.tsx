@@ -7,6 +7,7 @@ import {
   type FakeCallConfig,
   type ThemeMode,
   type Sex,
+  type DrinkType,
   DEFAULT_STATE,
   loadState,
   saveState,
@@ -28,6 +29,7 @@ type AppStateContextValue = {
   setTheme: (theme: ThemeMode) => void;
   setSex: (sex: Sex) => void;
   setWeightKg: (kg: number) => void;
+  setDrinkType: (type: DrinkType) => void;
   setHomeAddress: (addr: string) => void;
   setHomeCoords: (lat: number, lng: number) => void;
   setWaterEvery: (n: number) => void;
@@ -100,6 +102,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     setTheme: (theme) => setState((s) => ({ ...s, theme })),
     setSex: (sex) => setState((s) => ({ ...s, sex })),
     setWeightKg: (weightKg) => setState((s) => ({ ...s, weightKg })),
+    setDrinkType: (drinkType) => setState((s) => ({ ...s, drinkType })),
     setHomeAddress: (homeAddress) => setState((s) => ({ ...s, homeAddress, homeLat: null, homeLng: null })),
     setHomeCoords: (homeLat, homeLng) => setState((s) => ({ ...s, homeLat, homeLng })),
     setWaterEvery: (waterEvery) => setState((s) => ({ ...s, waterEvery })),

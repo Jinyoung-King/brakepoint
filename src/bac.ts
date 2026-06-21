@@ -1,13 +1,18 @@
-import type { DrinkUnit, Sex } from './storage';
+import type { DrinkType, DrinkUnit, Sex } from './storage';
 
-// 단위별 순알코올 근사량(g). 소주잔/맥주잔, 소주병, 맥주캔 기준 대략치.
-const GRAMS_PER_UNIT: Record<DrinkUnit, number> = { 잔: 8, 병: 45, 캔: 16 };
+// 술 종류 × 단위별 순알코올 근사량(g). 추정치(대략적 표준 제공량 기준).
+const GRAMS: Record<DrinkType, Record<DrinkUnit, number>> = {
+  소주: { 잔: 8, 병: 53, 캔: 53 }, // 소주 360ml 16.9% ≈ 48g, 잔 ≈ 8g
+  맥주: { 잔: 10, 병: 20, 캔: 16 }, // 500ml 4.5% ≈ 18g
+  와인: { 잔: 12, 병: 60, 캔: 12 }, // 750ml 12% ≈ 71g, 잔 150ml ≈ 14g
+  양주: { 잔: 12, 병: 200, 캔: 12 }, // 위스키 45ml 40% ≈ 14g
+};
 
 const ELIMINATION_PER_HOUR = 0.015; // %/시간 (대사 속도)
 export const DRIVE_LIMIT = 0.03; // 한국 면허정지 기준 %
 
-export function alcoholGrams(count: number, unit: DrinkUnit): number {
-  return count * (GRAMS_PER_UNIT[unit] ?? 8);
+export function alcoholGrams(count: number, unit: DrinkUnit, type: DrinkType): number {
+  return count * (GRAMS[type]?.[unit] ?? 8);
 }
 
 // Widmark 추정. 반환: 혈중알코올농도 % (예: 0.05)

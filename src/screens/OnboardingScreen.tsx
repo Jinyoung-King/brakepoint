@@ -5,7 +5,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import type { RootStackParamList } from '../navigation/RootNavigator';
 import { useAppState } from '../state/AppStateContext';
-import type { DrinkUnit } from '../storage';
+import type { DrinkUnit, Sex } from '../storage';
 import { radius, type Palette } from '../theme';
 import { useColors } from '../useColors';
 
@@ -13,17 +13,22 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Onboarding'>;
 
 const STEPS = ['주량', '브레이크', '가짜 전화'];
 const UNITS: DrinkUnit[] = ['잔', '병', '캔'];
+const SEXES: { key: Sex; label: string }[] = [
+  { key: 'male', label: '남' },
+  { key: 'female', label: '여' },
+];
 
 export default function OnboardingScreen({ navigation }: Props) {
-  const { state, setLimit, setUnit, setBrakePercents, updateFakeCall, completeOnboarding } =
+  const { state, setLimit, setUnit, setSex, setWeightKg, setBrakePercents, updateFakeCall, completeOnboarding } =
     useAppState();
-  const { limit, unit, brakePercents, fakeCall } = state;
+  const { limit, unit, sex, weightKg, brakePercents, fakeCall } = state;
   const insets = useSafeAreaInsets();
   const c = useColors();
   const styles = useMemo(() => makeStyles(c), [c]);
 
   const [step, setStep] = useState(0);
   const [limitText, setLimitText] = useState(String(limit));
+  const [weightText, setWeightText] = useState(String(weightKg));
   const [brake1Text, setBrake1Text] = useState(String(brakePercents[0] ?? 60));
   const [brake2Text, setBrake2Text] = useState(String(brakePercents[1] ?? 80));
   const [periodText, setPeriodText] = useState(String(fakeCall.periodMin));
@@ -81,6 +86,34 @@ export default function OnboardingScreen({ navigation }: Props) {
               placeholder="5"
               placeholderTextColor={c.textFaint}
             />
+            <Text style={styles.label}>성별 · 체중 (혈중알코올 추정용)</Text>
+            <View style={styles.row}>
+              <View style={[styles.segment, { flex: 1 }]}>
+                {SEXES.map((sx) => {
+                  const on = sx.key === sex;
+                  return (
+                    <Pressable
+                      key={sx.key}
+                      style={[styles.segItem, on && styles.segItemActive]}
+                      onPress={() => setSex(sx.key)}
+                    >
+                      <Text style={[styles.segText, on && styles.segTextActive]}>{sx.label}</Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+              <TextInput
+                style={[styles.input, { flex: 1 }]}
+                keyboardType="number-pad"
+                value={weightText}
+                onChangeText={(t) => {
+                  setWeightText(t);
+                  commitNum(t, setWeightKg, 30, 250);
+                }}
+                placeholder="체중(kg)"
+                placeholderTextColor={c.textFaint}
+              />
+            </View>
           </>
         )}
 

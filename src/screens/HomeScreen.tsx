@@ -52,6 +52,7 @@ export default function HomeScreen({ navigation }: Props) {
     calendarSync,
     sex,
     weightKg,
+    drinkType,
     homeAddress,
     sessionStartMs,
     lastDrinkMs,
@@ -77,10 +78,12 @@ export default function HomeScreen({ navigation }: Props) {
   const firstBrake = brakeCounts.length ? Math.min(...brakeCounts) : Infinity;
   const overLimit = limit > 0 && count >= limit;
   const inBrake = limit > 0 && count >= firstBrake;
+  const active = drinkingMode || count > 0; // 음주 중일 때만 보조 카드 노출
 
   // BAC 추정
   const hoursSince = sessionStartMs ? (now - sessionStartMs) / 3600000 : 0;
-  const bac = estimateBac({ grams: alcoholGrams(count, unit), weightKg, sex, hoursSinceStart: hoursSince });
+  const grams = alcoholGrams(count, unit, drinkType);
+  const bac = estimateBac({ grams, weightKg, sex, hoursSinceStart: hoursSince });
   const canDrive = bac < DRIVE_LIMIT;
   const minsSinceLast = lastDrinkMs ? Math.floor((now - lastDrinkMs) / 60000) : null;
 
@@ -258,7 +261,7 @@ export default function HomeScreen({ navigation }: Props) {
             <View style={styles.inlineRow}>
               <Ionicons name="flame" size={14} color={c.textMuted} />
               <Text style={styles.muted}>
-                약 {alcoholKcal(alcoholGrams(count, unit))}kcal · 숙취 위험 {hangoverForecast(bac).level}
+                약 {alcoholKcal(grams)}kcal · 숙취 위험 {hangoverForecast(bac).level}
               </Text>
             </View>
             <Text style={styles.disclaimer}>
@@ -280,16 +283,18 @@ export default function HomeScreen({ navigation }: Props) {
           )}
         </View>
 
-        {/* 흡연 */}
-        <View style={styles.rowCard}>
-          <View style={styles.inlineRow}>
-            <MaterialCommunityIcons name="smoking" size={18} color={c.text} />
-            <Text style={styles.cigText}>담배 {cigs}개비</Text>
+        {/* 흡연 (음주 중에만) */}
+        {active && (
+          <View style={styles.rowCard}>
+            <View style={styles.inlineRow}>
+              <MaterialCommunityIcons name="smoking" size={18} color={c.text} />
+              <Text style={styles.cigText}>담배 {cigs}개비</Text>
+            </View>
+            <Pressable style={styles.smallBtn} onPress={addCig}>
+              <Text style={styles.smallBtnText}>+1</Text>
+            </Pressable>
           </View>
-          <Pressable style={styles.smallBtn} onPress={addCig}>
-            <Text style={styles.smallBtnText}>+1</Text>
-          </Pressable>
-        </View>
+        )}
 
         {/* 음주모드 */}
         <View style={styles.rowCard}>
@@ -300,7 +305,8 @@ export default function HomeScreen({ navigation }: Props) {
           <Switch value={drinkingMode} onValueChange={setDrinkingMode} />
         </View>
 
-        {/* 안전 귀가 */}
+        {/* 안전 귀가 (음주 중에만) */}
+        {active && (
         <View style={styles.safeCard}>
           <Text style={styles.modeTitle}>안전 귀가</Text>
           <Pressable style={styles.transitBtn} onPress={openTransit} disabled={transitLoading}>
@@ -328,6 +334,7 @@ export default function HomeScreen({ navigation }: Props) {
             <Text style={styles.arrivedBtnText}>집 도착했어요</Text>
           </Pressable>
         </View>
+        )}
 
         {/* 보조 (아이콘 버튼) */}
         <View style={styles.footerRow}>

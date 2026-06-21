@@ -14,7 +14,7 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 
 import { useAppState } from '../state/AppStateContext';
-import type { Difficulty, DrinkUnit, ThemeMode, Sex } from '../storage';
+import type { Difficulty, DrinkUnit, ThemeMode, Sex, DrinkType } from '../storage';
 import { radius, type Palette } from '../theme';
 import { useColors } from '../useColors';
 import { importWeightFromHealthConnect, openHealthConnectSettings } from '../health';
@@ -43,6 +43,8 @@ const SEXES: { key: Sex; label: string }[] = [
   { key: 'female', label: '여' },
 ];
 
+const DRINK_TYPES: DrinkType[] = ['소주', '맥주', '와인', '양주'];
+
 export default function SettingsScreen() {
   const {
     state,
@@ -56,6 +58,7 @@ export default function SettingsScreen() {
     setTheme,
     setSex,
     setWeightKg,
+    setDrinkType,
     setHomeAddress,
     setBottleToGlasses,
     setWaterEvery,
@@ -63,7 +66,7 @@ export default function SettingsScreen() {
     setCheckinEnabled,
     setCheckinDelayMin,
   } = useAppState();
-  const { limit, difficulty, fakeCall, brakePercents, repeatEveryDrinks, unit, calendarSync, theme, sex, weightKg, homeAddress, bottleToGlasses, waterEvery, weeklyGoalSessions, checkinEnabled, checkinDelayMin } =
+  const { limit, difficulty, fakeCall, brakePercents, repeatEveryDrinks, unit, calendarSync, theme, sex, weightKg, drinkType, homeAddress, bottleToGlasses, waterEvery, weeklyGoalSessions, checkinEnabled, checkinDelayMin } =
     state;
   const c = useColors();
   const styles = useMemo(() => makeStyles(c), [c]);
@@ -249,7 +252,22 @@ export default function SettingsScreen() {
           placeholder="70"
           placeholderTextColor={c.textFaint}
         />
-        <Text style={styles.help}>혈중알코올농도 추정에만 쓰여요(기기에만 저장).</Text>
+        <Text style={styles.label}>주로 마시는 술</Text>
+        <View style={styles.segment}>
+          {DRINK_TYPES.map((d) => {
+            const active = d === drinkType;
+            return (
+              <Pressable
+                key={d}
+                style={[styles.segmentItem, active && styles.segmentItemActive]}
+                onPress={() => setDrinkType(d)}
+              >
+                <Text style={[styles.segmentText, active && styles.segmentTextActive]}>{d}</Text>
+              </Pressable>
+            );
+          })}
+        </View>
+        <Text style={styles.help}>혈중알코올농도·칼로리 추정에 쓰여요(기기에만 저장).</Text>
         <Pressable style={styles.permBtn} onPress={onImportWeight}>
           <Text style={styles.permBtnText}>삼성헬스에서 몸무게 가져오기</Text>
         </Pressable>

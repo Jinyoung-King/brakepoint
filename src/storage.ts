@@ -16,6 +16,8 @@ export type ThemeMode = 'dark' | 'light' | 'system';
 
 export type Sex = 'male' | 'female';
 
+export type DrinkType = '소주' | '맥주' | '와인' | '양주';
+
 export type SessionRecord = {
   id: string;
   endedAt: number; // 종료 시각 (epoch ms)
@@ -44,6 +46,7 @@ export type AppState = {
   theme: ThemeMode; // 앱 테마 (다크/라이트/시스템)
   sex: Sex; // BAC 추정용
   weightKg: number; // BAC 추정용 체중
+  drinkType: DrinkType; // 술 종류 (BAC 알코올량 추정)
   homeAddress: string; // 안전 귀가용 집 주소
   homeLat: number | null; // 집 좌표(지오코딩 캐시)
   homeLng: number | null;
@@ -77,6 +80,7 @@ export const DEFAULT_STATE: AppState = {
   theme: 'dark',
   sex: 'male',
   weightKg: 70,
+  drinkType: '소주',
   homeAddress: '',
   homeLat: null,
   homeLng: null,
