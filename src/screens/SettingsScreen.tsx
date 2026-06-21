@@ -17,7 +17,7 @@ import { useAppState } from '../state/AppStateContext';
 import type { Difficulty, DrinkUnit, ThemeMode, Sex } from '../storage';
 import { radius, type Palette } from '../theme';
 import { useColors } from '../useColors';
-import { importWeightFromHealthConnect } from '../health';
+import { importWeightFromHealthConnect, openHealthConnectSettings } from '../health';
 import {
   ensureNotificationSetup,
   openFullScreenIntentSettings,
@@ -85,14 +85,23 @@ export default function SettingsScreen() {
       Alert.alert('가져왔어요', `삼성헬스 기준 몸무게 ${r.weightKg}kg로 설정했어요.`);
       return;
     }
+    if (r.reason === 'denied') {
+      Alert.alert(
+        '권한이 필요해요',
+        'Health Connect에서 brakepoint의 "체중 읽기"를 허용해야 해요.\n(한 번 거부하면 시스템 팝업이 다시 안 떠서, 설정에서 직접 켜야 합니다.)',
+        [
+          { text: '취소', style: 'cancel' },
+          { text: 'Health Connect 설정 열기', onPress: () => openHealthConnectSettings() },
+        ]
+      );
+      return;
+    }
     const msg =
       r.reason === 'unavailable'
         ? 'Health Connect를 쓸 수 없어요(미설치/미지원 기기).'
-        : r.reason === 'denied'
-          ? '몸무게 읽기 권한이 거부됐어요.'
-          : r.reason === 'no-data'
-            ? '저장된 몸무게가 없어요. 삼성헬스 ↔ Health Connect 연결을 확인하세요.'
-            : '가져오기에 실패했어요.';
+        : r.reason === 'no-data'
+          ? '저장된 몸무게가 없어요. 삼성헬스 ↔ Health Connect 연결을 확인하세요.'
+          : '가져오기에 실패했어요.';
     Alert.alert('가져오기 실패', msg);
   };
 
