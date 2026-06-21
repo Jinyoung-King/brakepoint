@@ -45,18 +45,28 @@ export default function CognitiveGateScreen({ navigation }: Props) {
     revealTimer.current = setTimeout(() => setPhase('recall'), revealMs(difficulty));
   }, [difficulty]);
 
-  // 알람 시작 (소리 루프 + 진동), 화면 떠날 때 정리
+  // 알람 시작 (소리 루프 + 진동), 화면 떠날 때 정리.
+  // 오디오/진동 호출은 기기/타이밍(언마운트 시 플레이어 해제 등)에 따라 예외가 날 수 있어
+  // 전부 try/catch로 감싼다 (여기서 터지면 문제 푼 뒤 오류로 이어짐).
   useEffect(() => {
     setAudioModeAsync({ playsInSilentMode: true }).catch(() => {});
-    player.loop = true;
-    player.volume = 1.0;
-    player.play();
-    Vibration.vibrate(VIBRATION_PATTERN, true);
+    try {
+      player.loop = true;
+      player.volume = 1.0;
+      player.play();
+    } catch {}
+    try {
+      Vibration.vibrate(VIBRATION_PATTERN, true);
+    } catch {}
     newRound();
     return () => {
       if (revealTimer.current) clearTimeout(revealTimer.current);
-      Vibration.cancel();
-      player.pause();
+      try {
+        Vibration.cancel();
+      } catch {}
+      try {
+        player.pause();
+      } catch {}
     };
     // player/newRound는 마운트 시 고정. 마운트당 1회만 실행.
     // eslint-disable-next-line react-hooks/exhaustive-deps
