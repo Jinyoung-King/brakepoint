@@ -294,6 +294,7 @@ export default function SettingsScreen() {
           </>
         )}
       </View>
+      <Text style={[styles.help, { textAlign: 'center', marginTop: 8 }]}>brakepoint · OTA rev 1 ✓</Text>
     </ScrollView>
   );
 }
