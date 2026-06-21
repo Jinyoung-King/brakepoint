@@ -18,6 +18,7 @@ import type { Difficulty, DrinkUnit, ThemeMode, Sex, DrinkType } from '../storag
 import { radius, type Palette } from '../theme';
 import { useColors } from '../useColors';
 import { importWeightFromHealthConnect, openHealthConnectSettings } from '../health';
+import { APP_VERSION } from '../version';
 import {
   ensureNotificationSetup,
   openFullScreenIntentSettings,
@@ -499,6 +500,7 @@ export default function SettingsScreen() {
           </>
         )}
       </View>
+      <Text style={[styles.help, { textAlign: 'center', marginTop: 8 }]}>브레이크포인트 v{APP_VERSION}</Text>
     </ScrollView>
   );
 }
