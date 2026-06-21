@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import {
   Alert,
   Linking,
@@ -40,6 +40,22 @@ export default function HomeScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
   const c = useColors();
   const styles = useMemo(() => makeStyles(c), [c]);
+
+  // 헤더 우측: 기록 / 설정 아이콘
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <View style={styles.headerBtns}>
+          <Pressable onPress={() => navigation.navigate('History')} hitSlop={10}>
+            <Ionicons name="stats-chart" size={22} color={c.text} />
+          </Pressable>
+          <Pressable onPress={() => navigation.navigate('Settings')} hitSlop={10}>
+            <Ionicons name="settings-outline" size={22} color={c.text} />
+          </Pressable>
+        </View>
+      ),
+    });
+  }, [navigation, c, styles]);
 
   const {
     limit,
@@ -348,21 +364,11 @@ export default function HomeScreen({ navigation }: Props) {
         </View>
         )}
 
-        {/* 보조 (아이콘 버튼) */}
-        <View style={styles.footerRow}>
-          <Pressable style={styles.iconBtn} onPress={onEndSession}>
-            <Ionicons name="flag" size={24} color={c.textMuted} />
-            <Text style={styles.iconLabel}>종료</Text>
-          </Pressable>
-          <Pressable style={styles.iconBtn} onPress={() => navigation.navigate('History')}>
-            <Ionicons name="stats-chart" size={24} color={c.textMuted} />
-            <Text style={styles.iconLabel}>기록</Text>
-          </Pressable>
-          <Pressable style={styles.iconBtn} onPress={() => navigation.navigate('Settings')}>
-            <Ionicons name="settings-outline" size={24} color={c.textMuted} />
-            <Text style={styles.iconLabel}>설정</Text>
-          </Pressable>
-        </View>
+        {/* 술자리 종료 (액션) */}
+        <Pressable style={styles.endBtn} onPress={onEndSession}>
+          <Ionicons name="flag-outline" size={18} color={c.text} />
+          <Text style={styles.endBtnText}>술자리 종료</Text>
+        </Pressable>
       </ScrollView>
 
       {/* 술자리 종료 모달 */}
@@ -457,9 +463,9 @@ const makeStyles = (c: Palette) =>
     safeBtnText: { fontSize: 13, color: c.text, fontWeight: '600' },
     arrivedBtn: { backgroundColor: c.green, paddingVertical: 11, borderRadius: radius.sm, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
     arrivedBtnText: { fontSize: 14, color: '#fff', fontWeight: '700' },
-    footerRow: { flexDirection: 'row', gap: 12, marginTop: 8, width: '100%', justifyContent: 'center' },
-    iconBtn: { flex: 1, maxWidth: 110, alignItems: 'center', justifyContent: 'center', gap: 4, paddingVertical: 12, backgroundColor: c.card, borderRadius: radius.md, borderWidth: 1, borderColor: c.border },
-    iconLabel: { fontSize: 12, color: c.textMuted },
+    headerBtns: { flexDirection: 'row', gap: 18, paddingRight: 4 },
+    endBtn: { width: '100%', marginTop: 4, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 13, borderRadius: radius.md, borderWidth: 1, borderColor: c.border, backgroundColor: c.card },
+    endBtnText: { fontSize: 15, color: c.text, fontWeight: '600' },
     link: { fontSize: 15, color: c.blue },
     modalBg: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', paddingHorizontal: 24 },
     modalCard: { backgroundColor: c.card, borderRadius: radius.lg, padding: 20, gap: 10, borderWidth: 1, borderColor: c.border },
