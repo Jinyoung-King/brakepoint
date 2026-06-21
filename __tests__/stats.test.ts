@@ -1,4 +1,12 @@
-import { alcoholKcal, hangoverForecast, limitStreak, sessionsThisWeek } from '../src/stats';
+import {
+  alcoholKcal,
+  hangoverForecast,
+  limitStreak,
+  sessionsThisWeek,
+  dailyTotals,
+  monthSpend,
+  placeStats,
+} from '../src/stats';
 import type { SessionRecord } from '../src/storage';
 
 const rec = (count: number, limit: number, agoMs = 0): SessionRecord => ({
@@ -39,5 +47,41 @@ describe('sessionsThisWeek', () => {
     const day = 24 * 60 * 60 * 1000;
     const h = [rec(2, 5, day), rec(2, 5, 3 * day), rec(2, 5, 10 * day)];
     expect(sessionsThisWeek(h)).toBe(2);
+  });
+});
+
+const at = (y: number, m: number, d: number, count: number, cost?: number, place?: string): SessionRecord => ({
+  id: `${y}-${m}-${d}-${Math.random()}`,
+  endedAt: new Date(y, m, d, 21, 0, 0).getTime(),
+  count,
+  limit: 5,
+  cost,
+  place,
+});
+
+describe('dailyTotals', () => {
+  it('sums counts per day within a month', () => {
+    const h = [at(2026, 5, 10, 3), at(2026, 5, 10, 2), at(2026, 5, 15, 4), at(2026, 4, 10, 9)];
+    const t = dailyTotals(h, 2026, 5);
+    expect(t[10]).toBe(5);
+    expect(t[15]).toBe(4);
+    expect(t[1]).toBeUndefined();
+  });
+});
+
+describe('monthSpend', () => {
+  it('sums cost within a month, ignoring others', () => {
+    const h = [at(2026, 5, 1, 2, 30000), at(2026, 5, 9, 3, 20000), at(2026, 4, 1, 2, 99999)];
+    expect(monthSpend(h, 2026, 5)).toBe(50000);
+  });
+});
+
+describe('placeStats', () => {
+  it('groups by place with session count and avg', () => {
+    const h = [at(2026, 5, 1, 4, 0, 'A'), at(2026, 5, 2, 2, 0, 'A'), at(2026, 5, 3, 6, 0, 'B')];
+    const s = placeStats(h);
+    expect(s[0].place).toBe('A');
+    expect(s[0].sessions).toBe(2);
+    expect(s[0].avg).toBe(3);
   });
 });

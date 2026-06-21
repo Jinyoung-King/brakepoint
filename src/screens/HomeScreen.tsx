@@ -112,7 +112,13 @@ export default function HomeScreen({ navigation }: Props) {
   const [endOpen, setEndOpen] = useState(false);
   const [place, setPlace] = useState('');
   const [memo, setMemo] = useState('');
+  const [cost, setCost] = useState('');
   const [placeLoading, setPlaceLoading] = useState(false);
+
+  // 페이스 코치: 한계까지 남은 양 + 다음 잔 권장 시점(권장 간격 30분)
+  const REC_INTERVAL = 30;
+  const remaining = Math.max(0, limit - count);
+  const nextDrinkMin = lastDrinkMs ? Math.max(0, REC_INTERVAL - (minsSinceLast ?? 0)) : 0;
 
   const fillPlace = async (alertOnFail: boolean) => {
     setPlaceLoading(true);
@@ -175,9 +181,11 @@ export default function HomeScreen({ navigation }: Props) {
     if (!place) fillPlace(false); // 현재 위치 자동 입력 (실패해도 조용히)
   };
   const confirmEnd = () => {
-    endSession({ place, memo });
+    const won = parseInt(cost.replace(/[^0-9]/g, ''), 10);
+    endSession({ place, memo, cost: Number.isFinite(won) ? won : undefined });
     setPlace('');
     setMemo('');
+    setCost('');
     setEndOpen(false);
   };
 
@@ -308,6 +316,17 @@ export default function HomeScreen({ navigation }: Props) {
             <Text style={[styles.brakeText, inBrake && styles.warnText]}>{brakeText}</Text>
           </View>
         </View>
+
+        {/* 페이스 코치 */}
+        {active && !overLimit && (
+          <View style={styles.paceCard}>
+            <Ionicons name="speedometer-outline" size={16} color={c.blue} />
+            <Text style={styles.paceText}>
+              한계까지 {remaining}{unit}
+              {nextDrinkMin > 0 ? ` · 다음 잔 ${nextDrinkMin}분 뒤 권장` : ' · 지금 마셔도 OK'}
+            </Text>
+          </View>
+        )}
 
         {/* BAC 추정 */}
         {count > 0 && (
@@ -458,6 +477,15 @@ export default function HomeScreen({ navigation }: Props) {
               placeholder="예: 비둘기 타다끼 맛있었음"
               placeholderTextColor={c.textFaint}
             />
+            <Text style={styles.label}>술값 (선택, 원)</Text>
+            <TextInput
+              style={styles.input}
+              keyboardType="number-pad"
+              value={cost}
+              onChangeText={setCost}
+              placeholder="예: 35000"
+              placeholderTextColor={c.textFaint}
+            />
             <View style={styles.modalBtns}>
               <Pressable onPress={() => setEndOpen(false)} hitSlop={8}>
                 <Text style={styles.link}>취소</Text>
@@ -531,6 +559,8 @@ const makeStyles = (c: Palette) =>
     fillOver: { backgroundColor: c.red },
     thresholdLine: { position: 'absolute', top: 0, bottom: 0, width: 2, backgroundColor: c.text, opacity: 0.55 },
     brakeText: { fontSize: 13, color: c.textMuted, textAlign: 'center' },
+    paceCard: { width: '100%', flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: c.card, borderRadius: radius.md, paddingVertical: 10, paddingHorizontal: 14, borderWidth: 1, borderColor: c.border },
+    paceText: { fontSize: 13, color: c.text, flex: 1 },
     bacCard: { width: '100%', backgroundColor: c.card, borderRadius: radius.md, padding: 14, gap: 4, borderWidth: 1, borderColor: c.border },
     bacRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
     bacLabel: { fontSize: 15, color: c.text, fontWeight: '600' },

@@ -66,8 +66,9 @@ export default function SettingsScreen() {
     setCheckinEnabled,
     setCheckinDelayMin,
     setSmokingEnabled,
+    setMonthlyBudget,
   } = useAppState();
-  const { limit, difficulty, fakeCall, brakePercents, repeatEveryDrinks, unit, calendarSync, theme, sex, weightKg, drinkType, homeAddress, bottleToGlasses, waterEvery, weeklyGoalSessions, checkinEnabled, checkinDelayMin, smokingEnabled } =
+  const { limit, difficulty, fakeCall, brakePercents, repeatEveryDrinks, unit, calendarSync, theme, sex, weightKg, drinkType, homeAddress, bottleToGlasses, waterEvery, weeklyGoalSessions, checkinEnabled, checkinDelayMin, smokingEnabled, monthlyBudget } =
     state;
   const c = useColors();
   const styles = useMemo(() => makeStyles(c), [c]);
@@ -76,6 +77,7 @@ export default function SettingsScreen() {
   const [waterText, setWaterText] = useState(String(waterEvery));
   const [goalText, setGoalText] = useState(String(weeklyGoalSessions));
   const [checkinText, setCheckinText] = useState(String(checkinDelayMin));
+  const [budgetText, setBudgetText] = useState(monthlyBudget ? String(monthlyBudget) : '');
   const commitNum = (t: string, apply: (n: number) => void, min: number, max: number) => {
     const n = parseInt(t, 10);
     if (Number.isFinite(n) && n >= min && n <= max) apply(n);
@@ -410,6 +412,20 @@ export default function SettingsScreen() {
           placeholderTextColor={c.textFaint}
         />
         <Text style={styles.help}>음주모드를 끄면 이 시간 뒤 "집에 잘 도착했어요?" 알림이 와요.</Text>
+        <Text style={styles.label}>월 술값 예산 (원, 0=끔)</Text>
+        <TextInput
+          style={styles.input}
+          keyboardType="number-pad"
+          value={budgetText}
+          onChangeText={(t) => {
+            setBudgetText(t);
+            const n = parseInt(t.replace(/[^0-9]/g, ''), 10);
+            setMonthlyBudget(Number.isFinite(n) ? n : 0);
+          }}
+          placeholder="예: 200000"
+          placeholderTextColor={c.textFaint}
+        />
+        <Text style={styles.help}>기록의 술값 합계가 예산을 넘으면 알려줘요.</Text>
       </View>
 
       {/* 가짜 전화 */}

@@ -7,7 +7,7 @@ import { useAppState } from '../state/AppStateContext';
 import type { SessionRecord } from '../storage';
 import { radius, type Palette } from '../theme';
 import { useColors } from '../useColors';
-import { limitStreak, sessionsThisWeek } from '../stats';
+import { limitStreak, sessionsThisWeek, dailyTotals, monthSpend, placeStats } from '../stats';
 
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
@@ -25,7 +25,8 @@ const mean = (rs: SessionRecord[]) =>
 
 export default function HistoryScreen() {
   const { state, clearHistory, addManualRecord } = useAppState();
-  const { history, weeklyGoalSessions, limit, unit } = state;
+  const { history, weeklyGoalSessions, limit, unit, monthlyBudget } = state;
+  const [monthOffset, setMonthOffset] = useState(0);
   const streak = limitStreak(history);
   const weekCount = sessionsThisWeek(history);
   const c = useColors();
@@ -41,6 +42,7 @@ export default function HistoryScreen() {
   const [mTime, setMTime] = useState('21:00');
   const [mPlace, setMPlace] = useState('');
   const [mMemo, setMMemo] = useState('');
+  const [mCost, setMCost] = useState('');
 
   const openManual = () => {
     setMCount('');
@@ -49,6 +51,7 @@ export default function HistoryScreen() {
     setMTime('21:00');
     setMPlace('');
     setMMemo('');
+    setMCost('');
     setManualOpen(true);
   };
   const saveManual = () => {
@@ -59,6 +62,7 @@ export default function HistoryScreen() {
     }
     const lim = parseInt(mLimit, 10);
     const daysAgo = parseInt(mDaysAgo, 10) || 0;
+    const won = parseInt(mCost.replace(/[^0-9]/g, ''), 10);
     addManualRecord({
       count,
       limit: Number.isFinite(lim) && lim >= 1 ? lim : limit,
@@ -66,6 +70,7 @@ export default function HistoryScreen() {
       time: mTime,
       place: mPlace,
       memo: mMemo,
+      cost: Number.isFinite(won) ? won : undefined,
     });
     setManualOpen(false);
   };
@@ -87,6 +92,33 @@ export default function HistoryScreen() {
   const recentAvg = mean(history.filter((r) => r.endedAt >= Date.now() - WEEK_MS));
   const chart = history.slice(0, 12).reverse(); // 오래된→최근
   const maxCount = Math.max(1, ...chart.map((r) => r.count));
+
+  // 달력(히트맵)
+  const calBase = new Date();
+  calBase.setDate(1);
+  calBase.setMonth(calBase.getMonth() + monthOffset);
+  const calYear = calBase.getFullYear();
+  const calMonth = calBase.getMonth();
+  const totals = dailyTotals(history, calYear, calMonth);
+  const drinkingDays = Object.keys(totals).length;
+  const firstDow = new Date(calYear, calMonth, 1).getDay();
+  const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+  const cells: (number | null)[] = [
+    ...Array(firstDow).fill(null),
+    ...Array.from({ length: daysInMonth }, (_, i) => i + 1),
+  ];
+  const cellBg = (t?: number) => {
+    if (!t) return c.cardAlt;
+    if (t <= 2) return c.blue + '55';
+    if (t <= 4) return c.blue + 'aa';
+    if (t <= 7) return c.blue;
+    return c.red;
+  };
+
+  // 비용/장소
+  const spend = monthSpend(history, calYear, calMonth);
+  const places = placeStats(history);
+  const won = (n: number) => n.toLocaleString('ko-KR');
 
   const confirmClear = () =>
     Alert.alert('기록 전체 삭제', '모든 음주 기록을 지울까요? 되돌릴 수 없어요.', [
@@ -188,6 +220,72 @@ export default function HistoryScreen() {
                   </View>
                 ))}
               </View>
+            </View>
+          )}
+
+          {/* 음주 달력 */}
+          <View style={styles.chartCard}>
+            <View style={styles.calHead}>
+              <Pressable onPress={() => setMonthOffset((m) => m - 1)} hitSlop={10}>
+                <Ionicons name="chevron-back" size={20} color={c.textMuted} />
+              </Pressable>
+              <Text style={styles.calTitle}>
+                {calYear}.{String(calMonth + 1).padStart(2, '0')} · 음주 {drinkingDays}일
+              </Text>
+              <Pressable
+                onPress={() => setMonthOffset((m) => Math.min(0, m + 1))}
+                hitSlop={10}
+                disabled={monthOffset >= 0}
+              >
+                <Ionicons name="chevron-forward" size={20} color={monthOffset >= 0 ? c.border : c.textMuted} />
+              </Pressable>
+            </View>
+            <View style={styles.calGrid}>
+              {WEEKDAYS.map((w) => (
+                <Text key={w} style={styles.calDow}>
+                  {w}
+                </Text>
+              ))}
+              {cells.map((day, i) => (
+                <View key={i} style={styles.calCellWrap}>
+                  {day != null && (
+                    <View style={[styles.calCell, { backgroundColor: cellBg(totals[day]) }]}>
+                      <Text style={[styles.calDay, !!totals[day] && styles.calDayOn]}>{day}</Text>
+                    </View>
+                  )}
+                </View>
+              ))}
+            </View>
+          </View>
+
+          {/* 술값 / 예산 */}
+          {(monthlyBudget > 0 || spend > 0) && (
+            <View style={styles.chartCard}>
+              <Text style={styles.chartTitle}>이번 달 술값</Text>
+              <Text style={[styles.budgetAmt, monthlyBudget > 0 && spend > monthlyBudget && styles.statNumWarn]}>
+                {won(spend)}원{monthlyBudget > 0 ? ` / 예산 ${won(monthlyBudget)}원` : ''}
+              </Text>
+              {monthlyBudget > 0 && spend > monthlyBudget && (
+                <Text style={[styles.muted, styles.statNumWarn]}>예산을 {won(spend - monthlyBudget)}원 초과했어요</Text>
+              )}
+            </View>
+          )}
+
+          {/* 장소별 */}
+          {places.length > 0 && (
+            <View style={styles.chartCard}>
+              <Text style={styles.chartTitle}>자주 가는 곳</Text>
+              {places.map((p) => (
+                <View key={p.place} style={styles.placeRow}>
+                  <Text style={styles.placeName} numberOfLines={1}>
+                    {p.place}
+                  </Text>
+                  <Text style={styles.muted}>
+                    {p.sessions}회 · 평균 {p.avg.toFixed(1)}
+                    {unit}
+                  </Text>
+                </View>
+              ))}
             </View>
           )}
         </View>
@@ -295,6 +393,8 @@ export default function HistoryScreen() {
             <TextInput style={styles.mInput} value={mPlace} onChangeText={setMPlace} placeholder="예: 연신내 ○○" placeholderTextColor={c.textFaint} />
             <Text style={styles.mLabel}>메모 (선택)</Text>
             <TextInput style={styles.mInput} value={mMemo} onChangeText={setMMemo} placeholder="한줄 메모" placeholderTextColor={c.textFaint} />
+            <Text style={styles.mLabel}>술값 (선택, 원)</Text>
+            <TextInput style={styles.mInput} keyboardType="number-pad" value={mCost} onChangeText={setMCost} placeholder="예: 35000" placeholderTextColor={c.textFaint} />
             <View style={styles.mBtns}>
               <Pressable onPress={() => setManualOpen(false)} hitSlop={8}>
                 <Text style={styles.clearText}>취소</Text>
@@ -358,6 +458,17 @@ const makeStyles = (c: Palette) => StyleSheet.create({
   goalStreak: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   goalText: { fontSize: 14, color: c.text, fontWeight: '600' },
   chartCard: { backgroundColor: c.card, borderRadius: radius.md, padding: 14, gap: 10, borderWidth: 1, borderColor: c.border },
+  calHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  calTitle: { fontSize: 14, fontWeight: '700', color: c.text },
+  calGrid: { flexDirection: 'row', flexWrap: 'wrap' },
+  calDow: { width: `${100 / 7}%`, textAlign: 'center', fontSize: 11, color: c.textFaint, marginBottom: 4 },
+  calCellWrap: { width: `${100 / 7}%`, aspectRatio: 1, padding: 2 },
+  calCell: { flex: 1, borderRadius: 6, alignItems: 'center', justifyContent: 'center' },
+  calDay: { fontSize: 12, color: c.textMuted },
+  calDayOn: { color: '#fff', fontWeight: '700' },
+  budgetAmt: { fontSize: 22, fontWeight: '800', color: c.text },
+  placeRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+  placeName: { fontSize: 14, color: c.text, fontWeight: '600', flex: 1 },
   chartTitle: { fontSize: 13, color: c.textMuted },
   chart: { flexDirection: 'row', alignItems: 'flex-end', height: 72, gap: 4 },
   barWrap: { flex: 1, alignItems: 'center', justifyContent: 'flex-end' },

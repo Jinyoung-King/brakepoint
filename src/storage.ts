@@ -31,6 +31,7 @@ export type SessionRecord = {
   memo?: string; // 한줄 메모
   round?: number; // 그날 N차
   events?: DrinkEvent[]; // 시점별 음주 타임라인
+  cost?: number; // 술값(원)
 };
 
 export type AppState = {
@@ -62,6 +63,7 @@ export type AppState = {
   weeklyGoalSessions: number; // 주간 목표 술자리 횟수 (0=끔)
   checkinEnabled: boolean; // 귀가 체크인 알림
   checkinDelayMin: number; // 음주모드 종료 후 체크인까지(분)
+  monthlyBudget: number; // 월 술값 예산(원, 0=끔)
 };
 
 export const DEFAULT_STATE: AppState = {
@@ -98,6 +100,7 @@ export const DEFAULT_STATE: AppState = {
   weeklyGoalSessions: 2,
   checkinEnabled: true,
   checkinDelayMin: 60,
+  monthlyBudget: 0,
 };
 
 const KEY = 'brakepoint:appState';

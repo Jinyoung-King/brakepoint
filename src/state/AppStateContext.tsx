@@ -19,7 +19,7 @@ type AppStateContextValue = {
   addDrink: (n?: number) => void;
   undoDrink: () => void; // 직전 추가(+1잔/+1병) 되돌리기
   addCig: () => void;
-  endSession: (extra?: { place?: string; memo?: string }) => void; // 현재 술자리를 기록에 저장하고 초기화
+  endSession: (extra?: { place?: string; memo?: string; cost?: number }) => void; // 현재 술자리를 기록에 저장하고 초기화
   addManualRecord: (r: {
     count: number;
     limit: number;
@@ -27,6 +27,7 @@ type AppStateContextValue = {
     time?: string;
     place?: string;
     memo?: string;
+    cost?: number;
   }) => void; // 지난 술자리 수동 추가
   clearHistory: () => void;
   setLimit: (limit: number) => void;
@@ -36,6 +37,7 @@ type AppStateContextValue = {
   setBottleToGlasses: (n: number) => void;
   setCalendarSync: (on: boolean) => void;
   setSmokingEnabled: (on: boolean) => void;
+  setMonthlyBudget: (won: number) => void;
   setTheme: (theme: ThemeMode) => void;
   setSex: (sex: Sex) => void;
   setWeightKg: (kg: number) => void;
@@ -127,6 +129,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
           memo: extra?.memo?.trim() || undefined,
           round,
           events: s.drinkEvents,
+          cost: extra?.cost && extra.cost > 0 ? extra.cost : undefined,
         };
         return {
           ...s,
@@ -165,6 +168,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
           memo: r.memo?.trim() || undefined,
           round,
           events: [],
+          cost: r.cost && r.cost > 0 ? r.cost : undefined,
         };
         return { ...s, history: [rec, ...s.history].sort((a, b) => b.endedAt - a.endedAt) };
       }),
@@ -176,6 +180,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     setBottleToGlasses: (bottleToGlasses) => setState((s) => ({ ...s, bottleToGlasses })),
     setCalendarSync: (calendarSync) => setState((s) => ({ ...s, calendarSync })),
     setSmokingEnabled: (smokingEnabled) => setState((s) => ({ ...s, smokingEnabled })),
+    setMonthlyBudget: (monthlyBudget) => setState((s) => ({ ...s, monthlyBudget })),
     setTheme: (theme) => setState((s) => ({ ...s, theme })),
     setSex: (sex) => setState((s) => ({ ...s, sex })),
     setWeightKg: (weightKg) => setState((s) => ({ ...s, weightKg })),

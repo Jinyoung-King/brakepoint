@@ -30,3 +30,47 @@ export function sessionsThisWeek(history: SessionRecord[]): number {
   const since = Date.now() - WEEK_MS;
   return history.filter((r) => r.endedAt >= since).length;
 }
+
+const sameYM = (ms: number, year: number, month: number) => {
+  const d = new Date(ms);
+  return d.getFullYear() === year && d.getMonth() === month;
+};
+
+// 해당 월(year, month=0-based)의 날짜별 음주량 합계 { day: totalCount }
+export function dailyTotals(history: SessionRecord[], year: number, month: number): Record<number, number> {
+  const out: Record<number, number> = {};
+  for (const r of history) {
+    if (sameYM(r.endedAt, year, month)) {
+      const day = new Date(r.endedAt).getDate();
+      out[day] = (out[day] ?? 0) + r.count;
+    }
+  }
+  return out;
+}
+
+// 해당 월 술값 합계(원)
+export function monthSpend(history: SessionRecord[], year: number, month: number): number {
+  return history
+    .filter((r) => sameYM(r.endedAt, year, month))
+    .reduce((a, r) => a + (r.cost ?? 0), 0);
+}
+
+// 장소별 통계 (세션 수 desc), 상위 limit개
+export function placeStats(
+  history: SessionRecord[],
+  topN = 5
+): { place: string; sessions: number; avg: number }[] {
+  const m = new Map<string, { sessions: number; total: number }>();
+  for (const r of history) {
+    const p = r.place?.trim();
+    if (!p) continue;
+    const e = m.get(p) ?? { sessions: 0, total: 0 };
+    e.sessions += 1;
+    e.total += r.count;
+    m.set(p, e);
+  }
+  return Array.from(m.entries())
+    .map(([place, e]) => ({ place, sessions: e.sessions, avg: e.total / e.sessions }))
+    .sort((a, b) => b.sessions - a.sessions)
+    .slice(0, topN);
+}
