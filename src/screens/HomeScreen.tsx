@@ -36,7 +36,8 @@ const fmtTime = (ms: number) => {
 };
 
 export default function HomeScreen({ navigation }: Props) {
-  const { state, addDrink, addCig, endSession, setDrinkingMode, setHomeCoords } = useAppState();
+  const { state, addDrink, addCig, endSession, setDrinkingMode, setHomeCoords, setHomeAddress } =
+    useAppState();
   const insets = useSafeAreaInsets();
   const c = useColors();
   const styles = useMemo(() => makeStyles(c), [c]);
@@ -78,6 +79,9 @@ export default function HomeScreen({ navigation }: Props) {
     homeLng,
   } = state;
   const [transitLoading, setTransitLoading] = useState(false);
+  const [addrOpen, setAddrOpen] = useState(false);
+  const [addrInput, setAddrInput] = useState('');
+  const [addrError, setAddrError] = useState('');
 
   // 시간 기반 표시(BAC·잔 간격)를 1분마다 갱신
   const [, setTick] = useState(0);
@@ -116,6 +120,16 @@ export default function HomeScreen({ navigation }: Props) {
     if (p) setPlace(p);
     else if (alertOnFail)
       Alert.alert('위치를 못 가져왔어요', '위치 권한을 허용했는지 확인하거나 직접 입력해주세요.');
+  };
+
+  const fillAddrFromLocation = async () => {
+    setTransitLoading(true);
+    const p = await getCurrentPlace();
+    setTransitLoading(false);
+    if (p) {
+      setAddrInput(p);
+      setAddrError('');
+    } else setAddrError('위치를 못 가져왔어요. 직접 입력해주세요.');
   };
 
   const brakeAt = (n: number) => {
@@ -191,29 +205,59 @@ export default function HomeScreen({ navigation }: Props) {
   const openTaxi = () => {
     openExternal('kakaot://', 'https://play.google.com/store/apps/details?id=com.kakao.taxi');
   };
-  // 원탭 대중교통: 집 좌표(없으면 지오코딩) → 네이버지도 대중교통 경로(현위치→집)
-  const openTransit = async () => {
-    const q = requireHome();
-    if (!q) return;
-    let lat = homeLat;
-    let lng = homeLng;
-    if (lat == null || lng == null) {
-      setTransitLoading(true);
-      const r = await geocodeAddress(q);
-      setTransitLoading(false);
-      if (!r) {
-        Alert.alert('주소를 못 찾았어요', '집 주소를 조금 더 정확히 입력해보세요. (예: 구/동/번지)');
-        return;
-      }
-      lat = r.lat;
-      lng = r.lng;
-      setHomeCoords(lat, lng);
-    }
+  const launchNaverTransit = (lat: number, lng: number, q: string) => {
     const name = encodeURIComponent(q);
     openExternal(
       `nmap://route/public?dlat=${lat}&dlng=${lng}&dname=${name}&appname=kr.co.cruxdata.brakepoint`,
       `https://map.naver.com/p/search/${name}`
     );
+  };
+
+  // 원탭 대중교통: 집 좌표(없으면 지오코딩) → 네이버지도 대중교통 경로(현위치→집).
+  // 주소가 없거나 못 찾으면 막지 말고 주소 입력 모달을 띄운다.
+  const openTransit = async () => {
+    const q = homeAddress.trim();
+    if (!q) {
+      setAddrInput('');
+      setAddrError('');
+      setAddrOpen(true);
+      return;
+    }
+    if (homeLat != null && homeLng != null) {
+      launchNaverTransit(homeLat, homeLng, q);
+      return;
+    }
+    setTransitLoading(true);
+    const r = await geocodeAddress(q);
+    setTransitLoading(false);
+    if (!r) {
+      setAddrInput(q);
+      setAddrError('이 주소를 못 찾았어요. 동·도로명·번지까지 더 정확히 입력해보세요.');
+      setAddrOpen(true);
+      return;
+    }
+    setHomeCoords(r.lat, r.lng);
+    launchNaverTransit(r.lat, r.lng, q);
+  };
+
+  // 주소 입력 모달에서 "이 주소로 길찾기"
+  const submitAddr = async () => {
+    const q = addrInput.trim();
+    if (!q) {
+      setAddrError('주소를 입력해주세요.');
+      return;
+    }
+    setHomeAddress(q); // 저장 + 캐시 좌표 초기화
+    setTransitLoading(true);
+    const r = await geocodeAddress(q);
+    setTransitLoading(false);
+    if (!r) {
+      setAddrError('주소를 못 찾았어요. 예: 서울 은평구 통일로 〇〇〇');
+      return;
+    }
+    setHomeCoords(r.lat, r.lng);
+    setAddrOpen(false);
+    launchNaverTransit(r.lat, r.lng, q);
   };
 
   const brakeText = overLimit
@@ -413,6 +457,43 @@ export default function HomeScreen({ navigation }: Props) {
           </View>
         </View>
       </Modal>
+
+      {/* 집 주소 입력 (대중교통 길찾기용) */}
+      <Modal visible={addrOpen} transparent animationType="fade" onRequestClose={() => setAddrOpen(false)}>
+        <View style={styles.modalBg}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>집 주소 입력</Text>
+            <Text style={styles.muted}>대중교통 길찾기에 쓸 집 주소예요. 정확히 입력할수록 좋아요.</Text>
+            <View style={styles.labelRow}>
+              <Text style={styles.label}>주소</Text>
+              <Pressable style={styles.locBtn} onPress={fillAddrFromLocation} hitSlop={8}>
+                <Ionicons name="location-outline" size={14} color={c.blue} />
+                <Text style={styles.locBtnText}>{transitLoading ? '…' : '현재 위치'}</Text>
+              </Pressable>
+            </View>
+            <TextInput
+              style={styles.input}
+              value={addrInput}
+              onChangeText={(t) => {
+                setAddrInput(t);
+                setAddrError('');
+              }}
+              placeholder="예: 서울 은평구 통일로 123"
+              placeholderTextColor={c.textFaint}
+              autoFocus
+            />
+            {!!addrError && <Text style={styles.addrError}>{addrError}</Text>}
+            <View style={styles.modalBtns}>
+              <Pressable onPress={() => setAddrOpen(false)} hitSlop={8}>
+                <Text style={styles.link}>취소</Text>
+              </Pressable>
+              <Pressable style={styles.saveBtn} onPress={submitAddr} disabled={transitLoading}>
+                <Text style={styles.saveBtnText}>{transitLoading ? '확인 중…' : '이 주소로 길찾기'}</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -474,6 +555,7 @@ const makeStyles = (c: Palette) =>
     labelRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 },
     locBtn: { flexDirection: 'row', alignItems: 'center', gap: 3 },
     locBtnText: { fontSize: 13, color: c.blue, fontWeight: '600' },
+    addrError: { fontSize: 13, color: c.red, marginTop: 2 },
     input: { borderWidth: 1, borderColor: c.border, backgroundColor: c.cardAlt, color: c.text, borderRadius: radius.sm, paddingHorizontal: 12, paddingVertical: 10, fontSize: 16 },
     modalBtns: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 20, marginTop: 8 },
     saveBtn: { backgroundColor: c.blue, paddingVertical: 12, paddingHorizontal: 20, borderRadius: radius.sm },
