@@ -31,7 +31,7 @@ const QUICK_GAP_MS = 15 * 60 * 1000; // 15분 이내 재섭취 = 빠름
 
 const fmtTime = (ms: number) => {
   const d = new Date(ms);
-  return `${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`;
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 };
 
 export default function HomeScreen({ navigation }: Props) {
@@ -238,13 +238,19 @@ export default function HomeScreen({ navigation }: Props) {
                 {bac.toFixed(3)}%
               </Text>
             </View>
-            <Text style={styles.muted}>
-              {canDrive
-                ? '운전 가능 추정 범위'
-                : `운전 가능(0.03% 미만)까지 약 ${fmtHours(hoursUntil(bac, DRIVE_LIMIT))}`}
-              {' · 완전 해독 '}
-              {fmtHours(hoursUntil(bac, 0))}
-            </Text>
+            {canDrive ? (
+              <Text style={styles.muted}>
+                운전 가능 추정 범위 · 완전 해독 {fmtHours(hoursUntil(bac, 0))} 뒤 (
+                {fmtTime(now + hoursUntil(bac, 0) * 3600000)})
+              </Text>
+            ) : (
+              <Text style={styles.muted}>
+                운전 가능(0.03%↓) {fmtHours(hoursUntil(bac, DRIVE_LIMIT))} 뒤 ·{' '}
+                {fmtTime(now + hoursUntil(bac, DRIVE_LIMIT) * 3600000)}
+                {'\n'}완전 해독 {fmtHours(hoursUntil(bac, 0))} 뒤 ·{' '}
+                {fmtTime(now + hoursUntil(bac, 0) * 3600000)}
+              </Text>
+            )}
             <Text style={styles.muted}>
               🔥 약 {alcoholKcal(alcoholGrams(count, unit))}kcal · 😵 숙취 위험 {hangoverForecast(bac).level}
             </Text>
