@@ -45,6 +45,8 @@ export type AppState = {
   sex: Sex; // BAC 추정용
   weightKg: number; // BAC 추정용 체중
   homeAddress: string; // 안전 귀가용 집 주소
+  homeLat: number | null; // 집 좌표(지오코딩 캐시)
+  homeLng: number | null;
   sessionStartMs: number | null; // 이번 술자리 첫 잔 시각 (BAC 경과시간)
   lastDrinkMs: number | null; // 마지막 잔 시각 (잔 간격)
   waterEvery: number; // 몇 잔마다 물 알림 (0=끔)
@@ -76,6 +78,8 @@ export const DEFAULT_STATE: AppState = {
   sex: 'male',
   weightKg: 70,
   homeAddress: '',
+  homeLat: null,
+  homeLng: null,
   sessionStartMs: null,
   lastDrinkMs: null,
   waterEvery: 3,

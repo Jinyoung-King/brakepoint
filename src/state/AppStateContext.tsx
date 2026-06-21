@@ -29,6 +29,7 @@ type AppStateContextValue = {
   setSex: (sex: Sex) => void;
   setWeightKg: (kg: number) => void;
   setHomeAddress: (addr: string) => void;
+  setHomeCoords: (lat: number, lng: number) => void;
   setWaterEvery: (n: number) => void;
   setWeeklyGoalSessions: (n: number) => void;
   setCheckinEnabled: (on: boolean) => void;
@@ -99,7 +100,8 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     setTheme: (theme) => setState((s) => ({ ...s, theme })),
     setSex: (sex) => setState((s) => ({ ...s, sex })),
     setWeightKg: (weightKg) => setState((s) => ({ ...s, weightKg })),
-    setHomeAddress: (homeAddress) => setState((s) => ({ ...s, homeAddress })),
+    setHomeAddress: (homeAddress) => setState((s) => ({ ...s, homeAddress, homeLat: null, homeLng: null })),
+    setHomeCoords: (homeLat, homeLng) => setState((s) => ({ ...s, homeLat, homeLng })),
     setWaterEvery: (waterEvery) => setState((s) => ({ ...s, waterEvery })),
     setWeeklyGoalSessions: (weeklyGoalSessions) => setState((s) => ({ ...s, weeklyGoalSessions })),
     setCheckinEnabled: (checkinEnabled) => setState((s) => ({ ...s, checkinEnabled })),

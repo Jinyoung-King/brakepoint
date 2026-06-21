@@ -23,6 +23,7 @@ import { useColors } from '../useColors';
 import { alcoholGrams, estimateBac, hoursUntil, fmtHours, DRIVE_LIMIT } from '../bac';
 import { alcoholKcal, hangoverForecast } from '../stats';
 import { cancelCheckin } from '../checkin';
+import { geocodeAddress } from '../geocode';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
 
@@ -34,7 +35,7 @@ const fmtTime = (ms: number) => {
 };
 
 export default function HomeScreen({ navigation }: Props) {
-  const { state, addDrink, addCig, endSession, setDrinkingMode } = useAppState();
+  const { state, addDrink, addCig, endSession, setDrinkingMode, setHomeCoords } = useAppState();
   const insets = useSafeAreaInsets();
   const c = useColors();
   const styles = useMemo(() => makeStyles(c), [c]);
@@ -55,7 +56,10 @@ export default function HomeScreen({ navigation }: Props) {
     sessionStartMs,
     lastDrinkMs,
     waterEvery,
+    homeLat,
+    homeLng,
   } = state;
+  const [transitLoading, setTransitLoading] = useState(false);
 
   // 시간 기반 표시(BAC·잔 간격)를 1분마다 갱신
   const [, setTick] = useState(0);
@@ -155,6 +159,30 @@ export default function HomeScreen({ navigation }: Props) {
   };
   const openTaxi = () => {
     openExternal('kakaot://', 'https://play.google.com/store/apps/details?id=com.kakao.taxi');
+  };
+  // 원탭 대중교통: 집 좌표(없으면 지오코딩) → 네이버지도 대중교통 경로(현위치→집)
+  const openTransit = async () => {
+    const q = requireHome();
+    if (!q) return;
+    let lat = homeLat;
+    let lng = homeLng;
+    if (lat == null || lng == null) {
+      setTransitLoading(true);
+      const r = await geocodeAddress(q);
+      setTransitLoading(false);
+      if (!r) {
+        Alert.alert('주소를 못 찾았어요', '집 주소를 조금 더 정확히 입력해보세요. (예: 구/동/번지)');
+        return;
+      }
+      lat = r.lat;
+      lng = r.lng;
+      setHomeCoords(lat, lng);
+    }
+    const name = encodeURIComponent(q);
+    openExternal(
+      `nmap://route/public?dlat=${lat}&dlng=${lng}&dname=${name}&appname=kr.co.cruxdata.brakepoint`,
+      `https://map.naver.com/p/search/${name}`
+    );
   };
 
   const brakeText = overLimit
@@ -259,13 +287,17 @@ export default function HomeScreen({ navigation }: Props) {
         {/* 안전 귀가 */}
         <View style={styles.safeCard}>
           <Text style={styles.modeTitle}>안전 귀가</Text>
-          <Text style={styles.muted}>집까지 길찾기 (대중교통은 지도 앱에서)</Text>
+          <Pressable style={styles.transitBtn} onPress={openTransit} disabled={transitLoading}>
+            <Text style={styles.transitBtnText}>
+              {transitLoading ? '주소 찾는 중…' : '🚍 대중교통으로 집 가기'}
+            </Text>
+          </Pressable>
           <View style={styles.safeBtns}>
             <Pressable style={styles.safeBtn} onPress={openKakaoMap}>
               <Text style={styles.safeBtnText}>🗺️ 카카오맵</Text>
             </Pressable>
             <Pressable style={styles.safeBtn} onPress={openNaverMap}>
-              <Text style={styles.safeBtnText}>🗺️ 네이버지도</Text>
+              <Text style={styles.safeBtnText}>🗺️ 네이버</Text>
             </Pressable>
             <Pressable style={styles.safeBtn} onPress={openTaxi}>
               <Text style={styles.safeBtnText}>🚕 택시</Text>
@@ -371,6 +403,8 @@ const makeStyles = (c: Palette) =>
     modeTitle: { fontSize: 16, fontWeight: '600', color: c.text },
     safeCard: { width: '100%', backgroundColor: c.card, borderRadius: radius.md, padding: 14, gap: 10 },
     safeBtns: { flexDirection: 'row', gap: 10 },
+    transitBtn: { backgroundColor: c.blue, paddingVertical: 13, borderRadius: radius.sm, alignItems: 'center' },
+    transitBtnText: { fontSize: 15, color: '#fff', fontWeight: '700' },
     safeBtn: { flex: 1, backgroundColor: c.cardAlt, paddingVertical: 12, borderRadius: radius.sm, alignItems: 'center' },
     safeBtnText: { fontSize: 14, color: c.text, fontWeight: '600' },
     arrivedBtn: { backgroundColor: c.green, paddingVertical: 11, borderRadius: radius.sm, alignItems: 'center' },
