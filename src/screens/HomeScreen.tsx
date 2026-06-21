@@ -131,18 +131,30 @@ export default function HomeScreen({ navigation }: Props) {
     setEndOpen(false);
   };
 
-  const openDirections = () => {
+  // 앱 스킴 시도 → 실패 시 웹으로 폴백
+  const openExternal = (appUrl: string, webUrl: string) => {
+    Linking.openURL(appUrl).catch(() => Linking.openURL(webUrl).catch(() => {}));
+  };
+  const requireHome = () => {
     const q = homeAddress.trim();
-    if (!q) {
-      Alert.alert('집 주소를 먼저 설정하세요', '설정 → 집 주소에 입력하면 길찾기가 열려요.');
-      return;
-    }
-    Linking.openURL(`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(q)}`);
+    if (!q) Alert.alert('집 주소를 먼저 설정하세요', '설정 → 집 주소에 입력하면 길찾기가 열려요.');
+    return q;
+  };
+  const openKakaoMap = () => {
+    const q = requireHome();
+    if (!q) return;
+    openExternal(`kakaomap://search?q=${encodeURIComponent(q)}`, `https://map.kakao.com/?q=${encodeURIComponent(q)}`);
+  };
+  const openNaverMap = () => {
+    const q = requireHome();
+    if (!q) return;
+    openExternal(
+      `nmap://search?query=${encodeURIComponent(q)}&appname=kr.co.cruxdata.brakepoint`,
+      `https://map.naver.com/p/search/${encodeURIComponent(q)}`
+    );
   };
   const openTaxi = () => {
-    Linking.openURL('kakaot://').catch(() =>
-      Linking.openURL('https://play.google.com/store/apps/details?id=com.kakao.taxi')
-    );
+    openExternal('kakaot://', 'https://play.google.com/store/apps/details?id=com.kakao.taxi');
   };
 
   const brakeText = overLimit
@@ -219,10 +231,12 @@ export default function HomeScreen({ navigation }: Props) {
           <Pressable style={styles.addBtn} onPress={() => onAdd(1)}>
             <Text style={styles.addBtnText}>+1{unit}</Text>
           </Pressable>
-          <Pressable style={styles.bottleBtn} onPress={() => onAdd(bottleToGlasses)}>
-            <Text style={styles.bottleBtnText}>+1병</Text>
-            <Text style={styles.bottleSub}>={bottleToGlasses}{unit}</Text>
-          </Pressable>
+          {unit === '잔' && (
+            <Pressable style={styles.bottleBtn} onPress={() => onAdd(bottleToGlasses)}>
+              <Text style={styles.bottleBtnText}>+1병</Text>
+              <Text style={styles.bottleSub}>={bottleToGlasses}잔</Text>
+            </Pressable>
+          )}
         </View>
 
         {/* 흡연 */}
@@ -245,12 +259,16 @@ export default function HomeScreen({ navigation }: Props) {
         {/* 안전 귀가 */}
         <View style={styles.safeCard}>
           <Text style={styles.modeTitle}>안전 귀가</Text>
+          <Text style={styles.muted}>집까지 길찾기 (대중교통은 지도 앱에서)</Text>
           <View style={styles.safeBtns}>
-            <Pressable style={styles.safeBtn} onPress={openDirections}>
-              <Text style={styles.safeBtnText}>🏠 집까지 길찾기</Text>
+            <Pressable style={styles.safeBtn} onPress={openKakaoMap}>
+              <Text style={styles.safeBtnText}>🗺️ 카카오맵</Text>
+            </Pressable>
+            <Pressable style={styles.safeBtn} onPress={openNaverMap}>
+              <Text style={styles.safeBtnText}>🗺️ 네이버지도</Text>
             </Pressable>
             <Pressable style={styles.safeBtn} onPress={openTaxi}>
-              <Text style={styles.safeBtnText}>🚕 택시(카카오T)</Text>
+              <Text style={styles.safeBtnText}>🚕 택시</Text>
             </Pressable>
           </View>
           <Pressable style={styles.arrivedBtn} onPress={onArrivedHome}>
