@@ -33,7 +33,7 @@ export default function RootNavigator() {
         component={OnboardingScreen}
         options={{ headerShown: false, gestureEnabled: false }}
       />
-      <Stack.Screen name="Home" component={HomeScreen} options={{ title: 'brakepoint' }} />
+      <Stack.Screen name="Home" component={HomeScreen} options={{ title: '브레이크포인트' }} />
       <Stack.Screen name="Settings" component={SettingsScreen} options={{ title: '설정' }} />
       <Stack.Screen name="History" component={HistoryScreen} options={{ title: '기록' }} />
       {/* 인지 게이트 / 가짜 통화는 풀스크린 모달처럼 띄움 (헤더 없음) */}
