@@ -47,6 +47,7 @@
       "./plugins/withFullScreenIntent",
       "./plugins/withHealthConnectDelegate",
       "./plugins/withHealthConnectActivity",
+      "./plugins/withAndroidQueries",
       "expo-font",
       "react-native-health-connect",
       [
