@@ -20,6 +20,14 @@ type AppStateContextValue = {
   undoDrink: () => void; // 직전 추가(+1잔/+1병) 되돌리기
   addCig: () => void;
   endSession: (extra?: { place?: string; memo?: string }) => void; // 현재 술자리를 기록에 저장하고 초기화
+  addManualRecord: (r: {
+    count: number;
+    limit: number;
+    daysAgo: number;
+    time?: string;
+    place?: string;
+    memo?: string;
+  }) => void; // 지난 술자리 수동 추가
   clearHistory: () => void;
   setLimit: (limit: number) => void;
   setDrinkingMode: (on: boolean) => void;
@@ -128,6 +136,36 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
           drinkEvents: [],
           history: [rec, ...s.history],
         };
+      }),
+    addManualRecord: (r) =>
+      setState((s) => {
+        const d = new Date();
+        d.setDate(d.getDate() - Math.max(0, Math.floor(r.daysAgo)));
+        const [hh, mm] = (r.time || '').split(':').map((x) => parseInt(x, 10));
+        d.setHours(Number.isFinite(hh) ? hh : 21, Number.isFinite(mm) ? mm : 0, 0, 0);
+        const endedAt = d.getTime();
+        const sameDay = (a: number, b: number) => {
+          const x = new Date(a);
+          const y = new Date(b);
+          return (
+            x.getFullYear() === y.getFullYear() &&
+            x.getMonth() === y.getMonth() &&
+            x.getDate() === y.getDate()
+          );
+        };
+        const round = s.history.filter((rr) => sameDay(rr.endedAt, endedAt)).length + 1;
+        const rec = {
+          id: `m-${endedAt}-${s.history.length}`,
+          endedAt,
+          count: r.count,
+          limit: r.limit,
+          unit: s.unit,
+          place: r.place?.trim() || undefined,
+          memo: r.memo?.trim() || undefined,
+          round,
+          events: [],
+        };
+        return { ...s, history: [rec, ...s.history].sort((a, b) => b.endedAt - a.endedAt) };
       }),
     clearHistory: () => setState((s) => ({ ...s, history: [] })),
     setLimit: (limit) => setState((s) => ({ ...s, limit })),

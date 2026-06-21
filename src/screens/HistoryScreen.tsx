@@ -1,6 +1,7 @@
-import { useMemo, useState } from 'react';
-import { Alert, FlatList, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useLayoutEffect, useMemo, useState } from 'react';
+import { Alert, FlatList, Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 
 import { useAppState } from '../state/AppStateContext';
 import type { SessionRecord } from '../storage';
@@ -23,13 +24,62 @@ const mean = (rs: SessionRecord[]) =>
   rs.length ? rs.reduce((a, r) => a + r.count, 0) / rs.length : 0;
 
 export default function HistoryScreen() {
-  const { state, clearHistory } = useAppState();
-  const { history, weeklyGoalSessions } = state;
+  const { state, clearHistory, addManualRecord } = useAppState();
+  const { history, weeklyGoalSessions, limit, unit } = state;
   const streak = limitStreak(history);
   const weekCount = sessionsThisWeek(history);
   const c = useColors();
   const styles = useMemo(() => makeStyles(c), [c]);
+  const navigation = useNavigation();
   const [selected, setSelected] = useState<SessionRecord | null>(null);
+
+  // 수동 기록 입력
+  const [manualOpen, setManualOpen] = useState(false);
+  const [mCount, setMCount] = useState('');
+  const [mLimit, setMLimit] = useState(String(limit));
+  const [mDaysAgo, setMDaysAgo] = useState('0');
+  const [mTime, setMTime] = useState('21:00');
+  const [mPlace, setMPlace] = useState('');
+  const [mMemo, setMMemo] = useState('');
+
+  const openManual = () => {
+    setMCount('');
+    setMLimit(String(limit));
+    setMDaysAgo('0');
+    setMTime('21:00');
+    setMPlace('');
+    setMMemo('');
+    setManualOpen(true);
+  };
+  const saveManual = () => {
+    const count = parseInt(mCount, 10);
+    if (!Number.isFinite(count) || count < 0) {
+      Alert.alert('잔수를 입력해주세요');
+      return;
+    }
+    const lim = parseInt(mLimit, 10);
+    const daysAgo = parseInt(mDaysAgo, 10) || 0;
+    addManualRecord({
+      count,
+      limit: Number.isFinite(lim) && lim >= 1 ? lim : limit,
+      daysAgo,
+      time: mTime,
+      place: mPlace,
+      memo: mMemo,
+    });
+    setManualOpen(false);
+  };
+
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <Pressable onPress={openManual} hitSlop={10}>
+          <Ionicons name="add" size={26} color={c.text} />
+        </Pressable>
+      ),
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [navigation, c, limit]);
 
   const total = history.length;
   const avg = mean(history);
@@ -209,6 +259,48 @@ export default function HistoryScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* 수동 기록 추가 */}
+      <Modal visible={manualOpen} transparent animationType="slide" onRequestClose={() => setManualOpen(false)}>
+        <View style={styles.detailBg}>
+          <View style={styles.detailCard}>
+            <Text style={styles.detailTitle}>수동 기록 추가</Text>
+            <Text style={styles.muted}>앱으로 못 센 지난 술자리를 직접 추가해요.</Text>
+            <View style={styles.mRow}>
+              <View style={styles.mCol}>
+                <Text style={styles.mLabel}>마신 {unit}</Text>
+                <TextInput style={styles.mInput} keyboardType="number-pad" value={mCount} onChangeText={setMCount} placeholder="0" placeholderTextColor={c.textFaint} />
+              </View>
+              <View style={styles.mCol}>
+                <Text style={styles.mLabel}>한계</Text>
+                <TextInput style={styles.mInput} keyboardType="number-pad" value={mLimit} onChangeText={setMLimit} placeholder={String(limit)} placeholderTextColor={c.textFaint} />
+              </View>
+            </View>
+            <View style={styles.mRow}>
+              <View style={styles.mCol}>
+                <Text style={styles.mLabel}>며칠 전 (0=오늘)</Text>
+                <TextInput style={styles.mInput} keyboardType="number-pad" value={mDaysAgo} onChangeText={setMDaysAgo} placeholder="0" placeholderTextColor={c.textFaint} />
+              </View>
+              <View style={styles.mCol}>
+                <Text style={styles.mLabel}>시각 (HH:MM)</Text>
+                <TextInput style={styles.mInput} value={mTime} onChangeText={setMTime} placeholder="21:00" placeholderTextColor={c.textFaint} />
+              </View>
+            </View>
+            <Text style={styles.mLabel}>장소 (선택)</Text>
+            <TextInput style={styles.mInput} value={mPlace} onChangeText={setMPlace} placeholder="예: 연신내 ○○" placeholderTextColor={c.textFaint} />
+            <Text style={styles.mLabel}>메모 (선택)</Text>
+            <TextInput style={styles.mInput} value={mMemo} onChangeText={setMMemo} placeholder="한줄 메모" placeholderTextColor={c.textFaint} />
+            <View style={styles.mBtns}>
+              <Pressable onPress={() => setManualOpen(false)} hitSlop={8}>
+                <Text style={styles.clearText}>취소</Text>
+              </Pressable>
+              <Pressable style={styles.mSave} onPress={saveManual}>
+                <Text style={styles.mSaveText}>기록 추가</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -236,6 +328,13 @@ const makeStyles = (c: Palette) => StyleSheet.create({
   tlText: { fontSize: 14, color: c.textMuted, flex: 1 },
   detailClose: { marginTop: 14, backgroundColor: c.cardAlt, paddingVertical: 13, borderRadius: radius.md, alignItems: 'center' },
   detailCloseText: { fontSize: 16, fontWeight: '700', color: c.text },
+  mRow: { flexDirection: 'row', gap: 12, marginTop: 4 },
+  mCol: { flex: 1, gap: 4 },
+  mLabel: { fontSize: 13, color: c.textMuted, marginTop: 6 },
+  mInput: { borderWidth: 1, borderColor: c.border, backgroundColor: c.cardAlt, color: c.text, borderRadius: radius.sm, paddingHorizontal: 12, paddingVertical: 10, fontSize: 16 },
+  mBtns: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 20, marginTop: 16 },
+  mSave: { backgroundColor: c.blue, paddingVertical: 12, paddingHorizontal: 20, borderRadius: radius.sm },
+  mSaveText: { color: '#fff', fontSize: 16, fontWeight: '700' },
   stats: { flexDirection: 'row', gap: 8, marginBottom: 8 },
   statBox: {
     flex: 1,
