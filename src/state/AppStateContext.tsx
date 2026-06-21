@@ -17,6 +17,7 @@ type AppStateContextValue = {
   state: AppState;
   ready: boolean; // AsyncStorage 로드 완료 여부 (초기 깜빡임 방지)
   addDrink: (n?: number) => void;
+  undoDrink: () => void; // 직전 추가(+1잔/+1병) 되돌리기
   addCig: () => void;
   endSession: (extra?: { place?: string; memo?: string }) => void; // 현재 술자리를 기록에 저장하고 초기화
   clearHistory: () => void;
@@ -75,6 +76,20 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
           lastDrinkMs: now,
           sessionStartMs: s.sessionStartMs ?? now,
           drinkEvents: [...s.drinkEvents, { t: now, n }],
+        };
+      }),
+    undoDrink: () =>
+      setState((s) => {
+        if (s.count <= 0 || s.drinkEvents.length === 0) return s;
+        const events = s.drinkEvents.slice(0, -1);
+        const last = s.drinkEvents[s.drinkEvents.length - 1];
+        const count = Math.max(0, s.count - last.n);
+        return {
+          ...s,
+          count,
+          drinkEvents: events,
+          lastDrinkMs: events.length ? events[events.length - 1].t : null,
+          sessionStartMs: count > 0 ? s.sessionStartMs : null,
         };
       }),
     addCig: () => setState((s) => ({ ...s, cigs: s.cigs + 1 })),

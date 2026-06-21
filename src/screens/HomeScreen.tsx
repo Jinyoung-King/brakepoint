@@ -36,7 +36,7 @@ const fmtTime = (ms: number) => {
 };
 
 export default function HomeScreen({ navigation }: Props) {
-  const { state, addDrink, addCig, endSession, setDrinkingMode, setHomeCoords, setHomeAddress } =
+  const { state, addDrink, undoDrink, addCig, endSession, setDrinkingMode, setHomeCoords, setHomeAddress } =
     useAppState();
   const insets = useSafeAreaInsets();
   const c = useColors();
@@ -355,6 +355,14 @@ export default function HomeScreen({ navigation }: Props) {
           )}
         </View>
 
+        {/* 방금 추가 취소 (잘못 누른 경우) */}
+        {state.drinkEvents.length > 0 && (
+          <Pressable style={styles.undoBtn} onPress={undoDrink} hitSlop={6}>
+            <Ionicons name="arrow-undo" size={14} color={c.textMuted} />
+            <Text style={styles.undoText}>방금 추가 취소</Text>
+          </Pressable>
+        )}
+
         {/* 흡연 (음주 중에만) */}
         {active && (
           <View style={styles.rowCard}>
@@ -530,6 +538,8 @@ const makeStyles = (c: Palette) =>
     bottleBtn: { flex: 1, backgroundColor: c.cardAlt, paddingVertical: 12, borderRadius: radius.lg, alignItems: 'center', justifyContent: 'center' },
     bottleBtnText: { color: c.text, fontSize: 18, fontWeight: '800' },
     bottleSub: { color: c.textMuted, fontSize: 11, marginTop: 2 },
+    undoBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: -4 },
+    undoText: { fontSize: 13, color: c.textMuted },
     rowCard: { width: '100%', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: c.card, borderRadius: radius.md, paddingVertical: 12, paddingHorizontal: 16, borderWidth: 1, borderColor: c.border },
     cigText: { fontSize: 15, color: c.text },
     smallBtn: { backgroundColor: c.cardAlt, paddingVertical: 7, paddingHorizontal: 18, borderRadius: radius.sm },
