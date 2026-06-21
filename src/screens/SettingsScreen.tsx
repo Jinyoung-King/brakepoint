@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import {
+  Alert,
   Image,
   Platform,
   Pressable,
@@ -16,6 +17,7 @@ import { useAppState } from '../state/AppStateContext';
 import type { Difficulty, DrinkUnit, ThemeMode, Sex } from '../storage';
 import { radius, type Palette } from '../theme';
 import { useColors } from '../useColors';
+import { importWeightFromHealthConnect } from '../health';
 import {
   ensureNotificationSetup,
   openFullScreenIntentSettings,
@@ -63,6 +65,25 @@ export default function SettingsScreen() {
   const styles = useMemo(() => makeStyles(c), [c]);
   const [weightText, setWeightText] = useState(String(weightKg));
   const [bottleText, setBottleText] = useState(String(bottleToGlasses));
+
+  const onImportWeight = async () => {
+    const r = await importWeightFromHealthConnect();
+    if (r.ok) {
+      setWeightKg(r.weightKg);
+      setWeightText(String(r.weightKg));
+      Alert.alert('가져왔어요', `삼성헬스 기준 몸무게 ${r.weightKg}kg로 설정했어요.`);
+      return;
+    }
+    const msg =
+      r.reason === 'unavailable'
+        ? 'Health Connect를 쓸 수 없어요(미설치/미지원 기기).'
+        : r.reason === 'denied'
+          ? '몸무게 읽기 권한이 거부됐어요.'
+          : r.reason === 'no-data'
+            ? '저장된 몸무게가 없어요. 삼성헬스 ↔ Health Connect 연결을 확인하세요.'
+            : '가져오기에 실패했어요.';
+    Alert.alert('가져오기 실패', msg);
+  };
 
   const brake1 = brakePercents[0] ?? 60;
   const brake2 = brakePercents[1] ?? 80;
@@ -209,6 +230,12 @@ export default function SettingsScreen() {
           placeholderTextColor={c.textFaint}
         />
         <Text style={styles.help}>혈중알코올농도 추정에만 쓰여요(기기에만 저장).</Text>
+        <Pressable style={styles.permBtn} onPress={onImportWeight}>
+          <Text style={styles.permBtnText}>삼성헬스에서 몸무게 가져오기</Text>
+        </Pressable>
+        <Text style={styles.help}>
+          삼성헬스 ↔ Health Connect 연결 시 최신 몸무게를 불러옵니다. (이름·생년월일은 제공 안 됨)
+        </Text>
       </View>
 
       {/* 집 주소 (안전 귀가) */}

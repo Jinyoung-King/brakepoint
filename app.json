@@ -23,7 +23,8 @@
         "WAKE_LOCK",
         "SCHEDULE_EXACT_ALARM",
         "USE_EXACT_ALARM",
-        "android.permission.MODIFY_AUDIO_SETTINGS"
+        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "android.permission.health.READ_WEIGHT"
       ]
     },
     "web": {
@@ -43,7 +44,17 @@
           "calendarPermission": "다음날 일정을 확인해 음주 페이스를 조절하는 데 사용해요."
         }
       ],
-      "./plugins/withFullScreenIntent"
+      "./plugins/withFullScreenIntent",
+      "expo-font",
+      "react-native-health-connect",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "minSdkVersion": 26
+          }
+        }
+      ]
     ],
     "extra": {
       "eas": {

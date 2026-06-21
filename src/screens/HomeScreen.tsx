@@ -12,6 +12,7 @@ import {
   Switch,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import type { RootStackParamList } from '../navigation/RootNavigator';
@@ -235,15 +236,15 @@ export default function HomeScreen({ navigation }: Props) {
         {/* 보조 (아이콘 버튼) */}
         <View style={styles.footerRow}>
           <Pressable style={styles.iconBtn} onPress={onEndSession}>
-            <Text style={styles.iconGlyph}>🏁</Text>
+            <Ionicons name="flag" size={24} color={c.textMuted} />
             <Text style={styles.iconLabel}>종료</Text>
           </Pressable>
           <Pressable style={styles.iconBtn} onPress={() => navigation.navigate('History')}>
-            <Text style={styles.iconGlyph}>📊</Text>
+            <Ionicons name="stats-chart" size={24} color={c.textMuted} />
             <Text style={styles.iconLabel}>기록</Text>
           </Pressable>
           <Pressable style={styles.iconBtn} onPress={() => navigation.navigate('Settings')}>
-            <Text style={styles.iconGlyph}>⚙️</Text>
+            <Ionicons name="settings-outline" size={24} color={c.textMuted} />
             <Text style={styles.iconLabel}>설정</Text>
           </Pressable>
         </View>
@@ -331,7 +332,6 @@ const makeStyles = (c: Palette) =>
     safeBtnText: { fontSize: 14, color: c.text, fontWeight: '600' },
     footerRow: { flexDirection: 'row', gap: 12, marginTop: 8, width: '100%', justifyContent: 'center' },
     iconBtn: { flex: 1, maxWidth: 110, alignItems: 'center', justifyContent: 'center', gap: 4, paddingVertical: 12, backgroundColor: c.card, borderRadius: radius.md },
-    iconGlyph: { fontSize: 24 },
     iconLabel: { fontSize: 12, color: c.textMuted },
     link: { fontSize: 15, color: c.blue },
     modalBg: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', paddingHorizontal: 24 },
