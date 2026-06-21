@@ -35,6 +35,7 @@ type AppStateContextValue = {
   setUnit: (unit: DrinkUnit) => void;
   setBottleToGlasses: (n: number) => void;
   setCalendarSync: (on: boolean) => void;
+  setSmokingEnabled: (on: boolean) => void;
   setTheme: (theme: ThemeMode) => void;
   setSex: (sex: Sex) => void;
   setWeightKg: (kg: number) => void;
@@ -174,6 +175,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     setUnit: (unit) => setState((s) => ({ ...s, unit })),
     setBottleToGlasses: (bottleToGlasses) => setState((s) => ({ ...s, bottleToGlasses })),
     setCalendarSync: (calendarSync) => setState((s) => ({ ...s, calendarSync })),
+    setSmokingEnabled: (smokingEnabled) => setState((s) => ({ ...s, smokingEnabled })),
     setTheme: (theme) => setState((s) => ({ ...s, theme })),
     setSex: (sex) => setState((s) => ({ ...s, sex })),
     setWeightKg: (weightKg) => setState((s) => ({ ...s, weightKg })),

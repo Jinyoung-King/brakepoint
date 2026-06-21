@@ -65,8 +65,9 @@ export default function SettingsScreen() {
     setWeeklyGoalSessions,
     setCheckinEnabled,
     setCheckinDelayMin,
+    setSmokingEnabled,
   } = useAppState();
-  const { limit, difficulty, fakeCall, brakePercents, repeatEveryDrinks, unit, calendarSync, theme, sex, weightKg, drinkType, homeAddress, bottleToGlasses, waterEvery, weeklyGoalSessions, checkinEnabled, checkinDelayMin } =
+  const { limit, difficulty, fakeCall, brakePercents, repeatEveryDrinks, unit, calendarSync, theme, sex, weightKg, drinkType, homeAddress, bottleToGlasses, waterEvery, weeklyGoalSessions, checkinEnabled, checkinDelayMin, smokingEnabled } =
     state;
   const c = useColors();
   const styles = useMemo(() => makeStyles(c), [c]);
@@ -388,6 +389,10 @@ export default function SettingsScreen() {
           placeholder="2"
           placeholderTextColor={c.textFaint}
         />
+        <View style={styles.toggleRow}>
+          <Text style={styles.label}>흡연 트래킹 (음주 중 잔당 흡연)</Text>
+          <Switch value={smokingEnabled} onValueChange={setSmokingEnabled} />
+        </View>
         <View style={styles.toggleRow}>
           <Text style={styles.label}>귀가 체크인 알림</Text>
           <Switch value={checkinEnabled} onValueChange={setCheckinEnabled} />

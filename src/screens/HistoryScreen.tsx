@@ -222,7 +222,12 @@ export default function HistoryScreen() {
                 </Text>
                 <Text style={styles.muted}>{fmtDate(selected.endedAt)}</Text>
                 {!!selected.place && <Text style={styles.detailMeta}>📍 {selected.place}</Text>}
-                {!!selected.cigs && <Text style={styles.detailMeta}>담배 {selected.cigs}개비</Text>}
+                {!!selected.cigs && (
+                  <Text style={styles.detailMeta}>
+                    담배 {selected.cigs}개비
+                    {selected.count > 0 ? ` · 잔당 ${(selected.cigs / selected.count).toFixed(1)}개비` : ''}
+                  </Text>
+                )}
                 {!!selected.memo && <Text style={styles.detailMemo}>“{selected.memo}”</Text>}
 
                 <Text style={styles.detailSection}>시점별 음주</Text>

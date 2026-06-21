@@ -77,6 +77,7 @@ export default function HomeScreen({ navigation }: Props) {
     waterEvery,
     homeLat,
     homeLng,
+    smokingEnabled,
   } = state;
   const [transitLoading, setTransitLoading] = useState(false);
   const [addrOpen, setAddrOpen] = useState(false);
@@ -363,12 +364,15 @@ export default function HomeScreen({ navigation }: Props) {
           </Pressable>
         )}
 
-        {/* 흡연 (음주 중에만) */}
-        {active && (
+        {/* 흡연 (음주 중 + 트래킹 켰을 때) */}
+        {active && smokingEnabled && (
           <View style={styles.rowCard}>
             <View style={styles.inlineRow}>
               <MaterialCommunityIcons name="smoking" size={18} color={c.text} />
-              <Text style={styles.cigText}>담배 {cigs}개비</Text>
+              <Text style={styles.cigText}>
+                담배 {cigs}개비
+                {count > 0 && cigs > 0 ? `  ·  잔당 ${(cigs / count).toFixed(1)}개비` : ''}
+              </Text>
             </View>
             <Pressable style={styles.smallBtn} onPress={addCig}>
               <Text style={styles.smallBtnText}>+1</Text>
