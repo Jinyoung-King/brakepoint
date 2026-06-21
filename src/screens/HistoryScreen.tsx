@@ -5,6 +5,7 @@ import { useAppState } from '../state/AppStateContext';
 import type { SessionRecord } from '../storage';
 import { radius, type Palette } from '../theme';
 import { useColors } from '../useColors';
+import { limitStreak, sessionsThisWeek } from '../stats';
 
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
@@ -22,7 +23,9 @@ const mean = (rs: SessionRecord[]) =>
 
 export default function HistoryScreen() {
   const { state, clearHistory } = useAppState();
-  const { history } = state;
+  const { history, weeklyGoalSessions } = state;
+  const streak = limitStreak(history);
+  const weekCount = sessionsThisWeek(history);
   const c = useColors();
   const styles = useMemo(() => makeStyles(c), [c]);
 
@@ -79,6 +82,16 @@ export default function HistoryScreen() {
       renderItem={renderItem}
       ListHeaderComponent={
         <View style={{ gap: 12 }}>
+          {(streak > 0 || weeklyGoalSessions > 0) && (
+            <View style={styles.goalCard}>
+              <Text style={styles.goalText}>🔥 한도 지킴 {streak}연속</Text>
+              {weeklyGoalSessions > 0 && (
+                <Text style={[styles.goalText, weekCount > weeklyGoalSessions && styles.statNumWarn]}>
+                  이번 주 {weekCount} / 목표 {weeklyGoalSessions}회
+                </Text>
+              )}
+            </View>
+          )}
           <View style={styles.stats}>
             <View style={styles.statBox}>
               <Text style={styles.statNum}>{total}</Text>
@@ -145,6 +158,8 @@ const makeStyles = (c: Palette) => StyleSheet.create({
   statNum: { fontSize: 24, fontWeight: '800', color: c.text },
   statNumWarn: { color: c.red },
   statLabel: { fontSize: 12, color: c.textMuted },
+  goalCard: { backgroundColor: c.card, borderRadius: radius.md, padding: 14, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  goalText: { fontSize: 14, color: c.text, fontWeight: '600' },
   chartCard: { backgroundColor: c.card, borderRadius: radius.md, padding: 14, gap: 10 },
   chartTitle: { fontSize: 13, color: c.textMuted },
   chart: { flexDirection: 'row', alignItems: 'flex-end', height: 72, gap: 4 },

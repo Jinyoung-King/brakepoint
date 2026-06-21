@@ -7,6 +7,7 @@ import RootNavigator from './src/navigation/RootNavigator';
 import { navigationRef } from './src/navigation/navigationRef';
 import { AppStateProvider, useAppState } from './src/state/AppStateContext';
 import FakeCallController from './src/fakeCall/FakeCallController';
+import CheckinController from './src/CheckinController';
 import ErrorBoundary from './src/ErrorBoundary';
 import { lightColors } from './src/theme';
 import { useColors } from './src/useColors';
@@ -33,6 +34,7 @@ function Root() {
   return (
     <NavigationContainer ref={navigationRef} theme={navTheme}>
       <FakeCallController />
+      <CheckinController />
       <ErrorBoundary>
         <RootNavigator />
       </ErrorBoundary>

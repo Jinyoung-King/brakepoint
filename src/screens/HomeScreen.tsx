@@ -21,6 +21,8 @@ import { useMorningSchedule } from '../calendar/useMorningSchedule';
 import { radius, type Palette } from '../theme';
 import { useColors } from '../useColors';
 import { alcoholGrams, estimateBac, hoursUntil, fmtHours, DRIVE_LIMIT } from '../bac';
+import { alcoholKcal, hangoverForecast } from '../stats';
+import { cancelCheckin } from '../checkin';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
 
@@ -52,6 +54,7 @@ export default function HomeScreen({ navigation }: Props) {
     homeAddress,
     sessionStartMs,
     lastDrinkMs,
+    waterEvery,
   } = state;
 
   // 시간 기반 표시(BAC·잔 간격)를 1분마다 갱신
@@ -91,13 +94,27 @@ export default function HomeScreen({ navigation }: Props) {
   // n잔 추가. 여러 잔을 한 번에 더해도(=병) 그 구간에 브레이크 지점이 있으면 게이트 발동.
   const onAdd = (n: number) => {
     const prev = count;
+    const next = prev + n;
     const gap = lastDrinkMs ? now - lastDrinkMs : Infinity;
     addDrink(n);
     let crossed = false;
-    for (let k = prev + 1; k <= prev + n; k++) if (brakeAt(k)) { crossed = true; break; }
-    if (crossed) navigation.navigate('CognitiveGate');
-    else if (n === 1 && gap < QUICK_GAP_MS)
+    for (let k = prev + 1; k <= next; k++) if (brakeAt(k)) { crossed = true; break; }
+    if (crossed) {
+      navigation.navigate('CognitiveGate');
+      return;
+    }
+    // 물 알림: waterEvery 배수를 넘었으면
+    if (waterEvery > 0 && Math.floor(prev / waterEvery) < Math.floor(next / waterEvery)) {
+      Alert.alert('💧 물 한 잔', '술 사이에 물 한 잔이면 다음날이 한결 나아요.');
+      return;
+    }
+    if (n === 1 && gap < QUICK_GAP_MS)
       Alert.alert('천천히 마셔요', '방금 마셨어요. 한 잔 텀을 좀 더 두는 게 좋아요. 🐢');
+  };
+
+  const onArrivedHome = () => {
+    cancelCheckin();
+    Alert.alert('잘 들어갔어요 👍', '귀가 체크인 알림을 껐어요.');
   };
 
   const onEndSession = () => {
@@ -188,7 +205,12 @@ export default function HomeScreen({ navigation }: Props) {
               {' · 완전 해독 '}
               {fmtHours(hoursUntil(bac, 0))}
             </Text>
-            <Text style={styles.disclaimer}>※ 추정치예요. 실제와 다를 수 있으니 운전 판단 근거로 쓰지 마세요.</Text>
+            <Text style={styles.muted}>
+              🔥 약 {alcoholKcal(alcoholGrams(count, unit))}kcal · 😵 숙취 위험 {hangoverForecast(bac).level}
+            </Text>
+            <Text style={styles.disclaimer}>
+              {hangoverForecast(bac).tip} · 추정치이니 운전 판단 근거로 쓰지 마세요.
+            </Text>
           </View>
         )}
 
@@ -231,6 +253,9 @@ export default function HomeScreen({ navigation }: Props) {
               <Text style={styles.safeBtnText}>🚕 택시(카카오T)</Text>
             </Pressable>
           </View>
+          <Pressable style={styles.arrivedBtn} onPress={onArrivedHome}>
+            <Text style={styles.arrivedBtnText}>집 도착했어요 ✅</Text>
+          </Pressable>
         </View>
 
         {/* 보조 (아이콘 버튼) */}
@@ -330,6 +355,8 @@ const makeStyles = (c: Palette) =>
     safeBtns: { flexDirection: 'row', gap: 10 },
     safeBtn: { flex: 1, backgroundColor: c.cardAlt, paddingVertical: 12, borderRadius: radius.sm, alignItems: 'center' },
     safeBtnText: { fontSize: 14, color: c.text, fontWeight: '600' },
+    arrivedBtn: { backgroundColor: c.green, paddingVertical: 11, borderRadius: radius.sm, alignItems: 'center' },
+    arrivedBtnText: { fontSize: 14, color: '#fff', fontWeight: '700' },
     footerRow: { flexDirection: 'row', gap: 12, marginTop: 8, width: '100%', justifyContent: 'center' },
     iconBtn: { flex: 1, maxWidth: 110, alignItems: 'center', justifyContent: 'center', gap: 4, paddingVertical: 12, backgroundColor: c.card, borderRadius: radius.md },
     iconLabel: { fontSize: 12, color: c.textMuted },

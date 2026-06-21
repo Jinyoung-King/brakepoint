@@ -85,6 +85,7 @@ export async function triggerTestCall(fakeCall: FakeCallConfig, delaySec = 8): P
 }
 
 export async function cancelFakeCalls(): Promise<void> {
-  await notifee.cancelTriggerNotifications();
-  await notifee.cancelAllNotifications();
+  // id 단위로만 취소 (귀가 체크인 등 다른 예약 알림은 건드리지 않음)
+  await notifee.cancelTriggerNotification(FAKE_CALL_NOTIF_ID);
+  await notifee.cancelNotification(FAKE_CALL_NOTIF_ID);
 }

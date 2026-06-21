@@ -58,13 +58,24 @@ export default function SettingsScreen() {
     setWeightKg,
     setHomeAddress,
     setBottleToGlasses,
+    setWaterEvery,
+    setWeeklyGoalSessions,
+    setCheckinEnabled,
+    setCheckinDelayMin,
   } = useAppState();
-  const { limit, difficulty, fakeCall, brakePercents, repeatEveryDrinks, unit, calendarSync, theme, sex, weightKg, homeAddress, bottleToGlasses } =
+  const { limit, difficulty, fakeCall, brakePercents, repeatEveryDrinks, unit, calendarSync, theme, sex, weightKg, homeAddress, bottleToGlasses, waterEvery, weeklyGoalSessions, checkinEnabled, checkinDelayMin } =
     state;
   const c = useColors();
   const styles = useMemo(() => makeStyles(c), [c]);
   const [weightText, setWeightText] = useState(String(weightKg));
   const [bottleText, setBottleText] = useState(String(bottleToGlasses));
+  const [waterText, setWaterText] = useState(String(waterEvery));
+  const [goalText, setGoalText] = useState(String(weeklyGoalSessions));
+  const [checkinText, setCheckinText] = useState(String(checkinDelayMin));
+  const commitNum = (t: string, apply: (n: number) => void, min: number, max: number) => {
+    const n = parseInt(t, 10);
+    if (Number.isFinite(n) && n >= min && n <= max) apply(n);
+  };
 
   const onImportWeight = async () => {
     const r = await importWeightFromHealthConnect();
@@ -321,6 +332,52 @@ export default function SettingsScreen() {
         <Text style={styles.help}>
           켜면 캘린더에서 내일 정오 이전 일정을 확인해, 일정이 있으면 브레이크를 10%p 강화합니다.
         </Text>
+      </View>
+
+      {/* 건강·안전 */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>건강 · 안전</Text>
+        <Text style={styles.label}>물 알림 (몇 잔마다, 0=끔)</Text>
+        <TextInput
+          style={styles.input}
+          keyboardType="number-pad"
+          value={waterText}
+          onChangeText={(t) => {
+            setWaterText(t);
+            commitNum(t, setWaterEvery, 0, 20);
+          }}
+          placeholder="3"
+          placeholderTextColor={c.textFaint}
+        />
+        <Text style={styles.label}>주간 목표 (술자리 횟수, 0=끔)</Text>
+        <TextInput
+          style={styles.input}
+          keyboardType="number-pad"
+          value={goalText}
+          onChangeText={(t) => {
+            setGoalText(t);
+            commitNum(t, setWeeklyGoalSessions, 0, 30);
+          }}
+          placeholder="2"
+          placeholderTextColor={c.textFaint}
+        />
+        <View style={styles.toggleRow}>
+          <Text style={styles.label}>귀가 체크인 알림</Text>
+          <Switch value={checkinEnabled} onValueChange={setCheckinEnabled} />
+        </View>
+        <Text style={styles.label}>체크인까지 (분)</Text>
+        <TextInput
+          style={styles.input}
+          keyboardType="number-pad"
+          value={checkinText}
+          onChangeText={(t) => {
+            setCheckinText(t);
+            commitNum(t, setCheckinDelayMin, 5, 240);
+          }}
+          placeholder="60"
+          placeholderTextColor={c.textFaint}
+        />
+        <Text style={styles.help}>음주모드를 끄면 이 시간 뒤 "집에 잘 도착했어요?" 알림이 와요.</Text>
       </View>
 
       {/* 가짜 전화 */}

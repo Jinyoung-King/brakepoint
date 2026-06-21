@@ -29,6 +29,10 @@ type AppStateContextValue = {
   setSex: (sex: Sex) => void;
   setWeightKg: (kg: number) => void;
   setHomeAddress: (addr: string) => void;
+  setWaterEvery: (n: number) => void;
+  setWeeklyGoalSessions: (n: number) => void;
+  setCheckinEnabled: (on: boolean) => void;
+  setCheckinDelayMin: (min: number) => void;
   updateFakeCall: (patch: Partial<FakeCallConfig>) => void;
   setBrakePercents: (percents: number[]) => void;
   setRepeatEveryDrinks: (n: number) => void;
@@ -96,6 +100,10 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     setSex: (sex) => setState((s) => ({ ...s, sex })),
     setWeightKg: (weightKg) => setState((s) => ({ ...s, weightKg })),
     setHomeAddress: (homeAddress) => setState((s) => ({ ...s, homeAddress })),
+    setWaterEvery: (waterEvery) => setState((s) => ({ ...s, waterEvery })),
+    setWeeklyGoalSessions: (weeklyGoalSessions) => setState((s) => ({ ...s, weeklyGoalSessions })),
+    setCheckinEnabled: (checkinEnabled) => setState((s) => ({ ...s, checkinEnabled })),
+    setCheckinDelayMin: (checkinDelayMin) => setState((s) => ({ ...s, checkinDelayMin })),
     updateFakeCall: (patch) => setState((s) => ({ ...s, fakeCall: { ...s.fakeCall, ...patch } })),
     setBrakePercents: (brakePercents) => setState((s) => ({ ...s, brakePercents })),
     setRepeatEveryDrinks: (repeatEveryDrinks) => setState((s) => ({ ...s, repeatEveryDrinks })),

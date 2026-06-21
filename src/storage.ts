@@ -47,6 +47,10 @@ export type AppState = {
   homeAddress: string; // 안전 귀가용 집 주소
   sessionStartMs: number | null; // 이번 술자리 첫 잔 시각 (BAC 경과시간)
   lastDrinkMs: number | null; // 마지막 잔 시각 (잔 간격)
+  waterEvery: number; // 몇 잔마다 물 알림 (0=끔)
+  weeklyGoalSessions: number; // 주간 목표 술자리 횟수 (0=끔)
+  checkinEnabled: boolean; // 귀가 체크인 알림
+  checkinDelayMin: number; // 음주모드 종료 후 체크인까지(분)
 };
 
 export const DEFAULT_STATE: AppState = {
@@ -74,6 +78,10 @@ export const DEFAULT_STATE: AppState = {
   homeAddress: '',
   sessionStartMs: null,
   lastDrinkMs: null,
+  waterEvery: 3,
+  weeklyGoalSessions: 2,
+  checkinEnabled: true,
+  checkinDelayMin: 60,
 };
 
 const KEY = 'brakepoint:appState';
