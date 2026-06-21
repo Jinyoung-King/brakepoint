@@ -38,6 +38,7 @@ export type AppState = {
   repeatEveryDrinks: number; // 100% 초과 후 N잔마다 인지게이트
   onboarded: boolean; // 첫 실행 설정 완료 여부
   unit: DrinkUnit; // 카운트 단위 (잔/병/캔)
+  bottleToGlasses: number; // 1병 = N잔 환산 (잔 카운트 기준)
   cigs: number; // 현재 술자리 흡연 개비
   calendarSync: boolean; // 다음날 일정 연동(브레이크 강화)
   theme: ThemeMode; // 앱 테마 (다크/라이트/시스템)
@@ -64,6 +65,7 @@ export const DEFAULT_STATE: AppState = {
   repeatEveryDrinks: 3,
   onboarded: false,
   unit: '잔',
+  bottleToGlasses: 7,
   cigs: 0,
   calendarSync: true,
   theme: 'dark',

@@ -55,12 +55,14 @@ export default function SettingsScreen() {
     setSex,
     setWeightKg,
     setHomeAddress,
+    setBottleToGlasses,
   } = useAppState();
-  const { limit, difficulty, fakeCall, brakePercents, repeatEveryDrinks, unit, calendarSync, theme, sex, weightKg, homeAddress } =
+  const { limit, difficulty, fakeCall, brakePercents, repeatEveryDrinks, unit, calendarSync, theme, sex, weightKg, homeAddress, bottleToGlasses } =
     state;
   const c = useColors();
   const styles = useMemo(() => makeStyles(c), [c]);
   const [weightText, setWeightText] = useState(String(weightKg));
+  const [bottleText, setBottleText] = useState(String(bottleToGlasses));
 
   const brake1 = brakePercents[0] ?? 60;
   const brake2 = brakePercents[1] ?? 80;
@@ -158,6 +160,20 @@ export default function SettingsScreen() {
             );
           })}
         </View>
+        <Text style={styles.label}>1병 = ? 잔 (홈의 "+1병" 환산)</Text>
+        <TextInput
+          style={styles.input}
+          keyboardType="number-pad"
+          value={bottleText}
+          onChangeText={(t) => {
+            setBottleText(t);
+            const n = parseInt(t, 10);
+            if (Number.isFinite(n) && n >= 1 && n <= 30) setBottleToGlasses(n);
+          }}
+          placeholder="7"
+          placeholderTextColor={c.textFaint}
+        />
+        <Text style={styles.help}>소주 1병 ≈ 7잔, 맥주 500 ≈ 2~3잔 정도예요.</Text>
       </View>
 
       {/* 신체 정보 (BAC 추정용) */}

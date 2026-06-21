@@ -41,6 +41,7 @@ export default function HomeScreen({ navigation }: Props) {
     count,
     cigs,
     unit,
+    bottleToGlasses,
     drinkingMode,
     brakePercents,
     repeatEveryDrinks,
@@ -79,19 +80,22 @@ export default function HomeScreen({ navigation }: Props) {
   const [place, setPlace] = useState('');
   const [memo, setMemo] = useState('');
 
-  const shouldTrigger = (n: number) => {
+  const brakeAt = (n: number) => {
     if (limit <= 0) return false;
     const hitFixed = brakeCounts.includes(n);
     const repeat = n >= limit && (n - limit) % Math.max(1, repeatEveryDrinks) === 0;
     return hitFixed || repeat;
   };
 
-  const onAddDrink = () => {
-    const next = count + 1;
+  // n잔 추가. 여러 잔을 한 번에 더해도(=병) 그 구간에 브레이크 지점이 있으면 게이트 발동.
+  const onAdd = (n: number) => {
+    const prev = count;
     const gap = lastDrinkMs ? now - lastDrinkMs : Infinity;
-    addDrink();
-    if (shouldTrigger(next)) navigation.navigate('CognitiveGate');
-    else if (gap < QUICK_GAP_MS)
+    addDrink(n);
+    let crossed = false;
+    for (let k = prev + 1; k <= prev + n; k++) if (brakeAt(k)) { crossed = true; break; }
+    if (crossed) navigation.navigate('CognitiveGate');
+    else if (n === 1 && gap < QUICK_GAP_MS)
       Alert.alert('천천히 마셔요', '방금 마셨어요. 한 잔 텀을 좀 더 두는 게 좋아요. 🐢');
   };
 
@@ -187,10 +191,16 @@ export default function HomeScreen({ navigation }: Props) {
           </View>
         )}
 
-        {/* +1 단위 */}
-        <Pressable style={styles.addBtn} onPress={onAddDrink}>
-          <Text style={styles.addBtnText}>+1{unit}</Text>
-        </Pressable>
+        {/* +1잔 / +1병 */}
+        <View style={styles.addRow}>
+          <Pressable style={styles.addBtn} onPress={() => onAdd(1)}>
+            <Text style={styles.addBtnText}>+1{unit}</Text>
+          </Pressable>
+          <Pressable style={styles.bottleBtn} onPress={() => onAdd(bottleToGlasses)}>
+            <Text style={styles.bottleBtnText}>+1병</Text>
+            <Text style={styles.bottleSub}>={bottleToGlasses}{unit}</Text>
+          </Pressable>
+        </View>
 
         {/* 흡연 */}
         <View style={styles.rowCard}>
@@ -222,16 +232,19 @@ export default function HomeScreen({ navigation }: Props) {
           </View>
         </View>
 
-        {/* 보조 */}
+        {/* 보조 (아이콘 버튼) */}
         <View style={styles.footerRow}>
-          <Pressable onPress={onEndSession} hitSlop={8}>
-            <Text style={styles.link}>술자리 종료</Text>
+          <Pressable style={styles.iconBtn} onPress={onEndSession}>
+            <Text style={styles.iconGlyph}>🏁</Text>
+            <Text style={styles.iconLabel}>종료</Text>
           </Pressable>
-          <Pressable onPress={() => navigation.navigate('History')} hitSlop={8}>
-            <Text style={styles.link}>기록</Text>
+          <Pressable style={styles.iconBtn} onPress={() => navigation.navigate('History')}>
+            <Text style={styles.iconGlyph}>📊</Text>
+            <Text style={styles.iconLabel}>기록</Text>
           </Pressable>
-          <Pressable onPress={() => navigation.navigate('Settings')} hitSlop={8}>
-            <Text style={styles.link}>설정</Text>
+          <Pressable style={styles.iconBtn} onPress={() => navigation.navigate('Settings')}>
+            <Text style={styles.iconGlyph}>⚙️</Text>
+            <Text style={styles.iconLabel}>설정</Text>
           </Pressable>
         </View>
       </ScrollView>
@@ -300,8 +313,12 @@ const makeStyles = (c: Palette) =>
     bacLabel: { fontSize: 15, color: c.text, fontWeight: '600' },
     bacValue: { fontSize: 22, fontWeight: '800' },
     disclaimer: { fontSize: 11, color: c.textFaint, marginTop: 2 },
-    addBtn: { width: '100%', backgroundColor: c.blue, paddingVertical: 18, borderRadius: radius.lg, alignItems: 'center' },
+    addRow: { width: '100%', flexDirection: 'row', gap: 10 },
+    addBtn: { flex: 2, backgroundColor: c.blue, paddingVertical: 18, borderRadius: radius.lg, alignItems: 'center' },
     addBtnText: { color: '#fff', fontSize: 24, fontWeight: '800' },
+    bottleBtn: { flex: 1, backgroundColor: c.cardAlt, paddingVertical: 12, borderRadius: radius.lg, alignItems: 'center', justifyContent: 'center' },
+    bottleBtnText: { color: c.text, fontSize: 18, fontWeight: '800' },
+    bottleSub: { color: c.textMuted, fontSize: 11, marginTop: 2 },
     rowCard: { width: '100%', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: c.card, borderRadius: radius.md, paddingVertical: 12, paddingHorizontal: 16 },
     cigText: { fontSize: 15, color: c.text },
     smallBtn: { backgroundColor: c.cardAlt, paddingVertical: 7, paddingHorizontal: 18, borderRadius: radius.sm },
@@ -312,7 +329,10 @@ const makeStyles = (c: Palette) =>
     safeBtns: { flexDirection: 'row', gap: 10 },
     safeBtn: { flex: 1, backgroundColor: c.cardAlt, paddingVertical: 12, borderRadius: radius.sm, alignItems: 'center' },
     safeBtnText: { fontSize: 14, color: c.text, fontWeight: '600' },
-    footerRow: { flexDirection: 'row', gap: 28, marginTop: 8 },
+    footerRow: { flexDirection: 'row', gap: 12, marginTop: 8, width: '100%', justifyContent: 'center' },
+    iconBtn: { flex: 1, maxWidth: 110, alignItems: 'center', justifyContent: 'center', gap: 4, paddingVertical: 12, backgroundColor: c.card, borderRadius: radius.md },
+    iconGlyph: { fontSize: 24 },
+    iconLabel: { fontSize: 12, color: c.textMuted },
     link: { fontSize: 15, color: c.blue },
     modalBg: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', paddingHorizontal: 24 },
     modalCard: { backgroundColor: c.card, borderRadius: radius.lg, padding: 20, gap: 10, borderWidth: 1, borderColor: c.border },

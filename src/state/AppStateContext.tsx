@@ -15,7 +15,7 @@ import {
 type AppStateContextValue = {
   state: AppState;
   ready: boolean; // AsyncStorage 로드 완료 여부 (초기 깜빡임 방지)
-  addDrink: () => void;
+  addDrink: (n?: number) => void;
   addCig: () => void;
   endSession: (extra?: { place?: string; memo?: string }) => void; // 현재 술자리를 기록에 저장하고 초기화
   clearHistory: () => void;
@@ -23,6 +23,7 @@ type AppStateContextValue = {
   setDrinkingMode: (on: boolean) => void;
   setDifficulty: (difficulty: Difficulty) => void;
   setUnit: (unit: DrinkUnit) => void;
+  setBottleToGlasses: (n: number) => void;
   setCalendarSync: (on: boolean) => void;
   setTheme: (theme: ThemeMode) => void;
   setSex: (sex: Sex) => void;
@@ -58,12 +59,12 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   const value: AppStateContextValue = {
     state,
     ready,
-    addDrink: () =>
+    addDrink: (n = 1) =>
       setState((s) => {
         const now = Date.now();
         return {
           ...s,
-          count: s.count + 1,
+          count: s.count + n,
           lastDrinkMs: now,
           sessionStartMs: s.sessionStartMs ?? now,
         };
@@ -89,6 +90,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     setDrinkingMode: (drinkingMode) => setState((s) => ({ ...s, drinkingMode })),
     setDifficulty: (difficulty) => setState((s) => ({ ...s, difficulty })),
     setUnit: (unit) => setState((s) => ({ ...s, unit })),
+    setBottleToGlasses: (bottleToGlasses) => setState((s) => ({ ...s, bottleToGlasses })),
     setCalendarSync: (calendarSync) => setState((s) => ({ ...s, calendarSync })),
     setTheme: (theme) => setState((s) => ({ ...s, theme })),
     setSex: (sex) => setState((s) => ({ ...s, sex })),
