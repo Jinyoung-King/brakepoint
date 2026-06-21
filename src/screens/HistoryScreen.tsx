@@ -30,6 +30,8 @@ export default function HistoryScreen() {
   const avg = mean(history);
   const exceeded = history.filter((r) => r.count >= r.limit).length;
   const recentAvg = mean(history.filter((r) => r.endedAt >= Date.now() - WEEK_MS));
+  const chart = history.slice(0, 12).reverse(); // 오래된→최근
+  const maxCount = Math.max(1, ...chart.map((r) => r.count));
 
   const confirmClear = () =>
     Alert.alert('기록 전체 삭제', '모든 음주 기록을 지울까요? 되돌릴 수 없어요.', [
@@ -76,23 +78,43 @@ export default function HistoryScreen() {
       keyExtractor={(r) => r.id}
       renderItem={renderItem}
       ListHeaderComponent={
-        <View style={styles.stats}>
-          <View style={styles.statBox}>
-            <Text style={styles.statNum}>{total}</Text>
-            <Text style={styles.statLabel}>총 기록</Text>
+        <View style={{ gap: 12 }}>
+          <View style={styles.stats}>
+            <View style={styles.statBox}>
+              <Text style={styles.statNum}>{total}</Text>
+              <Text style={styles.statLabel}>총 기록</Text>
+            </View>
+            <View style={styles.statBox}>
+              <Text style={styles.statNum}>{avg.toFixed(1)}</Text>
+              <Text style={styles.statLabel}>평균 잔수</Text>
+            </View>
+            <View style={styles.statBox}>
+              <Text style={[styles.statNum, exceeded > 0 && styles.statNumWarn]}>{exceeded}</Text>
+              <Text style={styles.statLabel}>한계 초과</Text>
+            </View>
+            <View style={styles.statBox}>
+              <Text style={styles.statNum}>{recentAvg.toFixed(1)}</Text>
+              <Text style={styles.statLabel}>최근 7일 평균</Text>
+            </View>
           </View>
-          <View style={styles.statBox}>
-            <Text style={styles.statNum}>{avg.toFixed(1)}</Text>
-            <Text style={styles.statLabel}>평균 잔수</Text>
-          </View>
-          <View style={styles.statBox}>
-            <Text style={[styles.statNum, exceeded > 0 && styles.statNumWarn]}>{exceeded}</Text>
-            <Text style={styles.statLabel}>한계 초과</Text>
-          </View>
-          <View style={styles.statBox}>
-            <Text style={styles.statNum}>{recentAvg.toFixed(1)}</Text>
-            <Text style={styles.statLabel}>최근 7일 평균</Text>
-          </View>
+          {chart.length >= 2 && (
+            <View style={styles.chartCard}>
+              <Text style={styles.chartTitle}>최근 추세 (잔수)</Text>
+              <View style={styles.chart}>
+                {chart.map((r) => (
+                  <View key={r.id} style={styles.barWrap}>
+                    <View
+                      style={[
+                        styles.bar,
+                        { height: 6 + (r.count / maxCount) * 64 },
+                        r.count >= r.limit && styles.barOver,
+                      ]}
+                    />
+                  </View>
+                ))}
+              </View>
+            </View>
+          )}
         </View>
       }
       ListEmptyComponent={
@@ -123,6 +145,12 @@ const makeStyles = (c: Palette) => StyleSheet.create({
   statNum: { fontSize: 24, fontWeight: '800', color: c.text },
   statNumWarn: { color: c.red },
   statLabel: { fontSize: 12, color: c.textMuted },
+  chartCard: { backgroundColor: c.card, borderRadius: radius.md, padding: 14, gap: 10 },
+  chartTitle: { fontSize: 13, color: c.textMuted },
+  chart: { flexDirection: 'row', alignItems: 'flex-end', height: 72, gap: 4 },
+  barWrap: { flex: 1, alignItems: 'center', justifyContent: 'flex-end' },
+  bar: { width: '70%', backgroundColor: c.blue, borderRadius: 3 },
+  barOver: { backgroundColor: c.red },
   row: {
     flexDirection: 'row',
     justifyContent: 'space-between',

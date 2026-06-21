@@ -6,6 +6,7 @@ import {
   type DrinkUnit,
   type FakeCallConfig,
   type ThemeMode,
+  type Sex,
   DEFAULT_STATE,
   loadState,
   saveState,
@@ -24,6 +25,9 @@ type AppStateContextValue = {
   setUnit: (unit: DrinkUnit) => void;
   setCalendarSync: (on: boolean) => void;
   setTheme: (theme: ThemeMode) => void;
+  setSex: (sex: Sex) => void;
+  setWeightKg: (kg: number) => void;
+  setHomeAddress: (addr: string) => void;
   updateFakeCall: (patch: Partial<FakeCallConfig>) => void;
   setBrakePercents: (percents: number[]) => void;
   setRepeatEveryDrinks: (n: number) => void;
@@ -54,7 +58,16 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   const value: AppStateContextValue = {
     state,
     ready,
-    addDrink: () => setState((s) => ({ ...s, count: s.count + 1 })),
+    addDrink: () =>
+      setState((s) => {
+        const now = Date.now();
+        return {
+          ...s,
+          count: s.count + 1,
+          lastDrinkMs: now,
+          sessionStartMs: s.sessionStartMs ?? now,
+        };
+      }),
     addCig: () => setState((s) => ({ ...s, cigs: s.cigs + 1 })),
     endSession: (extra) =>
       setState((s) => {
@@ -69,7 +82,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
           place: extra?.place?.trim() || undefined,
           memo: extra?.memo?.trim() || undefined,
         };
-        return { ...s, count: 0, cigs: 0, history: [rec, ...s.history] };
+        return { ...s, count: 0, cigs: 0, sessionStartMs: null, lastDrinkMs: null, history: [rec, ...s.history] };
       }),
     clearHistory: () => setState((s) => ({ ...s, history: [] })),
     setLimit: (limit) => setState((s) => ({ ...s, limit })),
@@ -78,6 +91,9 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     setUnit: (unit) => setState((s) => ({ ...s, unit })),
     setCalendarSync: (calendarSync) => setState((s) => ({ ...s, calendarSync })),
     setTheme: (theme) => setState((s) => ({ ...s, theme })),
+    setSex: (sex) => setState((s) => ({ ...s, sex })),
+    setWeightKg: (weightKg) => setState((s) => ({ ...s, weightKg })),
+    setHomeAddress: (homeAddress) => setState((s) => ({ ...s, homeAddress })),
     updateFakeCall: (patch) => setState((s) => ({ ...s, fakeCall: { ...s.fakeCall, ...patch } })),
     setBrakePercents: (brakePercents) => setState((s) => ({ ...s, brakePercents })),
     setRepeatEveryDrinks: (repeatEveryDrinks) => setState((s) => ({ ...s, repeatEveryDrinks })),

@@ -13,7 +13,7 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 
 import { useAppState } from '../state/AppStateContext';
-import type { Difficulty, DrinkUnit, ThemeMode } from '../storage';
+import type { Difficulty, DrinkUnit, ThemeMode, Sex } from '../storage';
 import { radius, type Palette } from '../theme';
 import { useColors } from '../useColors';
 import {
@@ -36,6 +36,11 @@ const THEMES: { key: ThemeMode; label: string }[] = [
   { key: 'system', label: '시스템' },
 ];
 
+const SEXES: { key: Sex; label: string }[] = [
+  { key: 'male', label: '남' },
+  { key: 'female', label: '여' },
+];
+
 export default function SettingsScreen() {
   const {
     state,
@@ -47,11 +52,15 @@ export default function SettingsScreen() {
     setUnit,
     setCalendarSync,
     setTheme,
+    setSex,
+    setWeightKg,
+    setHomeAddress,
   } = useAppState();
-  const { limit, difficulty, fakeCall, brakePercents, repeatEveryDrinks, unit, calendarSync, theme } =
+  const { limit, difficulty, fakeCall, brakePercents, repeatEveryDrinks, unit, calendarSync, theme, sex, weightKg, homeAddress } =
     state;
   const c = useColors();
   const styles = useMemo(() => makeStyles(c), [c]);
+  const [weightText, setWeightText] = useState(String(weightKg));
 
   const brake1 = brakePercents[0] ?? 60;
   const brake2 = brakePercents[1] ?? 80;
@@ -149,6 +158,54 @@ export default function SettingsScreen() {
             );
           })}
         </View>
+      </View>
+
+      {/* 신체 정보 (BAC 추정용) */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>신체 정보 (혈중알코올 추정용)</Text>
+        <View style={styles.segment}>
+          {SEXES.map((sx) => {
+            const active = sx.key === sex;
+            return (
+              <Pressable
+                key={sx.key}
+                style={[styles.segmentItem, active && styles.segmentItemActive]}
+                onPress={() => setSex(sx.key)}
+              >
+                <Text style={[styles.segmentText, active && styles.segmentTextActive]}>
+                  {sx.label}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+        <Text style={styles.label}>체중 (kg)</Text>
+        <TextInput
+          style={styles.input}
+          keyboardType="number-pad"
+          value={weightText}
+          onChangeText={(t) => {
+            setWeightText(t);
+            const n = parseInt(t, 10);
+            if (Number.isFinite(n) && n >= 30 && n <= 250) setWeightKg(n);
+          }}
+          placeholder="70"
+          placeholderTextColor={c.textFaint}
+        />
+        <Text style={styles.help}>혈중알코올농도 추정에만 쓰여요(기기에만 저장).</Text>
+      </View>
+
+      {/* 집 주소 (안전 귀가) */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>집 주소 (안전 귀가)</Text>
+        <TextInput
+          style={styles.input}
+          value={homeAddress}
+          onChangeText={setHomeAddress}
+          placeholder="예: 서울 은평구 …"
+          placeholderTextColor={c.textFaint}
+        />
+        <Text style={styles.help}>홈의 "집까지 길찾기"에서 목적지로 사용돼요.</Text>
       </View>
 
       {/* 브레이크 지점 */}

@@ -1,5 +1,16 @@
-import { useMemo, useState } from 'react';
-import { Alert, Modal, StyleSheet, Text, TextInput, View, Pressable, Switch } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import {
+  Alert,
+  Linking,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+  Pressable,
+  Switch,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
@@ -8,8 +19,11 @@ import { useAppState } from '../state/AppStateContext';
 import { useMorningSchedule } from '../calendar/useMorningSchedule';
 import { radius, type Palette } from '../theme';
 import { useColors } from '../useColors';
+import { alcoholGrams, estimateBac, hoursUntil, fmtHours, DRIVE_LIMIT } from '../bac';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
+
+const QUICK_GAP_MS = 15 * 60 * 1000; // 15분 이내 재섭취 = 빠름
 
 const fmtTime = (ms: number) => {
   const d = new Date(ms);
@@ -22,10 +36,30 @@ export default function HomeScreen({ navigation }: Props) {
   const c = useColors();
   const styles = useMemo(() => makeStyles(c), [c]);
 
-  const { limit, count, cigs, unit, drinkingMode, brakePercents, repeatEveryDrinks, calendarSync } =
-    state;
+  const {
+    limit,
+    count,
+    cigs,
+    unit,
+    drinkingMode,
+    brakePercents,
+    repeatEveryDrinks,
+    calendarSync,
+    sex,
+    weightKg,
+    homeAddress,
+    sessionStartMs,
+    lastDrinkMs,
+  } = state;
 
-  // 내일 아침 일정이 있으면 브레이크를 10%p 강화
+  // 시간 기반 표시(BAC·잔 간격)를 1분마다 갱신
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setTick((t) => t + 1), 60000);
+    return () => clearInterval(id);
+  }, []);
+  const now = Date.now();
+
   const morning = useMorningSchedule(calendarSync);
   const effPercents = morning ? brakePercents.map((p) => Math.max(20, p - 10)) : brakePercents;
 
@@ -35,11 +69,16 @@ export default function HomeScreen({ navigation }: Props) {
   const overLimit = limit > 0 && count >= limit;
   const inBrake = limit > 0 && count >= firstBrake;
 
+  // BAC 추정
+  const hoursSince = sessionStartMs ? (now - sessionStartMs) / 3600000 : 0;
+  const bac = estimateBac({ grams: alcoholGrams(count, unit), weightKg, sex, hoursSinceStart: hoursSince });
+  const canDrive = bac < DRIVE_LIMIT;
+  const minsSinceLast = lastDrinkMs ? Math.floor((now - lastDrinkMs) / 60000) : null;
+
   const [endOpen, setEndOpen] = useState(false);
   const [place, setPlace] = useState('');
   const [memo, setMemo] = useState('');
 
-  // 이번 잔으로 어떤 브레이크 지점에 '도달'했으면 인지게이트 발동
   const shouldTrigger = (n: number) => {
     if (limit <= 0) return false;
     const hitFixed = brakeCounts.includes(n);
@@ -49,8 +88,11 @@ export default function HomeScreen({ navigation }: Props) {
 
   const onAddDrink = () => {
     const next = count + 1;
+    const gap = lastDrinkMs ? now - lastDrinkMs : Infinity;
     addDrink();
     if (shouldTrigger(next)) navigation.navigate('CognitiveGate');
+    else if (gap < QUICK_GAP_MS)
+      Alert.alert('천천히 마셔요', '방금 마셨어요. 한 잔 텀을 좀 더 두는 게 좋아요. 🐢');
   };
 
   const onEndSession = () => {
@@ -67,6 +109,20 @@ export default function HomeScreen({ navigation }: Props) {
     setEndOpen(false);
   };
 
+  const openDirections = () => {
+    const q = homeAddress.trim();
+    if (!q) {
+      Alert.alert('집 주소를 먼저 설정하세요', '설정 → 집 주소에 입력하면 길찾기가 열려요.');
+      return;
+    }
+    Linking.openURL(`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(q)}`);
+  };
+  const openTaxi = () => {
+    Linking.openURL('kakaot://').catch(() =>
+      Linking.openURL('https://play.google.com/store/apps/details?id=com.kakao.taxi')
+    );
+  };
+
   const brakeText = overLimit
     ? `⚠️ 한계 초과 — 이후 ${repeatEveryDrinks}${unit}마다 알람`
     : inBrake
@@ -74,76 +130,113 @@ export default function HomeScreen({ navigation }: Props) {
       : `브레이크 ${effPercents.join('·')}% (${brakeCounts.join('·')}${unit})`;
 
   return (
-    <View style={styles.container}>
-      {/* 내일 아침 일정 경고 */}
-      {morning && (
-        <View style={styles.scheduleBanner}>
-          <Text style={styles.scheduleText}>
-            📅 내일 {fmtTime(morning.startMs)} {morning.title} — 오늘은 적당히! (브레이크 강화됨)
+    <View style={styles.root}>
+      <ScrollView contentContainerStyle={[styles.container, { paddingBottom: insets.bottom + 24 }]}>
+        {morning && (
+          <View style={styles.scheduleBanner}>
+            <Text style={styles.scheduleText}>
+              📅 내일 {fmtTime(morning.startMs)} {morning.title} — 오늘은 적당히! (브레이크 강화됨)
+            </Text>
+          </View>
+        )}
+
+        {/* 현재 잔수 */}
+        <View style={styles.counterBlock}>
+          <View style={styles.countRow}>
+            <Text style={[styles.countBig, inBrake && styles.countOver]}>{count}</Text>
+            <Text style={styles.countLimit}>
+              {' '}
+              / {limit}
+              {unit}
+            </Text>
+          </View>
+          <Text style={styles.muted}>
+            오늘 마신 {unit}
+            {minsSinceLast !== null ? ` · 마지막 잔 ${minsSinceLast}분 전` : ''}
           </Text>
         </View>
-      )}
 
-      {/* 현재 잔수 */}
-      <View style={styles.counterBlock}>
-        <View style={styles.countRow}>
-          <Text style={[styles.countBig, inBrake && styles.countOver]}>{count}</Text>
-          <Text style={styles.countLimit}>
-            {' '}
-            / {limit}
-            {unit}
-          </Text>
+        {/* 진행률 카드 (브레이크 지점마다 선) */}
+        <View style={styles.card}>
+          <View style={styles.track}>
+            <View style={[styles.fill, { width: `${pct * 100}%` }, inBrake && styles.fillOver]} />
+            {effPercents.map((p) => (
+              <View key={p} style={[styles.thresholdLine, { left: `${Math.min(p, 100)}%` }]} />
+            ))}
+          </View>
+          <Text style={[styles.brakeText, inBrake && styles.warnText]}>{brakeText}</Text>
         </View>
-        <Text style={styles.muted}>오늘 마신 {unit}</Text>
-      </View>
 
-      {/* 진행률 카드 (브레이크 지점마다 빨간선) */}
-      <View style={styles.card}>
-        <View style={styles.track}>
-          <View style={[styles.fill, { width: `${pct * 100}%` }, inBrake && styles.fillOver]} />
-          {brakePercents.map((p) => (
-            <View key={p} style={[styles.thresholdLine, { left: `${Math.min(p, 100)}%` }]} />
-          ))}
+        {/* BAC 추정 */}
+        {count > 0 && (
+          <View style={styles.bacCard}>
+            <View style={styles.bacRow}>
+              <Text style={styles.bacLabel}>추정 혈중알코올</Text>
+              <Text style={[styles.bacValue, { color: canDrive ? c.green : c.red }]}>
+                {bac.toFixed(3)}%
+              </Text>
+            </View>
+            <Text style={styles.muted}>
+              {canDrive
+                ? '운전 가능 추정 범위'
+                : `운전 가능(0.03% 미만)까지 약 ${fmtHours(hoursUntil(bac, DRIVE_LIMIT))}`}
+              {' · 완전 해독 '}
+              {fmtHours(hoursUntil(bac, 0))}
+            </Text>
+            <Text style={styles.disclaimer}>※ 추정치예요. 실제와 다를 수 있으니 운전 판단 근거로 쓰지 마세요.</Text>
+          </View>
+        )}
+
+        {/* +1 단위 */}
+        <Pressable style={styles.addBtn} onPress={onAddDrink}>
+          <Text style={styles.addBtnText}>+1{unit}</Text>
+        </Pressable>
+
+        {/* 흡연 */}
+        <View style={styles.rowCard}>
+          <Text style={styles.cigText}>🚬 담배 {cigs}개비</Text>
+          <Pressable style={styles.smallBtn} onPress={addCig}>
+            <Text style={styles.smallBtnText}>+1</Text>
+          </Pressable>
         </View>
-        <Text style={[styles.brakeText, inBrake && styles.warnText]}>{brakeText}</Text>
-      </View>
 
-      {/* +1 단위 */}
-      <Pressable style={styles.addBtn} onPress={onAddDrink}>
-        <Text style={styles.addBtnText}>+1{unit}</Text>
-      </Pressable>
-
-      {/* 흡연 카운터 */}
-      <View style={styles.cigCard}>
-        <Text style={styles.cigText}>🚬 담배 {cigs}개비</Text>
-        <Pressable style={styles.cigBtn} onPress={addCig}>
-          <Text style={styles.cigBtnText}>+1</Text>
-        </Pressable>
-      </View>
-
-      {/* 음주모드 토글 */}
-      <View style={styles.modeCard}>
-        <View style={styles.modeText}>
-          <Text style={styles.modeTitle}>음주모드</Text>
-          <Text style={styles.muted}>켜면 주기마다 가짜 전화가 와요</Text>
+        {/* 음주모드 */}
+        <View style={styles.rowCard}>
+          <View style={styles.modeText}>
+            <Text style={styles.modeTitle}>음주모드</Text>
+            <Text style={styles.muted}>켜면 주기마다 가짜 전화가 와요</Text>
+          </View>
+          <Switch value={drinkingMode} onValueChange={setDrinkingMode} />
         </View>
-        <Switch value={drinkingMode} onValueChange={setDrinkingMode} />
-      </View>
 
-      {/* 보조: 종료 / 기록 / 설정 */}
-      <View style={[styles.footerRow, { marginBottom: insets.bottom + 16 }]}>
-        <Pressable onPress={onEndSession} hitSlop={8}>
-          <Text style={styles.link}>술자리 종료</Text>
-        </Pressable>
-        <Pressable onPress={() => navigation.navigate('History')} hitSlop={8}>
-          <Text style={styles.link}>기록</Text>
-        </Pressable>
-        <Pressable onPress={() => navigation.navigate('Settings')} hitSlop={8}>
-          <Text style={styles.link}>설정</Text>
-        </Pressable>
-      </View>
+        {/* 안전 귀가 */}
+        <View style={styles.safeCard}>
+          <Text style={styles.modeTitle}>안전 귀가</Text>
+          <View style={styles.safeBtns}>
+            <Pressable style={styles.safeBtn} onPress={openDirections}>
+              <Text style={styles.safeBtnText}>🏠 집까지 길찾기</Text>
+            </Pressable>
+            <Pressable style={styles.safeBtn} onPress={openTaxi}>
+              <Text style={styles.safeBtnText}>🚕 택시(카카오T)</Text>
+            </Pressable>
+          </View>
+        </View>
 
-      {/* 술자리 종료 모달 (장소·메모) */}
+        {/* 보조 */}
+        <View style={styles.footerRow}>
+          <Pressable onPress={onEndSession} hitSlop={8}>
+            <Text style={styles.link}>술자리 종료</Text>
+          </Pressable>
+          <Pressable onPress={() => navigation.navigate('History')} hitSlop={8}>
+            <Text style={styles.link}>기록</Text>
+          </Pressable>
+          <Pressable onPress={() => navigation.navigate('Settings')} hitSlop={8}>
+            <Text style={styles.link}>설정</Text>
+          </Pressable>
+        </View>
+      </ScrollView>
+
+      {/* 술자리 종료 모달 */}
       <Modal visible={endOpen} transparent animationType="fade" onRequestClose={() => setEndOpen(false)}>
         <View style={styles.modalBg}>
           <View style={styles.modalCard}>
@@ -183,86 +276,50 @@ export default function HomeScreen({ navigation }: Props) {
   );
 }
 
-const makeStyles = (c: Palette) => StyleSheet.create({
-  container: { flex: 1, backgroundColor: c.bg, paddingHorizontal: 20, paddingTop: 20, alignItems: 'center', gap: 16 },
-  scheduleBanner: {
-    width: '100%',
-    backgroundColor: c.amberBg,
-    borderRadius: radius.md,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-  },
-  scheduleText: { fontSize: 13, color: c.amber, fontWeight: '600' },
-  counterBlock: { alignItems: 'center', gap: 2, marginTop: 8 },
-  countRow: { flexDirection: 'row', alignItems: 'baseline' },
-  countBig: { fontSize: 80, fontWeight: '800', color: c.text },
-  countOver: { color: c.red },
-  countLimit: { fontSize: 24, fontWeight: '600', color: c.textFaint },
-  muted: { fontSize: 13, color: c.textMuted },
-  warnText: { color: c.red, fontWeight: '700' },
-  card: { width: '100%', gap: 10 },
-  track: {
-    width: '100%',
-    height: 22,
-    backgroundColor: c.track,
-    borderRadius: 11,
-    overflow: 'hidden',
-    position: 'relative',
-  },
-  fill: { position: 'absolute', left: 0, top: 0, bottom: 0, backgroundColor: c.blue, borderRadius: 11 },
-  fillOver: { backgroundColor: c.red },
-  thresholdLine: { position: 'absolute', top: 0, bottom: 0, width: 2, backgroundColor: '#fff', opacity: 0.5 },
-  brakeText: { fontSize: 13, color: c.textMuted, textAlign: 'center' },
-  addBtn: {
-    width: '100%',
-    backgroundColor: c.blue,
-    paddingVertical: 18,
-    borderRadius: radius.lg,
-    alignItems: 'center',
-  },
-  addBtnText: { color: '#fff', fontSize: 24, fontWeight: '800' },
-  cigCard: {
-    width: '100%',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: c.card,
-    borderRadius: radius.md,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-  },
-  cigText: { fontSize: 15, color: c.text },
-  cigBtn: { backgroundColor: c.cardAlt, paddingVertical: 7, paddingHorizontal: 18, borderRadius: radius.sm },
-  cigBtnText: { fontSize: 16, fontWeight: '700', color: c.text },
-  modeCard: {
-    width: '100%',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: c.card,
-    borderRadius: radius.md,
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-  },
-  modeText: { gap: 2 },
-  modeTitle: { fontSize: 16, fontWeight: '600', color: c.text },
-  footerRow: { flexDirection: 'row', gap: 28, marginTop: 'auto' },
-  link: { fontSize: 15, color: c.blue },
-  modalBg: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', paddingHorizontal: 24 },
-  modalCard: { backgroundColor: c.card, borderRadius: radius.lg, padding: 20, gap: 10, borderWidth: 1, borderColor: c.border },
-  modalTitle: { fontSize: 19, fontWeight: '700', color: c.text },
-  label: { fontSize: 13, color: c.textMuted, marginTop: 4 },
-  input: {
-    borderWidth: 1,
-    borderColor: c.border,
-    backgroundColor: c.cardAlt,
-    color: c.text,
-    borderRadius: radius.sm,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 16,
-  },
-  modalBtns: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 20, marginTop: 8 },
-  saveBtn: { backgroundColor: c.blue, paddingVertical: 12, paddingHorizontal: 20, borderRadius: radius.sm },
-  saveBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
-});
+const makeStyles = (c: Palette) =>
+  StyleSheet.create({
+    root: { flex: 1, backgroundColor: c.bg },
+    container: { paddingHorizontal: 20, paddingTop: 16, alignItems: 'center', gap: 14 },
+    scheduleBanner: { width: '100%', backgroundColor: c.amberBg, borderRadius: radius.md, paddingVertical: 10, paddingHorizontal: 14 },
+    scheduleText: { fontSize: 13, color: c.amber, fontWeight: '600' },
+    counterBlock: { alignItems: 'center', gap: 2, marginTop: 4 },
+    countRow: { flexDirection: 'row', alignItems: 'baseline' },
+    countBig: { fontSize: 72, fontWeight: '800', color: c.text },
+    countOver: { color: c.red },
+    countLimit: { fontSize: 24, fontWeight: '600', color: c.textFaint },
+    muted: { fontSize: 13, color: c.textMuted, textAlign: 'center' },
+    warnText: { color: c.red, fontWeight: '700' },
+    card: { width: '100%', gap: 10 },
+    track: { width: '100%', height: 22, backgroundColor: c.track, borderRadius: 11, overflow: 'hidden', position: 'relative' },
+    fill: { position: 'absolute', left: 0, top: 0, bottom: 0, backgroundColor: c.blue, borderRadius: 11 },
+    fillOver: { backgroundColor: c.red },
+    thresholdLine: { position: 'absolute', top: 0, bottom: 0, width: 2, backgroundColor: '#fff', opacity: 0.5 },
+    brakeText: { fontSize: 13, color: c.textMuted, textAlign: 'center' },
+    bacCard: { width: '100%', backgroundColor: c.card, borderRadius: radius.md, padding: 14, gap: 4 },
+    bacRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+    bacLabel: { fontSize: 15, color: c.text, fontWeight: '600' },
+    bacValue: { fontSize: 22, fontWeight: '800' },
+    disclaimer: { fontSize: 11, color: c.textFaint, marginTop: 2 },
+    addBtn: { width: '100%', backgroundColor: c.blue, paddingVertical: 18, borderRadius: radius.lg, alignItems: 'center' },
+    addBtnText: { color: '#fff', fontSize: 24, fontWeight: '800' },
+    rowCard: { width: '100%', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: c.card, borderRadius: radius.md, paddingVertical: 12, paddingHorizontal: 16 },
+    cigText: { fontSize: 15, color: c.text },
+    smallBtn: { backgroundColor: c.cardAlt, paddingVertical: 7, paddingHorizontal: 18, borderRadius: radius.sm },
+    smallBtnText: { fontSize: 16, fontWeight: '700', color: c.text },
+    modeText: { gap: 2 },
+    modeTitle: { fontSize: 16, fontWeight: '600', color: c.text },
+    safeCard: { width: '100%', backgroundColor: c.card, borderRadius: radius.md, padding: 14, gap: 10 },
+    safeBtns: { flexDirection: 'row', gap: 10 },
+    safeBtn: { flex: 1, backgroundColor: c.cardAlt, paddingVertical: 12, borderRadius: radius.sm, alignItems: 'center' },
+    safeBtnText: { fontSize: 14, color: c.text, fontWeight: '600' },
+    footerRow: { flexDirection: 'row', gap: 28, marginTop: 8 },
+    link: { fontSize: 15, color: c.blue },
+    modalBg: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', paddingHorizontal: 24 },
+    modalCard: { backgroundColor: c.card, borderRadius: radius.lg, padding: 20, gap: 10, borderWidth: 1, borderColor: c.border },
+    modalTitle: { fontSize: 19, fontWeight: '700', color: c.text },
+    label: { fontSize: 13, color: c.textMuted, marginTop: 4 },
+    input: { borderWidth: 1, borderColor: c.border, backgroundColor: c.cardAlt, color: c.text, borderRadius: radius.sm, paddingHorizontal: 12, paddingVertical: 10, fontSize: 16 },
+    modalBtns: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 20, marginTop: 8 },
+    saveBtn: { backgroundColor: c.blue, paddingVertical: 12, paddingHorizontal: 20, borderRadius: radius.sm },
+    saveBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  });

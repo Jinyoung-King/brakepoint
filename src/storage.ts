@@ -14,6 +14,8 @@ export type DrinkUnit = '잔' | '병' | '캔';
 
 export type ThemeMode = 'dark' | 'light' | 'system';
 
+export type Sex = 'male' | 'female';
+
 export type SessionRecord = {
   id: string;
   endedAt: number; // 종료 시각 (epoch ms)
@@ -39,6 +41,11 @@ export type AppState = {
   cigs: number; // 현재 술자리 흡연 개비
   calendarSync: boolean; // 다음날 일정 연동(브레이크 강화)
   theme: ThemeMode; // 앱 테마 (다크/라이트/시스템)
+  sex: Sex; // BAC 추정용
+  weightKg: number; // BAC 추정용 체중
+  homeAddress: string; // 안전 귀가용 집 주소
+  sessionStartMs: number | null; // 이번 술자리 첫 잔 시각 (BAC 경과시간)
+  lastDrinkMs: number | null; // 마지막 잔 시각 (잔 간격)
 };
 
 export const DEFAULT_STATE: AppState = {
@@ -60,6 +67,11 @@ export const DEFAULT_STATE: AppState = {
   cigs: 0,
   calendarSync: true,
   theme: 'dark',
+  sex: 'male',
+  weightKg: 70,
+  homeAddress: '',
+  sessionStartMs: null,
+  lastDrinkMs: null,
 };
 
 const KEY = 'brakepoint:appState';
