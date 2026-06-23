@@ -10,6 +10,7 @@ import notifee, {
 import * as IntentLauncher from 'expo-intent-launcher';
 
 import type { FakeCallConfig } from '../storage';
+import { confirmRationale } from '../permissionRationale';
 
 export const FAKE_CALL_CHANNEL = 'fake-call';
 const PACKAGE_NAME = 'kr.co.cruxdata.brakepoint'; // app.json android.package
@@ -29,9 +30,7 @@ export async function openFullScreenIntentSettings(): Promise<void> {
 }
 const FAKE_CALL_NOTIF_ID = 'fake-call'; // 고정 ID로 중복 방지/취소 용이
 
-// 권한 + 통화용 채널 준비. 권한 허용 여부 반환.
-export async function ensureNotificationSetup(): Promise<boolean> {
-  const settings = await notifee.requestPermission();
+async function ensureCallChannel(): Promise<void> {
   await notifee.createChannel({
     id: FAKE_CALL_CHANNEL,
     name: '가짜 전화',
@@ -41,6 +40,24 @@ export async function ensureNotificationSetup(): Promise<boolean> {
     vibrationPattern: [300, 500],
     bypassDnd: true,
   });
+}
+
+// 권한 + 통화용 채널 준비. 권한 허용 여부 반환.
+// 아직 허용 전이면 시스템 창을 띄우기 전에 왜 필요한지 먼저 설명한다.
+export async function ensureNotificationSetup(): Promise<boolean> {
+  const current = await notifee.getNotificationSettings();
+  if (current.authorizationStatus < 1) {
+    const ok = await confirmRationale(
+      '알림 권한',
+      '음주모드를 켜면 정해진 주기마다 "가짜 전화"가 와요. 이 알림을 띄우려면 알림 권한이 필요해요.'
+    );
+    if (!ok) {
+      await ensureCallChannel();
+      return false;
+    }
+  }
+  const settings = await notifee.requestPermission();
+  await ensureCallChannel();
   // authorizationStatus >= 1 (AUTHORIZED/PROVISIONAL) 이면 허용
   return settings.authorizationStatus >= 1;
 }

@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import * as Calendar from 'expo-calendar';
 
+import { confirmRationale } from '../permissionRationale';
+
 export type MorningEvent = { title: string; startMs: number };
 
 // 내일 정오 이전에 일정이 있으면 그 첫 일정을 반환. 없으면 null.
@@ -16,6 +18,14 @@ export function useMorningSchedule(enabled: boolean): MorningEvent | null {
     let cancelled = false;
     (async () => {
       try {
+        const current = await Calendar.getCalendarPermissionsAsync();
+        if (!current.granted) {
+          const ok = await confirmRationale(
+            '캘린더 권한',
+            '내일 오전에 일정이 있으면 미리 알려주고 음주 페이스를 더 조이는 데만 써요. 일정 내용을 저장하지 않아요.'
+          );
+          if (!ok) return;
+        }
         const perm = await Calendar.requestCalendarPermissionsAsync();
         if (!perm.granted) return;
         const cals = await Calendar.getCalendarsAsync(Calendar.EntityTypes.EVENT);

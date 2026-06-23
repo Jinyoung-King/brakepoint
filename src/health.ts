@@ -8,6 +8,8 @@ import {
   SdkAvailabilityStatus,
 } from 'react-native-health-connect';
 
+import { confirmRationale } from './permissionRationale';
+
 export { openHealthConnectSettings };
 
 export type ImportResult =
@@ -41,6 +43,11 @@ export async function importWeightFromHealthConnect(): Promise<ImportResult> {
 
     let granted: unknown[] = await getGrantedPermissions();
     if (!hasWeightRead(granted)) {
+      const ok = await confirmRationale(
+        '몸무게 읽기 권한',
+        '혈중알코올농도(BAC) 추정을 더 정확히 하려고 Health Connect에서 몸무게만 읽어와요. 다른 건 읽지 않아요.'
+      );
+      if (!ok) return { ok: false, reason: 'denied' };
       granted = await requestPermission([{ accessType: 'read', recordType: 'Weight' }]);
     }
     if (!hasWeightRead(granted)) return { ok: false, reason: 'denied' };
