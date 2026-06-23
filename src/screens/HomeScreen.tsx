@@ -83,6 +83,8 @@ export default function HomeScreen({ navigation }: Props) {
   const [addrOpen, setAddrOpen] = useState(false);
   const [addrInput, setAddrInput] = useState('');
   const [addrError, setAddrError] = useState('');
+  const [bacOpen, setBacOpen] = useState(false);
+  const [safeOpen, setSafeOpen] = useState(false);
 
   // 시간 기반 표시(BAC·잔 간격)를 1분마다 갱신
   const [, setTick] = useState(0);
@@ -269,11 +271,16 @@ export default function HomeScreen({ navigation }: Props) {
     launchNaverTransit(r.lat, r.lng, q);
   };
 
-  const brakeText = overLimit
-    ? `한계 초과 — 이후 ${repeatEveryDrinks}${unit}마다 알람`
-    : inBrake
-      ? '브레이크 구간'
-      : `브레이크 ${effPercents.join('·')}% (${brakeCounts.join('·')}${unit})`;
+  // 진행률 바 아래 한 줄 상태: 음주 중이면 페이스, 아니면 브레이크 설정
+  const statusText = !active
+    ? `브레이크 ${effPercents.join('·')}% (${brakeCounts.join('·')}${unit})`
+    : overLimit
+      ? `한계 초과 — 이후 ${repeatEveryDrinks}${unit}마다 알람`
+      : inBrake
+        ? `브레이크 구간 · 한계까지 ${remaining}${unit}`
+        : `한계까지 ${remaining}${unit}${
+            nextDrinkMin > 0 ? ` · 다음 잔 ${nextDrinkMin}분 뒤` : ' · 지금 마셔도 OK'
+          }`;
 
   return (
     <View style={styles.root}>
@@ -297,13 +304,9 @@ export default function HomeScreen({ navigation }: Props) {
               {unit}
             </Text>
           </View>
-          <Text style={styles.muted}>
-            오늘 마신 {unit}
-            {minsSinceLast !== null ? ` · 마지막 잔 ${minsSinceLast}분 전` : ''}
-          </Text>
         </View>
 
-        {/* 진행률 카드 (브레이크 지점마다 선) */}
+        {/* 진행률 + 한 줄 상태 (페이스/브레이크 통합) */}
         <View style={styles.card}>
           <View style={styles.track}>
             <View style={[styles.fill, { width: `${pct * 100}%` }, inBrake && styles.fillOver]} />
@@ -313,54 +316,9 @@ export default function HomeScreen({ navigation }: Props) {
           </View>
           <View style={styles.brakeRow}>
             {inBrake && <Ionicons name="warning" size={14} color={c.red} />}
-            <Text style={[styles.brakeText, inBrake && styles.warnText]}>{brakeText}</Text>
+            <Text style={[styles.brakeText, inBrake && styles.warnText]}>{statusText}</Text>
           </View>
         </View>
-
-        {/* 페이스 코치 */}
-        {active && !overLimit && (
-          <View style={styles.paceCard}>
-            <Ionicons name="speedometer-outline" size={16} color={c.blue} />
-            <Text style={styles.paceText}>
-              한계까지 {remaining}{unit}
-              {nextDrinkMin > 0 ? ` · 다음 잔 ${nextDrinkMin}분 뒤 권장` : ' · 지금 마셔도 OK'}
-            </Text>
-          </View>
-        )}
-
-        {/* BAC 추정 */}
-        {count > 0 && (
-          <View style={styles.bacCard}>
-            <View style={styles.bacRow}>
-              <Text style={styles.bacLabel}>추정 혈중알코올</Text>
-              <Text style={[styles.bacValue, { color: canDrive ? c.green : c.red }]}>
-                {bac.toFixed(3)}%
-              </Text>
-            </View>
-            {canDrive ? (
-              <Text style={styles.muted}>
-                운전 가능 추정 범위 · 완전 해독 {fmtHours(hoursUntil(bac, 0))} 뒤 (
-                {fmtTime(now + hoursUntil(bac, 0) * 3600000)})
-              </Text>
-            ) : (
-              <Text style={styles.muted}>
-                운전 가능(0.03%↓) {fmtHours(hoursUntil(bac, DRIVE_LIMIT))} 뒤 ·{' '}
-                {fmtTime(now + hoursUntil(bac, DRIVE_LIMIT) * 3600000)}
-                {'\n'}완전 해독 {fmtHours(hoursUntil(bac, 0))} 뒤 ·{' '}
-                {fmtTime(now + hoursUntil(bac, 0) * 3600000)}
-              </Text>
-            )}
-            <View style={styles.inlineRow}>
-              <Ionicons name="flame" size={14} color={c.textMuted} />
-              <Text style={styles.muted}>
-                약 {alcoholKcal(grams)}kcal · 숙취 위험 {hangoverForecast(bac).level}
-              </Text>
-            </View>
-            <Text style={styles.disclaimer}>
-              {hangoverForecast(bac).tip} · 추정치이니 운전 판단 근거로 쓰지 마세요.
-            </Text>
-          </View>
-        )}
 
         {/* +1잔 / +1병 */}
         <View style={styles.addRow}>
@@ -399,6 +357,45 @@ export default function HomeScreen({ navigation }: Props) {
           </View>
         )}
 
+        {/* BAC 한 줄 요약 (탭하면 펼침) */}
+        {count > 0 && (
+          <Pressable style={styles.bacSummary} onPress={() => setBacOpen((o) => !o)}>
+            <View style={styles.inlineRow}>
+              <Text style={styles.bacSummaryLabel}>혈중알코올</Text>
+              <Text style={[styles.bacSummaryValue, { color: canDrive ? c.green : c.red }]}>
+                {bac.toFixed(3)}%
+              </Text>
+            </View>
+            <Ionicons name={bacOpen ? 'chevron-up' : 'chevron-forward'} size={16} color={c.textMuted} />
+          </Pressable>
+        )}
+        {count > 0 && bacOpen && (
+          <View style={styles.bacDetail}>
+            {canDrive ? (
+              <Text style={styles.muted}>
+                운전 가능 추정 범위 · 완전 해독 {fmtHours(hoursUntil(bac, 0))} 뒤 (
+                {fmtTime(now + hoursUntil(bac, 0) * 3600000)})
+              </Text>
+            ) : (
+              <Text style={styles.muted}>
+                운전 가능(0.03%↓) {fmtHours(hoursUntil(bac, DRIVE_LIMIT))} 뒤 ·{' '}
+                {fmtTime(now + hoursUntil(bac, DRIVE_LIMIT) * 3600000)}
+                {'\n'}완전 해독 {fmtHours(hoursUntil(bac, 0))} 뒤 ·{' '}
+                {fmtTime(now + hoursUntil(bac, 0) * 3600000)}
+              </Text>
+            )}
+            <View style={styles.inlineRow}>
+              <Ionicons name="flame" size={14} color={c.textMuted} />
+              <Text style={styles.muted}>
+                약 {alcoholKcal(grams)}kcal · 숙취 위험 {hangoverForecast(bac).level}
+              </Text>
+            </View>
+            <Text style={styles.disclaimer}>
+              {hangoverForecast(bac).tip} · 추정치이니 운전 판단 근거로 쓰지 마세요.
+            </Text>
+          </View>
+        )}
+
         {/* 음주모드 */}
         <View style={styles.rowCard}>
           <View style={styles.modeText}>
@@ -408,42 +405,19 @@ export default function HomeScreen({ navigation }: Props) {
           <Switch value={drinkingMode} onValueChange={setDrinkingMode} />
         </View>
 
-        {/* 안전 귀가 (음주 중에만) */}
-        {active && (
-        <View style={styles.safeCard}>
-          <Text style={styles.modeTitle}>안전 귀가</Text>
-          <Pressable style={styles.transitBtn} onPress={openTransit} disabled={transitLoading}>
-            <Ionicons name="bus" size={18} color="#fff" />
-            <Text style={styles.transitBtnText}>
-              {transitLoading ? '주소 찾는 중…' : '대중교통으로 집 가기'}
-            </Text>
-          </Pressable>
-          <View style={styles.safeBtns}>
-            <Pressable style={styles.safeBtn} onPress={openKakaoMap}>
-              <Ionicons name="map-outline" size={16} color={c.text} />
-              <Text style={styles.safeBtnText}>카카오맵</Text>
+        {/* 하단 액션: 안전 귀가(음주 중) + 종료 */}
+        <View style={styles.footerRow}>
+          {active && (
+            <Pressable style={styles.safeMainBtn} onPress={() => setSafeOpen(true)}>
+              <Ionicons name="home-outline" size={18} color="#fff" />
+              <Text style={styles.safeMainBtnText}>안전 귀가</Text>
             </Pressable>
-            <Pressable style={styles.safeBtn} onPress={openNaverMap}>
-              <Ionicons name="map-outline" size={16} color={c.text} />
-              <Text style={styles.safeBtnText}>네이버</Text>
-            </Pressable>
-            <Pressable style={styles.safeBtn} onPress={openTaxi}>
-              <MaterialCommunityIcons name="taxi" size={16} color={c.text} />
-              <Text style={styles.safeBtnText}>택시</Text>
-            </Pressable>
-          </View>
-          <Pressable style={styles.arrivedBtn} onPress={onArrivedHome}>
-            <Ionicons name="checkmark-circle" size={18} color="#fff" />
-            <Text style={styles.arrivedBtnText}>집 도착했어요</Text>
+          )}
+          <Pressable style={[styles.endBtn, active && styles.endBtnHalf]} onPress={onEndSession}>
+            <Ionicons name="flag-outline" size={18} color={c.text} />
+            <Text style={styles.endBtnText}>술자리 종료</Text>
           </Pressable>
         </View>
-        )}
-
-        {/* 술자리 종료 (액션) */}
-        <Pressable style={styles.endBtn} onPress={onEndSession}>
-          <Ionicons name="flag-outline" size={18} color={c.text} />
-          <Text style={styles.endBtnText}>술자리 종료</Text>
-        </Pressable>
       </ScrollView>
 
       {/* 술자리 종료 모달 */}
@@ -534,6 +508,39 @@ export default function HomeScreen({ navigation }: Props) {
           </View>
         </View>
       </Modal>
+
+      {/* 안전 귀가 시트 */}
+      <Modal visible={safeOpen} transparent animationType="fade" onRequestClose={() => setSafeOpen(false)}>
+        <Pressable style={styles.modalBg} onPress={() => setSafeOpen(false)}>
+          <Pressable style={styles.modalCard} onPress={(e) => e.stopPropagation()}>
+            <Text style={styles.modalTitle}>안전 귀가</Text>
+            <Pressable style={styles.transitBtn} onPress={openTransit} disabled={transitLoading}>
+              <Ionicons name="bus" size={18} color="#fff" />
+              <Text style={styles.transitBtnText}>
+                {transitLoading ? '주소 찾는 중…' : '대중교통으로 집 가기'}
+              </Text>
+            </Pressable>
+            <View style={styles.safeBtns}>
+              <Pressable style={styles.safeBtn} onPress={openKakaoMap}>
+                <Ionicons name="map-outline" size={16} color={c.text} />
+                <Text style={styles.safeBtnText}>카카오맵</Text>
+              </Pressable>
+              <Pressable style={styles.safeBtn} onPress={openNaverMap}>
+                <Ionicons name="map-outline" size={16} color={c.text} />
+                <Text style={styles.safeBtnText}>네이버</Text>
+              </Pressable>
+              <Pressable style={styles.safeBtn} onPress={openTaxi}>
+                <MaterialCommunityIcons name="taxi" size={16} color={c.text} />
+                <Text style={styles.safeBtnText}>택시</Text>
+              </Pressable>
+            </View>
+            <Pressable style={styles.arrivedBtn} onPress={onArrivedHome}>
+              <Ionicons name="checkmark-circle" size={18} color="#fff" />
+              <Text style={styles.arrivedBtnText}>집 도착했어요</Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -559,12 +566,10 @@ const makeStyles = (c: Palette) =>
     fillOver: { backgroundColor: c.red },
     thresholdLine: { position: 'absolute', top: 0, bottom: 0, width: 2, backgroundColor: c.text, opacity: 0.55 },
     brakeText: { fontSize: 13, color: c.textMuted, textAlign: 'center' },
-    paceCard: { width: '100%', flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: c.card, borderRadius: radius.md, paddingVertical: 10, paddingHorizontal: 14, borderWidth: 1, borderColor: c.border },
-    paceText: { fontSize: 13, color: c.text, flex: 1 },
-    bacCard: { width: '100%', backgroundColor: c.card, borderRadius: radius.md, padding: 14, gap: 4, borderWidth: 1, borderColor: c.border },
-    bacRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-    bacLabel: { fontSize: 15, color: c.text, fontWeight: '600' },
-    bacValue: { fontSize: 22, fontWeight: '800' },
+    bacSummary: { width: '100%', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: c.card, borderRadius: radius.md, paddingVertical: 12, paddingHorizontal: 16, borderWidth: 1, borderColor: c.border },
+    bacSummaryLabel: { fontSize: 14, color: c.textMuted },
+    bacSummaryValue: { fontSize: 16, fontWeight: '800' },
+    bacDetail: { width: '100%', backgroundColor: c.cardAlt, borderRadius: radius.md, padding: 14, gap: 4, marginTop: -8 },
     disclaimer: { fontSize: 11, color: c.textFaint, marginTop: 2 },
     addRow: { width: '100%', flexDirection: 'row', gap: 10 },
     addBtn: { flex: 2, backgroundColor: c.blue, paddingVertical: 18, borderRadius: radius.lg, alignItems: 'center' },
@@ -580,7 +585,6 @@ const makeStyles = (c: Palette) =>
     smallBtnText: { fontSize: 16, fontWeight: '700', color: c.text },
     modeText: { gap: 2 },
     modeTitle: { fontSize: 16, fontWeight: '600', color: c.text },
-    safeCard: { width: '100%', backgroundColor: c.card, borderRadius: radius.md, padding: 14, gap: 10, borderWidth: 1, borderColor: c.border },
     safeBtns: { flexDirection: 'row', gap: 10 },
     transitBtn: { backgroundColor: c.blue, paddingVertical: 13, borderRadius: radius.sm, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
     transitBtnText: { fontSize: 15, color: '#fff', fontWeight: '700' },
@@ -589,7 +593,11 @@ const makeStyles = (c: Palette) =>
     arrivedBtn: { backgroundColor: c.green, paddingVertical: 11, borderRadius: radius.sm, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
     arrivedBtnText: { fontSize: 14, color: '#fff', fontWeight: '700' },
     headerBtns: { flexDirection: 'row', gap: 18, paddingRight: 4 },
-    endBtn: { width: '100%', marginTop: 4, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 13, borderRadius: radius.md, borderWidth: 1, borderColor: c.border, backgroundColor: c.card },
+    footerRow: { width: '100%', flexDirection: 'row', gap: 10, marginTop: 4 },
+    safeMainBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 13, borderRadius: radius.md, backgroundColor: c.blue },
+    safeMainBtnText: { fontSize: 15, color: '#fff', fontWeight: '700' },
+    endBtn: { width: '100%', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 13, borderRadius: radius.md, borderWidth: 1, borderColor: c.border, backgroundColor: c.card },
+    endBtnHalf: { flex: 1, width: undefined },
     endBtnText: { fontSize: 15, color: c.text, fontWeight: '600' },
     link: { fontSize: 15, color: c.blue },
     modalBg: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', paddingHorizontal: 24 },
