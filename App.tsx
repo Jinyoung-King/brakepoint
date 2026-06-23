@@ -4,7 +4,7 @@ import { NavigationContainer, DarkTheme, DefaultTheme } from '@react-navigation/
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import RootNavigator from './src/navigation/RootNavigator';
-import { navigationRef } from './src/navigation/navigationRef';
+import { navigationRef, flushPendingNavigation } from './src/navigation/navigationRef';
 import { AppStateProvider, useAppState } from './src/state/AppStateContext';
 import FakeCallController from './src/fakeCall/FakeCallController';
 import CheckinController from './src/CheckinController';
@@ -32,7 +32,7 @@ function Root() {
   };
   if (!ready) return <View style={{ flex: 1, backgroundColor: c.bg }} />;
   return (
-    <NavigationContainer ref={navigationRef} theme={navTheme}>
+    <NavigationContainer ref={navigationRef} theme={navTheme} onReady={flushPendingNavigation}>
       <FakeCallController />
       <CheckinController />
       <ErrorBoundary>

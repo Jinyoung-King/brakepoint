@@ -2,7 +2,7 @@
   "expo": {
     "name": "브레이크포인트",
     "slug": "brakepoint",
-    "version": "1.1.1",
+    "version": "1.1.6",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -11,6 +11,7 @@
     },
     "android": {
       "package": "kr.co.cruxdata.brakepoint",
+      "versionCode": 6,
       "adaptiveIcon": {
         "backgroundColor": "#16181d",
         "foregroundImage": "./assets/android-icon-foreground.png"
