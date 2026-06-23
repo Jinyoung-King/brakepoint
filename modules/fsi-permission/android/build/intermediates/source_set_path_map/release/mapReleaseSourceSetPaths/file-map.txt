@@ -1,0 +1,7 @@
+expo.modules.fsipermission.fsi-permission-pngs-0 /Users/jiny/dev/projects/brakepoint/modules/fsi-permission/android/build/generated/res/pngs/release
+expo.modules.fsipermission.fsi-permission-resValues-1 /Users/jiny/dev/projects/brakepoint/modules/fsi-permission/android/build/generated/res/resValues/release
+expo.modules.fsipermission.fsi-permission-mergeReleaseResources-2 /Users/jiny/dev/projects/brakepoint/modules/fsi-permission/android/build/intermediates/incremental/release/mergeReleaseResources/merged.dir
+expo.modules.fsipermission.fsi-permission-mergeReleaseResources-3 /Users/jiny/dev/projects/brakepoint/modules/fsi-permission/android/build/intermediates/incremental/release/mergeReleaseResources/stripped.dir
+expo.modules.fsipermission.fsi-permission-release-4 /Users/jiny/dev/projects/brakepoint/modules/fsi-permission/android/build/intermediates/merged_res/release/mergeReleaseResources
+expo.modules.fsipermission.fsi-permission-main-5 /Users/jiny/dev/projects/brakepoint/modules/fsi-permission/android/src/main/res
+expo.modules.fsipermission.fsi-permission-release-6 /Users/jiny/dev/projects/brakepoint/modules/fsi-permission/android/src/release/res

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   Alert,
   Image,
@@ -11,6 +11,8 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 
 import { useAppState } from '../state/AppStateContext';
@@ -19,6 +21,7 @@ import { radius, type Palette } from '../theme';
 import { useColors } from '../useColors';
 import { importWeightFromHealthConnect, openHealthConnectSettings } from '../health';
 import { APP_VERSION } from '../version';
+import { canUseFullScreenIntent } from '../../modules/fsi-permission';
 import {
   ensureNotificationSetup,
   openFullScreenIntentSettings,
@@ -79,6 +82,31 @@ export default function SettingsScreen() {
   const [goalText, setGoalText] = useState(String(weeklyGoalSessions));
   const [checkinText, setCheckinText] = useState(String(checkinDelayMin));
   const [budgetText, setBudgetText] = useState(monthlyBudget ? String(monthlyBudget) : '');
+
+  // 잠금화면 위 통화(풀스크린 인텐트) 권한 상태. 설정에서 돌아올 때마다 다시 확인.
+  const [fsiAllowed, setFsiAllowed] = useState(true);
+  useFocusEffect(
+    useCallback(() => {
+      setFsiAllowed(canUseFullScreenIntent());
+    }, [])
+  );
+
+  const runTestCall = async () => {
+    await ensureNotificationSetup();
+    if (Platform.OS === 'android' && !canUseFullScreenIntent()) {
+      setFsiAllowed(false);
+      Alert.alert(
+        '전체 화면 알림이 꺼져 있어요',
+        '이게 꺼져 있으면 잠금화면에서 진동만 울리고 화면은 안 켜져요. 권한 설정 페이지로 이동할게요.',
+        [
+          { text: '취소', style: 'cancel' },
+          { text: '설정 열기', onPress: openFullScreenIntentSettings },
+        ]
+      );
+      return;
+    }
+    await triggerTestCall(fakeCall, 8);
+  };
   const commitNum = (t: string, apply: (n: number) => void, min: number, max: number) => {
     const n = parseInt(t, 10);
     if (Number.isFinite(n) && n >= min && n <= max) apply(n);
@@ -479,23 +507,32 @@ export default function SettingsScreen() {
         />
         <Text style={styles.help}>음주모드가 켜져 있으면 이 주기마다 가짜 전화가 옵니다.</Text>
 
-        <Pressable
-          style={styles.testBtn}
-          onPress={async () => {
-            await ensureNotificationSetup();
-            await triggerTestCall(fakeCall, 8);
-          }}
-        >
+        <Pressable style={styles.testBtn} onPress={runTestCall}>
           <Text style={styles.testBtnText}>지금 테스트 (8초 후 — 화면 잠가보세요)</Text>
         </Pressable>
 
         {Platform.OS === 'android' && (
           <>
+            <View style={styles.fsiStatusRow}>
+              <Ionicons
+                name={fsiAllowed ? 'checkmark-circle' : 'close-circle'}
+                size={18}
+                color={fsiAllowed ? c.green : c.red}
+              />
+              <Text style={styles.fsiStatusText}>
+                전체 화면 알림: {fsiAllowed ? '허용됨' : '차단됨 — 잠금화면 위로 안 떠요'}
+              </Text>
+            </View>
+
             <Pressable style={styles.permBtn} onPress={openFullScreenIntentSettings}>
-              <Text style={styles.permBtnText}>전체 화면 알림 허용 (Android 14+)</Text>
+              <Text style={styles.permBtnText}>전체 화면 알림 설정 열기</Text>
             </Pressable>
+
             <Text style={styles.help}>
-              잠금화면 위로 통화가 안 뜨고 해제해야 보이면, 위 버튼에서 "전체 화면 알림"을 켜주세요.
+              잠금화면 위로 통화를 띄우려면 이 권한이 필요해요(Android 14+ 기본 차단).
+              {'\n'}삼성(One UI)이면 추가로 확인하세요:
+              {'\n'}· 설정 → 앱 → 브레이크포인트 → 알림 → "전체 화면 알림 표시" ON
+              {'\n'}· 설정 → 앱 → 브레이크포인트 → 배터리 → "제한 없음"
             </Text>
           </>
         )}
@@ -551,6 +588,8 @@ const makeStyles = (c: Palette) => StyleSheet.create({
     alignItems: 'center',
   },
   testBtnText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  fsiStatusRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 12 },
+  fsiStatusText: { color: c.text, fontSize: 14, fontWeight: '600', flex: 1 },
   permBtn: {
     marginTop: 8,
     paddingVertical: 12,
