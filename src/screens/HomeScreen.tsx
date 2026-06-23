@@ -35,6 +35,20 @@ const fmtTime = (ms: number) => {
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 };
 
+// 지오코딩 일시적 실패(레이트리밋/네트워크/서버) 안내. not-found/empty는 호출부에서 문맥별로 처리.
+const geocodeTransientMsg = (reason: 'rate-limited' | 'network' | 'error' | string): string => {
+  switch (reason) {
+    case 'rate-limited':
+      return '주소 조회가 잠시 제한됐어요. 잠깐 뒤 다시 시도해주세요.';
+    case 'network':
+      return '네트워크가 불안정해요. 연결을 확인하고 다시 시도해주세요.';
+    case 'error':
+      return '주소 조회 중 문제가 생겼어요. 잠시 후 다시 시도해주세요.';
+    default:
+      return '';
+  }
+};
+
 export default function HomeScreen({ navigation }: Props) {
   const { state, addDrink, undoDrink, addCig, endSession, setDrinkingMode, setHomeCoords, setHomeAddress } =
     useAppState();
@@ -241,9 +255,12 @@ export default function HomeScreen({ navigation }: Props) {
     setTransitLoading(true);
     const r = await geocodeAddress(q);
     setTransitLoading(false);
-    if (!r) {
+    if (!r.ok) {
       setAddrInput(q);
-      setAddrError('이 주소를 못 찾았어요. 동·도로명·번지까지 더 정확히 입력해보세요.');
+      setAddrError(
+        geocodeTransientMsg(r.reason) ||
+          '이 주소를 못 찾았어요. 동·도로명·번지까지 더 정확히 입력해보세요.'
+      );
       setAddrOpen(true);
       return;
     }
@@ -262,8 +279,8 @@ export default function HomeScreen({ navigation }: Props) {
     setTransitLoading(true);
     const r = await geocodeAddress(q);
     setTransitLoading(false);
-    if (!r) {
-      setAddrError('주소를 못 찾았어요. 예: 서울 은평구 통일로 〇〇〇');
+    if (!r.ok) {
+      setAddrError(geocodeTransientMsg(r.reason) || '주소를 못 찾았어요. 예: 서울 은평구 통일로 〇〇〇');
       return;
     }
     setHomeCoords(r.lat, r.lng);
