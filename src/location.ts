@@ -29,3 +29,24 @@ export async function getCurrentPlace(): Promise<string | null> {
     return null;
   }
 }
+
+// 안심 귀가 공유용 현재 좌표. getCurrentPlace와 달리, 위치가 외부로 "전송"될 수
+// 있음을 안내한다(자동 전송 아님 — 매번 공유시트에서 직접 선택). 실패 시 null.
+export async function getCurrentCoords(): Promise<{ lat: number; lng: number } | null> {
+  try {
+    const current = await Location.getForegroundPermissionsAsync();
+    if (!current.granted) {
+      const ok = await confirmRationale(
+        '위치 권한',
+        '‘안심 귀가 공유’를 누르면 현재 위치를 지도 링크로 만들어 네가 고른 사람에게 보낼 수 있어요. 자동 전송은 없고, 공유는 매번 직접 선택해요.'
+      );
+      if (!ok) return null;
+    }
+    const perm = await Location.requestForegroundPermissionsAsync();
+    if (!perm.granted) return null;
+    const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+    return { lat: pos.coords.latitude, lng: pos.coords.longitude };
+  } catch {
+    return null;
+  }
+}

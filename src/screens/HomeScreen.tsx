@@ -4,6 +4,7 @@ import {
   Linking,
   Modal,
   ScrollView,
+  Share,
   StyleSheet,
   Text,
   TextInput,
@@ -25,7 +26,8 @@ import BacChart from '../BacChart';
 import { alcoholKcal, hangoverForecast } from '../stats';
 import { cancelCheckin } from '../checkin';
 import { geocodeAddress } from '../geocode';
-import { getCurrentPlace } from '../location';
+import { getCurrentPlace, getCurrentCoords } from '../location';
+import { buildSafeReturnMessage } from '../share';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
 
@@ -96,6 +98,7 @@ export default function HomeScreen({ navigation }: Props) {
     smokingEnabled,
   } = state;
   const [transitLoading, setTransitLoading] = useState(false);
+  const [shareLoading, setShareLoading] = useState(false);
   const [addrOpen, setAddrOpen] = useState(false);
   const [addrInput, setAddrInput] = useState('');
   const [addrError, setAddrError] = useState('');
@@ -242,6 +245,21 @@ export default function HomeScreen({ navigation }: Props) {
   };
   const openTaxi = () => {
     openExternal('kakaot://', 'https://play.google.com/store/apps/details?id=com.kakao.taxi');
+  };
+  // 안심 귀가 공유: 현위치 좌표 → 지도 링크 메시지 → 시스템 공유시트(연락처 권한 불필요)
+  const shareSafeReturn = async () => {
+    setShareLoading(true);
+    const coords = await getCurrentCoords();
+    setShareLoading(false);
+    if (!coords) {
+      Alert.alert('위치를 가져오지 못했어요', '위치 권한을 허용하면 현재 위치를 공유할 수 있어요.');
+      return;
+    }
+    try {
+      await Share.share({ message: buildSafeReturnMessage(coords, homeAddress) });
+    } catch {
+      // 사용자가 공유 취소한 경우 등은 조용히 무시
+    }
   };
   const launchNaverTransit = (lat: number, lng: number, q: string) => {
     const name = encodeURIComponent(q);
@@ -567,6 +585,12 @@ export default function HomeScreen({ navigation }: Props) {
                 <Text style={styles.safeBtnText}>택시</Text>
               </Pressable>
             </View>
+            <Pressable style={styles.shareBtn} onPress={shareSafeReturn} disabled={shareLoading}>
+              <Ionicons name="share-social" size={16} color={c.text} />
+              <Text style={styles.shareBtnText}>
+                {shareLoading ? '위치 확인 중…' : '안심 귀가 공유'}
+              </Text>
+            </Pressable>
             <Pressable style={styles.arrivedBtn} onPress={onArrivedHome}>
               <Ionicons name="checkmark-circle" size={18} color="#fff" />
               <Text style={styles.arrivedBtnText}>집 도착했어요</Text>
@@ -623,6 +647,8 @@ const makeStyles = (c: Palette) =>
     transitBtnText: { fontSize: 15, color: '#fff', fontWeight: '700' },
     safeBtn: { flex: 1, backgroundColor: c.cardAlt, paddingVertical: 12, borderRadius: radius.sm, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4 },
     safeBtnText: { fontSize: 13, color: c.text, fontWeight: '600' },
+    shareBtn: { backgroundColor: c.cardAlt, borderWidth: 1, borderColor: c.border, paddingVertical: 12, borderRadius: radius.sm, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
+    shareBtnText: { fontSize: 14, color: c.text, fontWeight: '600' },
     arrivedBtn: { backgroundColor: c.green, paddingVertical: 11, borderRadius: radius.sm, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
     arrivedBtnText: { fontSize: 14, color: '#fff', fontWeight: '700' },
     headerBtns: { flexDirection: 'row', gap: 18, paddingRight: 4 },
