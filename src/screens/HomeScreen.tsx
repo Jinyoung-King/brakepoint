@@ -20,7 +20,8 @@ import { useAppState } from '../state/AppStateContext';
 import { useMorningSchedule } from '../calendar/useMorningSchedule';
 import { radius, type Palette } from '../theme';
 import { useColors } from '../useColors';
-import { alcoholGrams, estimateBac, hoursUntil, fmtHours, DRIVE_LIMIT } from '../bac';
+import { alcoholGrams, estimateBac, hoursUntil, fmtHours, bacCurve, DRIVE_LIMIT } from '../bac';
+import BacChart from '../BacChart';
 import { alcoholKcal, hangoverForecast } from '../stats';
 import { cancelCheckin } from '../checkin';
 import { geocodeAddress } from '../geocode';
@@ -88,6 +89,7 @@ export default function HomeScreen({ navigation }: Props) {
     homeAddress,
     sessionStartMs,
     lastDrinkMs,
+    drinkEvents,
     waterEvery,
     homeLat,
     homeLng,
@@ -123,6 +125,17 @@ export default function HomeScreen({ navigation }: Props) {
   const grams = alcoholGrams(count, unit, drinkType);
   const bac = estimateBac({ grams, weightKg, sex, hoursSinceStart: hoursSince });
   const canDrive = bac < DRIVE_LIMIT;
+  // BAC 시간곡선(잔별 순알코올 g 사용). now가 바뀔 때만 재계산.
+  const bacPoints = useMemo(
+    () =>
+      bacCurve({
+        events: drinkEvents.map((e) => ({ t: e.t, grams: alcoholGrams(e.n, unit, drinkType) })),
+        weightKg,
+        sex,
+        nowMs: now,
+      }),
+    [drinkEvents, unit, drinkType, weightKg, sex, now]
+  );
   const minsSinceLast = lastDrinkMs ? Math.floor((now - lastDrinkMs) / 60000) : null;
 
   const [endOpen, setEndOpen] = useState(false);
@@ -388,6 +401,9 @@ export default function HomeScreen({ navigation }: Props) {
         )}
         {count > 0 && bacOpen && (
           <View style={styles.bacDetail}>
+            {bacPoints.length >= 2 && (
+              <BacChart points={bacPoints} nowMs={now} driveLimit={DRIVE_LIMIT} c={c} />
+            )}
             {canDrive ? (
               <Text style={styles.muted}>
                 운전 가능 추정 범위 · 완전 해독 {fmtHours(hoursUntil(bac, 0))} 뒤 (
