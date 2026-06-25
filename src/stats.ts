@@ -55,6 +55,45 @@ export function monthSpend(history: SessionRecord[], year: number, month: number
     .reduce((a, r) => a + (r.cost ?? 0), 0);
 }
 
+export type MonthlyReport = {
+  sessions: number; // 이 달 술자리 횟수
+  prevSessions: number; // 지난달 횟수
+  deltaPct: number | null; // 지난달 대비 증감 %, 지난달 0이면 null
+  withinLimit: number; // 한계 이내로 끝낸 횟수
+  withinRate: number; // 0..1 (sessions=0이면 0)
+  weekdayCounts: number[]; // 요일별 총 잔수 (0=일 ~ 6=토)
+  topWeekday: number | null; // 가장 많이 마신 요일 index, 데이터 없으면 null
+  spend: number; // 이 달 술값 합계(원)
+};
+
+// 해당 월(year, month=0-based)의 음주 패턴 집계
+export function monthlyReport(history: SessionRecord[], year: number, month: number): MonthlyReport {
+  const recs = history.filter((r) => sameYM(r.endedAt, year, month));
+  const prev = new Date(year, month - 1, 1);
+  const prevSessions = history.filter((r) =>
+    sameYM(r.endedAt, prev.getFullYear(), prev.getMonth())
+  ).length;
+  const sessions = recs.length;
+  const deltaPct =
+    prevSessions > 0 ? Math.round(((sessions - prevSessions) / prevSessions) * 100) : null;
+  const withinLimit = recs.filter((r) => r.count <= r.limit).length;
+  const withinRate = sessions > 0 ? withinLimit / sessions : 0;
+
+  const weekdayCounts = Array(7).fill(0) as number[];
+  for (const r of recs) weekdayCounts[new Date(r.endedAt).getDay()] += r.count;
+  let topWeekday: number | null = null;
+  let max = 0;
+  weekdayCounts.forEach((v, i) => {
+    if (v > max) {
+      max = v;
+      topWeekday = i;
+    }
+  });
+
+  const spend = recs.reduce((a, r) => a + (r.cost ?? 0), 0);
+  return { sessions, prevSessions, deltaPct, withinLimit, withinRate, weekdayCounts, topWeekday, spend };
+}
+
 // 장소별 통계 (세션 수 desc), 상위 limit개
 export function placeStats(
   history: SessionRecord[],

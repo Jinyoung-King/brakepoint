@@ -5,6 +5,7 @@ import {
   sessionsThisWeek,
   dailyTotals,
   monthSpend,
+  monthlyReport,
   placeStats,
 } from '../src/stats';
 import type { SessionRecord } from '../src/storage';
@@ -73,6 +74,53 @@ describe('monthSpend', () => {
   it('sums cost within a month, ignoring others', () => {
     const h = [at(2026, 5, 1, 2, 30000), at(2026, 5, 9, 3, 20000), at(2026, 4, 1, 2, 99999)];
     expect(monthSpend(h, 2026, 5)).toBe(50000);
+  });
+});
+
+describe('monthlyReport', () => {
+  it('세션 수·한계 준수율·술값을 집계한다', () => {
+    const h = [
+      at(2026, 5, 5, 3), // 준수 (3<=5)
+      at(2026, 5, 12, 7), // 초과 (7>5)
+      at(2026, 5, 20, 5, 20000), // 준수 + 비용
+      at(2026, 4, 10, 2), // 지난달 → 제외
+    ];
+    const r = monthlyReport(h, 2026, 5);
+    expect(r.sessions).toBe(3);
+    expect(r.withinLimit).toBe(2);
+    expect(r.withinRate).toBeCloseTo(2 / 3, 5);
+    expect(r.spend).toBe(20000);
+  });
+
+  it('지난달 대비 증감 %를 계산한다', () => {
+    const h = [
+      at(2026, 5, 1, 2), at(2026, 5, 2, 2), at(2026, 5, 3, 2), // 이달 3회
+      at(2026, 4, 1, 2), at(2026, 4, 2, 2), // 지난달 2회
+    ];
+    const r = monthlyReport(h, 2026, 5);
+    expect(r.prevSessions).toBe(2);
+    expect(r.deltaPct).toBe(50); // (3-2)/2
+  });
+
+  it('지난달 기록이 없으면 deltaPct는 null', () => {
+    expect(monthlyReport([at(2026, 5, 1, 2)], 2026, 5).deltaPct).toBeNull();
+  });
+
+  it('요일별 잔수를 합산하고 최다 요일을 고른다', () => {
+    const r = monthlyReport([at(2026, 5, 5, 2), at(2026, 5, 5, 3), at(2026, 5, 6, 1)], 2026, 5);
+    const wd5 = new Date(2026, 5, 5).getDay();
+    const wd6 = new Date(2026, 5, 6).getDay();
+    expect(r.weekdayCounts[wd5]).toBe(5);
+    expect(r.weekdayCounts[wd6]).toBe(1);
+    expect(r.topWeekday).toBe(wd5);
+  });
+
+  it('기록 없는 달은 0·null로 안전하게 반환', () => {
+    const r = monthlyReport([], 2026, 5);
+    expect(r.sessions).toBe(0);
+    expect(r.withinRate).toBe(0);
+    expect(r.topWeekday).toBeNull();
+    expect(r.deltaPct).toBeNull();
   });
 });
 

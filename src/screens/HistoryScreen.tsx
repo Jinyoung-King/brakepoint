@@ -7,7 +7,7 @@ import { useAppState } from '../state/AppStateContext';
 import type { SessionRecord } from '../storage';
 import { radius, type Palette } from '../theme';
 import { useColors } from '../useColors';
-import { limitStreak, sessionsThisWeek, dailyTotals, monthSpend, placeStats } from '../stats';
+import { limitStreak, sessionsThisWeek, dailyTotals, monthSpend, monthlyReport, placeStats } from '../stats';
 
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
@@ -114,6 +114,10 @@ export default function HistoryScreen() {
     if (t <= 7) return c.blue;
     return c.red;
   };
+
+  // 월간 리포트 (히트맵과 같은 달)
+  const report = monthlyReport(history, calYear, calMonth);
+  const wdMax = Math.max(...report.weekdayCounts, 1);
 
   // 비용/장소
   const spend = monthSpend(history, calYear, calMonth);
@@ -257,6 +261,60 @@ export default function HistoryScreen() {
               ))}
             </View>
           </View>
+
+          {/* 이번 달 리포트 */}
+          {report.sessions > 0 && (
+            <View style={styles.chartCard}>
+              <Text style={styles.chartTitle}>이번 달 리포트</Text>
+              <View style={styles.reportRow}>
+                <Text style={styles.muted}>술자리</Text>
+                <Text style={styles.reportVal}>
+                  {report.sessions}회
+                  {report.deltaPct != null && (
+                    <Text style={{ color: report.deltaPct > 0 ? c.red : c.green }}>
+                      {'  '}
+                      {report.deltaPct > 0 ? '+' : ''}
+                      {report.deltaPct}% vs 지난달
+                    </Text>
+                  )}
+                </Text>
+              </View>
+              <View style={styles.reportRow}>
+                <Text style={styles.muted}>한계 준수율</Text>
+                <Text style={styles.reportVal}>
+                  {Math.round(report.withinRate * 100)}%{' '}
+                  <Text style={styles.muted}>
+                    ({report.withinLimit}/{report.sessions})
+                  </Text>
+                </Text>
+              </View>
+              {report.topWeekday != null && (
+                <View style={styles.reportRow}>
+                  <Text style={styles.muted}>최다 음주 요일</Text>
+                  <Text style={styles.reportVal}>{WEEKDAYS[report.topWeekday]}요일</Text>
+                </View>
+              )}
+              {/* 요일별 잔수 */}
+              <View style={styles.wdChart}>
+                {report.weekdayCounts.map((v, i) => (
+                  <View key={i} style={styles.wdCol}>
+                    <View style={styles.wdTrack}>
+                      <View
+                        style={[
+                          styles.wdBar,
+                          {
+                            height: v > 0 ? Math.max(4, (v / wdMax) * 44) : 0,
+                            backgroundColor: i === report.topWeekday ? c.blue : c.border,
+                          },
+                        ]}
+                      />
+                    </View>
+                    <Text style={styles.wdLabel}>{WEEKDAYS[i]}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          )}
 
           {/* 술값 / 예산 */}
           {(monthlyBudget > 0 || spend > 0) && (
@@ -470,6 +528,13 @@ const makeStyles = (c: Palette) => StyleSheet.create({
   placeRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
   placeName: { fontSize: 14, color: c.text, fontWeight: '600', flex: 1 },
   chartTitle: { fontSize: 13, color: c.textMuted },
+  reportRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  reportVal: { fontSize: 14, color: c.text, fontWeight: '600' },
+  wdChart: { flexDirection: 'row', alignItems: 'flex-end', height: 64, gap: 6, marginTop: 4 },
+  wdCol: { flex: 1, alignItems: 'center', justifyContent: 'flex-end', gap: 4 },
+  wdTrack: { width: '100%', height: 44, justifyContent: 'flex-end', alignItems: 'center' },
+  wdBar: { width: '70%', borderTopLeftRadius: 3, borderTopRightRadius: 3 },
+  wdLabel: { fontSize: 11, color: c.textFaint },
   chart: { flexDirection: 'row', alignItems: 'flex-end', height: 72, gap: 4 },
   barWrap: { flex: 1, alignItems: 'center', justifyContent: 'flex-end' },
   bar: { width: '70%', backgroundColor: c.blue, borderRadius: 3 },
