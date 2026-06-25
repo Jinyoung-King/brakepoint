@@ -23,7 +23,7 @@ import { radius, type Palette } from '../theme';
 import { useColors } from '../useColors';
 import { alcoholGrams, estimateBac, hoursUntil, fmtHours, bacCurve, DRIVE_LIMIT } from '../bac';
 import BacChart from '../BacChart';
-import { alcoholKcal, hangoverForecast } from '../stats';
+import { alcoholKcal, hangoverForecast, limitStreak, sessionsThisWeek } from '../stats';
 import { cancelCheckin } from '../checkin';
 import { geocodeAddress } from '../geocode';
 import { getCurrentPlace, getCurrentCoords } from '../location';
@@ -92,6 +92,8 @@ export default function HomeScreen({ navigation }: Props) {
     sessionStartMs,
     lastDrinkMs,
     drinkEvents,
+    history,
+    weeklyGoalSessions,
     waterEvery,
     homeLat,
     homeLng,
@@ -122,6 +124,8 @@ export default function HomeScreen({ navigation }: Props) {
   const overLimit = limit > 0 && count >= limit;
   const inBrake = limit > 0 && count >= firstBrake;
   const active = drinkingMode || count > 0; // 음주 중일 때만 보조 카드 노출
+  const streak = limitStreak(history); // 시작 전 카드용
+  const weekCount = sessionsThisWeek(history);
 
   // BAC 추정
   const hoursSince = sessionStartMs ? (now - sessionStartMs) / 3600000 : 0;
@@ -381,6 +385,31 @@ export default function HomeScreen({ navigation }: Props) {
           )}
         </View>
 
+        {/* 시작 전(0잔·음주모드 off) 상태: 빈 화면 대신 지표 + 다음에 나타날 것 안내 */}
+        {!active && (
+          <View style={styles.startCard}>
+            <Text style={styles.startTitle}>아직 시작 전이에요</Text>
+            {(streak > 0 || weeklyGoalSessions > 0) && (
+              <View style={styles.startStats}>
+                {streak > 0 && (
+                  <View style={styles.inlineRow}>
+                    <Ionicons name="flame" size={15} color={c.amber} />
+                    <Text style={styles.startStat}>한도 지킴 {streak}연속</Text>
+                  </View>
+                )}
+                {weeklyGoalSessions > 0 && (
+                  <Text style={styles.startStat}>
+                    이번 주 {weekCount} / 목표 {weeklyGoalSessions}회
+                  </Text>
+                )}
+              </View>
+            )}
+            <Text style={styles.startHint}>
+              첫 잔을 누르면 페이스 · 혈중알코올 · 안전 귀가가 여기 표시돼요.
+            </Text>
+          </View>
+        )}
+
         {/* 방금 추가 취소 (잘못 누른 경우) */}
         {state.drinkEvents.length > 0 && (
           <Pressable style={styles.undoBtn} onPress={undoDrink} hitSlop={6}>
@@ -456,19 +485,19 @@ export default function HomeScreen({ navigation }: Props) {
           <Switch value={drinkingMode} onValueChange={setDrinkingMode} />
         </View>
 
-        {/* 하단 액션: 안전 귀가(음주 중) + 종료 */}
-        <View style={styles.footerRow}>
-          {active && (
+        {/* 하단 액션: 안전 귀가 + 종료 (음주 중일 때만 — 0잔엔 종료할 게 없음) */}
+        {active && (
+          <View style={styles.footerRow}>
             <Pressable style={styles.safeMainBtn} onPress={() => setSafeOpen(true)}>
               <Ionicons name="home-outline" size={18} color="#fff" />
               <Text style={styles.safeMainBtnText}>안전 귀가</Text>
             </Pressable>
-          )}
-          <Pressable style={[styles.endBtn, active && styles.endBtnHalf]} onPress={onEndSession}>
-            <Ionicons name="flag-outline" size={18} color={c.text} />
-            <Text style={styles.endBtnText}>술자리 종료</Text>
-          </Pressable>
-        </View>
+            <Pressable style={[styles.endBtn, styles.endBtnHalf]} onPress={onEndSession}>
+              <Ionicons name="flag-outline" size={18} color={c.text} />
+              <Text style={styles.endBtnText}>술자리 종료</Text>
+            </Pressable>
+          </View>
+        )}
       </ScrollView>
 
       {/* 술자리 종료 모달 */}
@@ -623,6 +652,11 @@ const makeStyles = (c: Palette) =>
     fillOver: { backgroundColor: c.red },
     thresholdLine: { position: 'absolute', top: 0, bottom: 0, width: 2, backgroundColor: c.text, opacity: 0.55 },
     brakeText: { fontSize: 13, color: c.textMuted, textAlign: 'center' },
+    startCard: { width: '100%', backgroundColor: c.card, borderRadius: radius.md, padding: 16, gap: 10, borderWidth: 1, borderColor: c.border },
+    startTitle: { fontSize: 15, color: c.text, fontWeight: '700' },
+    startStats: { gap: 6 },
+    startStat: { fontSize: 14, color: c.textMuted },
+    startHint: { fontSize: 13, color: c.textFaint, lineHeight: 19 },
     bacSummary: { width: '100%', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: c.card, borderRadius: radius.md, paddingVertical: 12, paddingHorizontal: 16, borderWidth: 1, borderColor: c.border },
     bacSummaryLabel: { fontSize: 14, color: c.textMuted },
     bacSummaryValue: { fontSize: 16, fontWeight: '800' },
