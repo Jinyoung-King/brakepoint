@@ -31,6 +31,7 @@ type AppStateContextValue = {
     cost?: number;
   }) => void; // 지난 술자리 수동 추가
   clearHistory: () => void;
+  importState: (next: AppState) => void; // 백업 복원 (전체 교체)
   deleteRecord: (id: string) => void;
   updateRecord: (id: string, patch: reducers.RecordPatch) => void;
   setLimit: (limit: number) => void;
@@ -88,6 +89,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     endSession: (extra) => setState((s) => reducers.endSession(s, extra, Date.now())),
     addManualRecord: (r) => setState((s) => reducers.addManualRecord(s, r, Date.now())),
     clearHistory: () => setState((s) => ({ ...s, history: [] })),
+    importState: (next) => setState(() => next),
     deleteRecord: (id) => setState((s) => reducers.deleteRecord(s, id)),
     updateRecord: (id, patch) => setState((s) => reducers.updateRecord(s, id, patch)),
     setLimit: (limit) => setState((s) => ({ ...s, limit })),

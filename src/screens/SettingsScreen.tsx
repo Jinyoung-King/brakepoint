@@ -22,6 +22,7 @@ import type { Difficulty, DrinkUnit, ThemeMode, Sex, DrinkType } from '../storag
 import { radius, type Palette } from '../theme';
 import { useColors } from '../useColors';
 import { importWeightFromHealthConnect, openHealthConnectSettings } from '../health';
+import { exportBackup, importBackup } from '../backupIO';
 import { APP_VERSION } from '../version';
 import { canUseFullScreenIntent } from '../../modules/fsi-permission';
 import {
@@ -105,6 +106,7 @@ export default function SettingsScreen() {
     setSmokingEnabled,
     setMonthlyBudget,
     setWeeklyReportEnabled,
+    importState,
   } = useAppState();
   const { limit, difficulty, fakeCall, brakePercents, repeatEveryDrinks, unit, calendarSync, theme, sex, weightKg, drinkType, homeAddress, bottleToGlasses, waterEvery, weeklyGoalSessions, checkinEnabled, checkinDelayMin, smokingEnabled, monthlyBudget, weeklyReportEnabled } =
     state;
@@ -178,6 +180,37 @@ export default function SettingsScreen() {
           ? '저장된 몸무게가 없어요. 삼성헬스 ↔ Health Connect 연결을 확인하세요.'
           : '가져오기에 실패했어요.';
     Alert.alert('가져오기 실패', msg);
+  };
+
+  const onExport = async () => {
+    const d = new Date();
+    const p = (n: number) => String(n).padStart(2, '0');
+    const tag = `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}`;
+    const r = await exportBackup(state, d.getTime(), tag);
+    if (!r.ok) {
+      Alert.alert(
+        '내보내기 실패',
+        r.reason === 'unavailable' ? '이 기기에서 공유를 쓸 수 없어요.' : '백업 파일을 만들지 못했어요.'
+      );
+    }
+  };
+  const onImport = () => {
+    Alert.alert('백업 불러오기', '지금 데이터를 백업 파일 내용으로 덮어써요. 되돌릴 수 없어요.', [
+      { text: '취소', style: 'cancel' },
+      {
+        text: '불러오기',
+        style: 'destructive',
+        onPress: async () => {
+          const r = await importBackup();
+          if (r.ok) {
+            importState(r.state);
+            Alert.alert('복원 완료', '백업을 불러왔어요.');
+          } else if (r.reason === 'error') {
+            Alert.alert('불러오기 실패', r.message ?? '파일을 읽지 못했어요.');
+          }
+        },
+      },
+    ]);
   };
 
   const brake1 = brakePercents[0] ?? 60;
@@ -538,6 +571,20 @@ export default function SettingsScreen() {
             </Text>
           </>
         )}
+      </Section>
+
+      {/* 데이터 백업 */}
+      <Section title="데이터 백업" open={!!open.backup} onToggle={() => toggle('backup')} c={c} styles={styles}>
+        <Text style={styles.help}>
+          기록·설정을 파일로 내보내 보관하고, 재설치·기기변경 후 그대로 복원할 수 있어요.
+        </Text>
+        <Pressable style={styles.permBtn} onPress={onExport}>
+          <Text style={styles.permBtnText}>내보내기 (백업 파일 공유)</Text>
+        </Pressable>
+        <Pressable style={styles.permBtn} onPress={onImport}>
+          <Text style={styles.permBtnText}>불러오기 (백업 파일 선택)</Text>
+        </Pressable>
+        <Text style={styles.help}>불러오면 현재 데이터를 덮어써요(되돌릴 수 없음).</Text>
       </Section>
 
       {/* 일반 */}
