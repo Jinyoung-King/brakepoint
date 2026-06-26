@@ -104,8 +104,9 @@ export default function SettingsScreen() {
     setCheckinDelayMin,
     setSmokingEnabled,
     setMonthlyBudget,
+    setWeeklyReportEnabled,
   } = useAppState();
-  const { limit, difficulty, fakeCall, brakePercents, repeatEveryDrinks, unit, calendarSync, theme, sex, weightKg, drinkType, homeAddress, bottleToGlasses, waterEvery, weeklyGoalSessions, checkinEnabled, checkinDelayMin, smokingEnabled, monthlyBudget } =
+  const { limit, difficulty, fakeCall, brakePercents, repeatEveryDrinks, unit, calendarSync, theme, sex, weightKg, drinkType, homeAddress, bottleToGlasses, waterEvery, weeklyGoalSessions, checkinEnabled, checkinDelayMin, smokingEnabled, monthlyBudget, weeklyReportEnabled } =
     state;
   const c = useColors();
   const styles = useMemo(() => makeStyles(c), [c]);
@@ -439,6 +440,11 @@ export default function SettingsScreen() {
           <Text style={styles.label}>흡연 트래킹 (음주 중 잔당 흡연)</Text>
           <Switch value={smokingEnabled} onValueChange={setSmokingEnabled} />
         </View>
+        <View style={styles.toggleRow}>
+          <Text style={styles.label}>주간 리포트 알림 (월요일 아침)</Text>
+          <Switch value={weeklyReportEnabled} onValueChange={setWeeklyReportEnabled} />
+        </View>
+        <Text style={styles.help}>매주 월요일 9시에 지난주 술자리·한도 준수·술값 요약을 알려줘요.</Text>
         <Text style={styles.label}>월 술값 예산 (원, 0=끔)</Text>
         <TextInput
           style={styles.input}

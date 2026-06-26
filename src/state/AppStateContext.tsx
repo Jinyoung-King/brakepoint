@@ -51,6 +51,7 @@ type AppStateContextValue = {
   setWeeklyGoalSessions: (n: number) => void;
   setCheckinEnabled: (on: boolean) => void;
   setCheckinDelayMin: (min: number) => void;
+  setWeeklyReportEnabled: (on: boolean) => void;
   updateFakeCall: (patch: Partial<FakeCallConfig>) => void;
   setBrakePercents: (percents: number[]) => void;
   setRepeatEveryDrinks: (n: number) => void;
@@ -107,6 +108,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     setWeeklyGoalSessions: (weeklyGoalSessions) => setState((s) => ({ ...s, weeklyGoalSessions })),
     setCheckinEnabled: (checkinEnabled) => setState((s) => ({ ...s, checkinEnabled })),
     setCheckinDelayMin: (checkinDelayMin) => setState((s) => ({ ...s, checkinDelayMin })),
+    setWeeklyReportEnabled: (weeklyReportEnabled) => setState((s) => ({ ...s, weeklyReportEnabled })),
     updateFakeCall: (patch) => setState((s) => ({ ...s, fakeCall: { ...s.fakeCall, ...patch } })),
     setBrakePercents: (brakePercents) => setState((s) => ({ ...s, brakePercents })),
     setRepeatEveryDrinks: (repeatEveryDrinks) => setState((s) => ({ ...s, repeatEveryDrinks })),

@@ -6,6 +6,9 @@ import {
   dailyTotals,
   monthSpend,
   monthlyReport,
+  lastWeekReport,
+  nextWeeklyReportAt,
+  formatWeekReport,
   placeStats,
 } from '../src/stats';
 import type { SessionRecord } from '../src/storage';
@@ -121,6 +124,74 @@ describe('monthlyReport', () => {
     expect(r.withinRate).toBe(0);
     expect(r.topWeekday).toBeNull();
     expect(r.deltaPct).toBeNull();
+  });
+});
+
+describe('nextWeeklyReportAt', () => {
+  const DAY = 24 * 3600 * 1000;
+  it('항상 월요일 09:00이고 now 이후다', () => {
+    const wed = new Date(2026, 5, 24, 15, 0, 0).getTime();
+    const at0 = new Date(nextWeeklyReportAt(wed));
+    expect(at0.getDay()).toBe(1); // 월요일
+    expect(at0.getHours()).toBe(9);
+    expect(at0.getMinutes()).toBe(0);
+    expect(at0.getTime()).toBeGreaterThan(wed);
+  });
+  it('월요일 9시 경계: 이전이면 당일, 이후면 다음 주', () => {
+    const mon9 = nextWeeklyReportAt(new Date(2026, 5, 24, 15, 0, 0).getTime()); // 어떤 월요일 09:00
+    const before = new Date(mon9);
+    before.setHours(8, 0, 0, 0);
+    expect(nextWeeklyReportAt(before.getTime())).toBe(mon9);
+    const after = new Date(mon9);
+    after.setHours(10, 0, 0, 0);
+    expect(nextWeeklyReportAt(after.getTime())).toBe(mon9 + 7 * DAY);
+  });
+});
+
+describe('lastWeekReport', () => {
+  const DAY = 24 * 3600 * 1000;
+  const mk = (endedAt: number, count: number, limit = 5, cost?: number): SessionRecord => ({
+    id: String(endedAt),
+    endedAt,
+    count,
+    limit,
+    cost,
+  });
+  it('ref 직전 주(월~일) 기록만 집계한다', () => {
+    const ref = new Date(2026, 5, 24, 12, 0, 0).getTime();
+    // 구현과 동일하게 이번 주 월요일 00:00 계산
+    const m = new Date(ref);
+    m.setHours(0, 0, 0, 0);
+    m.setDate(m.getDate() - ((m.getDay() + 6) % 7));
+    const monday = m.getTime();
+
+    const r = lastWeekReport(
+      [
+        mk(monday - 3 * DAY, 3, 5), // 지난주, 준수
+        mk(monday - 2 * DAY, 7, 5, 20000), // 지난주, 초과 + 비용
+        mk(monday + 1 * DAY, 2, 5), // 이번 주 → 제외
+        mk(monday - 10 * DAY, 5, 5), // 2주 전 → 제외
+      ],
+      ref
+    );
+    expect(r.sessions).toBe(2);
+    expect(r.withinLimit).toBe(1);
+    expect(r.withinRate).toBeCloseTo(0.5, 5);
+    expect(r.spend).toBe(20000);
+  });
+});
+
+describe('formatWeekReport', () => {
+  it('기록 없으면 격려 문구', () => {
+    expect(formatWeekReport({ sessions: 0, withinLimit: 0, withinRate: 0, spend: 0 })).toContain(
+      '기록이 없었어요'
+    );
+  });
+  it('횟수·준수·술값을 담는다', () => {
+    const s = formatWeekReport({ sessions: 3, withinLimit: 2, withinRate: 2 / 3, spend: 50000 });
+    expect(s).toContain('3회');
+    expect(s).toContain('2/3');
+    expect(s).toContain('50,000원');
   });
 });
 

@@ -64,6 +64,7 @@ export type AppState = {
   checkinEnabled: boolean; // 귀가 체크인 알림
   checkinDelayMin: number; // 음주모드 종료 후 체크인까지(분)
   monthlyBudget: number; // 월 술값 예산(원, 0=끔)
+  weeklyReportEnabled: boolean; // 매주 월요일 아침 지난주 요약 알림
 };
 
 export const DEFAULT_STATE: AppState = {
@@ -101,6 +102,7 @@ export const DEFAULT_STATE: AppState = {
   checkinEnabled: true,
   checkinDelayMin: 60,
   monthlyBudget: 0,
+  weeklyReportEnabled: true,
 };
 
 const KEY = 'brakepoint:appState';

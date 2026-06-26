@@ -55,6 +55,53 @@ export function monthSpend(history: SessionRecord[], year: number, month: number
     .reduce((a, r) => a + (r.cost ?? 0), 0);
 }
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+// 기준 시각이 속한 주의 월요일 00:00 (월요일 시작 주)
+function startOfWeekMon(ref: number): number {
+  const d = new Date(ref);
+  d.setHours(0, 0, 0, 0);
+  const diff = (d.getDay() + 6) % 7; // 월요일로부터 지난 일수 (월=0)
+  d.setDate(d.getDate() - diff);
+  return d.getTime();
+}
+
+export type WeekReport = {
+  sessions: number;
+  withinLimit: number;
+  withinRate: number; // 0..1
+  spend: number;
+};
+
+// ref 시점 직전에 끝난 한 주(월~일) 요약. 알림은 fireTime 기준으로 호출한다.
+export function lastWeekReport(history: SessionRecord[], ref: number): WeekReport {
+  const end = startOfWeekMon(ref); // 이번 주 월요일 = 지난주의 끝(배타)
+  const start = end - 7 * DAY_MS;
+  const recs = history.filter((r) => r.endedAt >= start && r.endedAt < end);
+  const sessions = recs.length;
+  const withinLimit = recs.filter((r) => r.count <= r.limit).length;
+  const withinRate = sessions > 0 ? withinLimit / sessions : 0;
+  const spend = recs.reduce((a, r) => a + (r.cost ?? 0), 0);
+  return { sessions, withinLimit, withinRate, spend };
+}
+
+// now 이후 가장 가까운 월요일 09:00 (epoch ms)
+export function nextWeeklyReportAt(now: number): number {
+  const d = new Date(now);
+  d.setHours(9, 0, 0, 0);
+  let add = (8 - d.getDay()) % 7; // 다음 월요일까지 일수 (월=0)
+  if (add === 0 && d.getTime() <= now) add = 7; // 오늘이 월요일인데 9시 지났으면 다음 주
+  d.setDate(d.getDate() + add);
+  return d.getTime();
+}
+
+// 알림 본문 텍스트
+export function formatWeekReport(r: WeekReport): string {
+  if (r.sessions === 0) return '지난주엔 술자리 기록이 없었어요. 좋아요 👏';
+  const won = r.spend > 0 ? ` · 술값 ${r.spend.toLocaleString('ko-KR')}원` : '';
+  return `지난주 술자리 ${r.sessions}회 · 한도 준수 ${r.withinLimit}/${r.sessions}${won}`;
+}
+
 export type MonthlyReport = {
   sessions: number; // 이 달 술자리 횟수
   prevSessions: number; // 지난달 횟수

@@ -8,6 +8,7 @@ import { navigationRef, flushPendingNavigation } from './src/navigation/navigati
 import { AppStateProvider, useAppState } from './src/state/AppStateContext';
 import FakeCallController from './src/fakeCall/FakeCallController';
 import CheckinController from './src/CheckinController';
+import WeeklyReportController from './src/WeeklyReportController';
 import ErrorBoundary from './src/ErrorBoundary';
 import { lightColors } from './src/theme';
 import { useColors } from './src/useColors';
@@ -35,6 +36,7 @@ function Root() {
     <NavigationContainer ref={navigationRef} theme={navTheme} onReady={flushPendingNavigation}>
       <FakeCallController />
       <CheckinController />
+      <WeeklyReportController />
       <ErrorBoundary>
         <RootNavigator />
       </ErrorBoundary>
