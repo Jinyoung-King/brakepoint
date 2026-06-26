@@ -83,6 +83,12 @@ export function endSession(s: AppState, extra: EndSessionExtra | undefined, now:
   };
 }
 
+// 기록 1건 삭제 (id 일치). 없으면 그대로.
+export function deleteRecord(s: AppState, id: string): AppState {
+  if (!s.history.some((r) => r.id === id)) return s;
+  return { ...s, history: s.history.filter((r) => r.id !== id) };
+}
+
 export function addManualRecord(s: AppState, r: ManualRecordInput, now: number): AppState {
   const d = new Date(now);
   d.setDate(d.getDate() - Math.max(0, Math.floor(r.daysAgo)));

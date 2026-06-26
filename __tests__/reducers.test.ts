@@ -4,6 +4,7 @@ import {
   addCig,
   endSession,
   addManualRecord,
+  deleteRecord,
 } from '../src/state/reducers';
 import { DEFAULT_STATE, type AppState, type SessionRecord } from '../src/storage';
 
@@ -126,6 +127,24 @@ describe('endSession', () => {
     const yesterday: SessionRecord = { id: 'y', endedAt: T - DAY, count: 2, limit: 5 };
     const r = endSession(base({ count: 1, history: [yesterday] }), undefined, T);
     expect(r.history[0].round).toBe(1); // 오늘은 1차
+  });
+});
+
+describe('deleteRecord', () => {
+  const h: SessionRecord[] = [
+    { id: 'a', endedAt: T, count: 3, limit: 5 },
+    { id: 'b', endedAt: T - DAY, count: 2, limit: 5 },
+  ];
+
+  it('id가 일치하는 기록만 지운다', () => {
+    const r = deleteRecord(base({ history: h }), 'a');
+    expect(r.history).toHaveLength(1);
+    expect(r.history[0].id).toBe('b');
+  });
+
+  it('없는 id면 그대로 반환(no-op)', () => {
+    const s = base({ history: h });
+    expect(deleteRecord(s, 'zzz')).toBe(s);
   });
 });
 

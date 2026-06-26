@@ -24,7 +24,7 @@ const mean = (rs: SessionRecord[]) =>
   rs.length ? rs.reduce((a, r) => a + r.count, 0) / rs.length : 0;
 
 export default function HistoryScreen() {
-  const { state, clearHistory, addManualRecord } = useAppState();
+  const { state, clearHistory, addManualRecord, deleteRecord } = useAppState();
   const { history, weeklyGoalSessions, limit, unit, monthlyBudget } = state;
   const [monthOffset, setMonthOffset] = useState(0);
   const streak = limitStreak(history);
@@ -128,6 +128,19 @@ export default function HistoryScreen() {
     Alert.alert('기록 전체 삭제', '모든 음주 기록을 지울까요? 되돌릴 수 없어요.', [
       { text: '취소', style: 'cancel' },
       { text: '삭제', style: 'destructive', onPress: clearHistory },
+    ]);
+
+  const confirmDelete = (rec: SessionRecord) =>
+    Alert.alert('이 기록 삭제', '이 술자리 기록을 지울까요? 되돌릴 수 없어요.', [
+      { text: '취소', style: 'cancel' },
+      {
+        text: '삭제',
+        style: 'destructive',
+        onPress: () => {
+          deleteRecord(rec.id);
+          setSelected(null);
+        },
+      },
     ]);
 
   const renderItem = ({ item }: { item: SessionRecord }) => {
@@ -412,9 +425,15 @@ export default function HistoryScreen() {
                   <Text style={styles.muted}>시점 기록이 없어요(이전 버전 기록).</Text>
                 )}
 
-                <Pressable style={styles.detailClose} onPress={() => setSelected(null)}>
-                  <Text style={styles.detailCloseText}>닫기</Text>
-                </Pressable>
+                <View style={styles.detailActions}>
+                  <Pressable style={styles.detailDelete} onPress={() => confirmDelete(selected)}>
+                    <Ionicons name="trash-outline" size={16} color={c.red} />
+                    <Text style={styles.detailDeleteText}>삭제</Text>
+                  </Pressable>
+                  <Pressable style={styles.detailClose} onPress={() => setSelected(null)}>
+                    <Text style={styles.detailCloseText}>닫기</Text>
+                  </Pressable>
+                </View>
               </>
             )}
           </View>
@@ -489,7 +508,10 @@ const makeStyles = (c: Palette) => StyleSheet.create({
   tlRow: { flexDirection: 'row', alignItems: 'baseline', gap: 10, paddingVertical: 5, borderBottomWidth: 1, borderBottomColor: c.border },
   tlTime: { fontSize: 15, fontWeight: '700', color: c.text, width: 52 },
   tlText: { fontSize: 14, color: c.textMuted, flex: 1 },
-  detailClose: { marginTop: 14, backgroundColor: c.cardAlt, paddingVertical: 13, borderRadius: radius.md, alignItems: 'center' },
+  detailActions: { flexDirection: 'row', gap: 10, marginTop: 14 },
+  detailDelete: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, paddingVertical: 13, paddingHorizontal: 18, borderRadius: radius.md, borderWidth: 1, borderColor: c.red },
+  detailDeleteText: { fontSize: 16, fontWeight: '700', color: c.red },
+  detailClose: { flex: 1, backgroundColor: c.cardAlt, paddingVertical: 13, borderRadius: radius.md, alignItems: 'center' },
   detailCloseText: { fontSize: 16, fontWeight: '700', color: c.text },
   mRow: { flexDirection: 'row', gap: 12, marginTop: 4 },
   mCol: { flex: 1, gap: 4 },
