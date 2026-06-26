@@ -2,6 +2,7 @@ import { useCallback, useMemo, useState } from 'react';
 import {
   Alert,
   Image,
+  LayoutAnimation,
   Platform,
   Pressable,
   ScrollView,
@@ -9,6 +10,7 @@ import {
   Switch,
   Text,
   TextInput,
+  UIManager,
   View,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
@@ -49,6 +51,37 @@ const SEXES: { key: Sex; label: string }[] = [
 
 const DRINK_TYPES: DrinkType[] = ['소주', '맥주', '와인', '양주'];
 
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
+
+// 접이식 섹션. 모듈 레벨에 둬야 부모 리렌더 시 재생성되지 않아 내부 TextInput 포커스가 유지됨.
+function Section({
+  title,
+  open,
+  onToggle,
+  c,
+  styles,
+  children,
+}: {
+  title: string;
+  open: boolean;
+  onToggle: () => void;
+  c: Palette;
+  styles: ReturnType<typeof makeStyles>;
+  children: React.ReactNode;
+}) {
+  return (
+    <View style={styles.section}>
+      <Pressable style={styles.accHeader} onPress={onToggle} hitSlop={6}>
+        <Text style={styles.sectionTitle}>{title}</Text>
+        <Ionicons name={open ? 'chevron-up' : 'chevron-down'} size={20} color={c.textMuted} />
+      </Pressable>
+      {open && <View style={styles.accBody}>{children}</View>}
+    </View>
+  );
+}
+
 export default function SettingsScreen() {
   const {
     state,
@@ -76,6 +109,12 @@ export default function SettingsScreen() {
     state;
   const c = useColors();
   const styles = useMemo(() => makeStyles(c), [c]);
+  // 접이식 섹션 열림 상태 (기본 전부 접힘)
+  const [open, setOpen] = useState<Record<string, boolean>>({});
+  const toggle = (k: string) => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setOpen((o) => ({ ...o, [k]: !o[k] }));
+  };
   const [weightText, setWeightText] = useState(String(weightKg));
   const [bottleText, setBottleText] = useState(String(bottleToGlasses));
   const [waterText, setWaterText] = useState(String(waterEvery));
@@ -185,30 +224,9 @@ export default function SettingsScreen() {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      {/* 테마 */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>테마</Text>
-        <View style={styles.segment}>
-          {THEMES.map((t) => {
-            const active = t.key === theme;
-            return (
-              <Pressable
-                key={t.key}
-                style={[styles.segmentItem, active && styles.segmentItemActive]}
-                onPress={() => setTheme(t.key)}
-              >
-                <Text style={[styles.segmentText, active && styles.segmentTextActive]}>
-                  {t.label}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
-      </View>
-
-      {/* 주량 */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>주량 (한계 잔수)</Text>
+      {/* 음주 기준 */}
+      <Section title="음주 기준" open={!!open.drinking} onToggle={() => toggle('drinking')} c={c} styles={styles}>
+        <Text style={styles.subTitle}>주량 (한계 잔수)</Text>
         <TextInput
           style={styles.input}
           keyboardType="number-pad"
@@ -217,11 +235,8 @@ export default function SettingsScreen() {
           placeholder="5"
         />
         <Text style={styles.help}>설정한 브레이크 %에서 인지 게이트가 발동합니다.</Text>
-      </View>
 
-      {/* 단위 */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>단위</Text>
+        <Text style={styles.subTitle}>단위</Text>
         <View style={styles.segment}>
           {UNITS.map((u) => {
             const active = u === unit;
@@ -250,11 +265,65 @@ export default function SettingsScreen() {
           placeholderTextColor={c.textFaint}
         />
         <Text style={styles.help}>소주 1병 ≈ 7잔, 맥주 500 ≈ 2~3잔 정도예요.</Text>
-      </View>
+
+        <Text style={styles.subTitle}>브레이크 지점</Text>
+        <View style={styles.brakeRow}>
+          <View style={styles.brakeCol}>
+            <Text style={styles.label}>1차 (%)</Text>
+            <TextInput
+              style={styles.input}
+              keyboardType="number-pad"
+              value={brake1Text}
+              onChangeText={onBrakeChange(0)}
+              placeholder="60"
+            />
+            <Text style={styles.help}>{Math.ceil((limit * brake1) / 100)}잔</Text>
+          </View>
+          <View style={styles.brakeCol}>
+            <Text style={styles.label}>2차 (%)</Text>
+            <TextInput
+              style={styles.input}
+              keyboardType="number-pad"
+              value={brake2Text}
+              onChangeText={onBrakeChange(1)}
+              placeholder="80"
+            />
+            <Text style={styles.help}>{Math.ceil((limit * brake2) / 100)}잔</Text>
+          </View>
+        </View>
+        <Text style={styles.label}>한계 초과 후 반복 (몇 잔마다)</Text>
+        <TextInput
+          style={styles.input}
+          keyboardType="number-pad"
+          value={repeatText}
+          onChangeText={onRepeatChange}
+          placeholder="3"
+        />
+        <Text style={styles.help}>
+          1차·2차에서 한 번씩, 한계({limit}잔) 초과 후엔 {repeatEveryDrinks}잔마다 인지 게이트가 뜹니다.
+        </Text>
+
+        <Text style={styles.subTitle}>인지 게이트 난이도</Text>
+        <View style={styles.segment}>
+          {DIFFICULTIES.map((d) => {
+            const active = d.key === difficulty;
+            return (
+              <Pressable
+                key={d.key}
+                style={[styles.segmentItem, active && styles.segmentItemActive]}
+                onPress={() => setDifficulty(d.key)}
+              >
+                <Text style={[styles.segmentText, active && styles.segmentTextActive]}>
+                  {d.label}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      </Section>
 
       {/* 신체 정보 (BAC 추정용) */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>신체 정보 (혈중알코올 추정용)</Text>
+      <Section title="신체 정보 (혈중알코올 추정용)" open={!!open.body} onToggle={() => toggle('body')} c={c} styles={styles}>
         <View style={styles.segment}>
           {SEXES.map((sx) => {
             const active = sx.key === sex;
@@ -306,11 +375,11 @@ export default function SettingsScreen() {
         <Text style={styles.help}>
           삼성헬스 ↔ Health Connect 연결 시 최신 몸무게를 불러옵니다. (이름·생년월일은 제공 안 됨)
         </Text>
-      </View>
+      </Section>
 
-      {/* 집 주소 (안전 귀가) */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>집 주소 (안전 귀가)</Text>
+      {/* 안전 · 귀가 */}
+      <Section title="안전 · 귀가" open={!!open.safety} onToggle={() => toggle('safety')} c={c} styles={styles}>
+        <Text style={styles.subTitle}>집 주소</Text>
         <TextInput
           style={styles.input}
           value={homeAddress}
@@ -318,84 +387,30 @@ export default function SettingsScreen() {
           placeholder="예: 서울 은평구 …"
           placeholderTextColor={c.textFaint}
         />
-        <Text style={styles.help}>홈의 "집까지 길찾기"에서 목적지로 사용돼요.</Text>
-      </View>
+        <Text style={styles.help}>홈의 "집까지 길찾기"·"안심 귀가 공유"에서 사용돼요.</Text>
 
-      {/* 브레이크 지점 */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>브레이크 지점</Text>
-        <View style={styles.brakeRow}>
-          <View style={styles.brakeCol}>
-            <Text style={styles.label}>1차 (%)</Text>
-            <TextInput
-              style={styles.input}
-              keyboardType="number-pad"
-              value={brake1Text}
-              onChangeText={onBrakeChange(0)}
-              placeholder="60"
-            />
-            <Text style={styles.help}>{Math.ceil((limit * brake1) / 100)}잔</Text>
-          </View>
-          <View style={styles.brakeCol}>
-            <Text style={styles.label}>2차 (%)</Text>
-            <TextInput
-              style={styles.input}
-              keyboardType="number-pad"
-              value={brake2Text}
-              onChangeText={onBrakeChange(1)}
-              placeholder="80"
-            />
-            <Text style={styles.help}>{Math.ceil((limit * brake2) / 100)}잔</Text>
-          </View>
+        <Text style={styles.subTitle}>귀가 체크인</Text>
+        <View style={styles.toggleRow}>
+          <Text style={styles.label}>귀가 체크인 알림</Text>
+          <Switch value={checkinEnabled} onValueChange={setCheckinEnabled} />
         </View>
-        <Text style={styles.label}>한계 초과 후 반복 (몇 잔마다)</Text>
+        <Text style={styles.label}>체크인까지 (분)</Text>
         <TextInput
           style={styles.input}
           keyboardType="number-pad"
-          value={repeatText}
-          onChangeText={onRepeatChange}
-          placeholder="3"
+          value={checkinText}
+          onChangeText={(t) => {
+            setCheckinText(t);
+            commitNum(t, setCheckinDelayMin, 5, 240);
+          }}
+          placeholder="60"
+          placeholderTextColor={c.textFaint}
         />
-        <Text style={styles.help}>
-          1차·2차에서 한 번씩, 한계({limit}잔) 초과 후엔 {repeatEveryDrinks}잔마다 인지 게이트가 뜹니다.
-        </Text>
-      </View>
+        <Text style={styles.help}>음주모드를 끄면 이 시간 뒤 "집에 잘 도착했어요?" 알림이 와요.</Text>
+      </Section>
 
-      {/* 난이도 */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>인지 게이트 난이도</Text>
-        <View style={styles.segment}>
-          {DIFFICULTIES.map((d) => {
-            const active = d.key === difficulty;
-            return (
-              <Pressable
-                key={d.key}
-                style={[styles.segmentItem, active && styles.segmentItemActive]}
-                onPress={() => setDifficulty(d.key)}
-              >
-                <Text style={[styles.segmentText, active && styles.segmentTextActive]}>
-                  {d.label}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
-      </View>
-
-      {/* 일정 연동 */}
-      <View style={styles.section}>
-        <View style={styles.toggleRow}>
-          <Text style={styles.sectionTitle}>다음날 일정 연동</Text>
-          <Switch value={calendarSync} onValueChange={setCalendarSync} />
-        </View>
-        <Text style={styles.help}>
-          켜면 캘린더에서 내일 정오 이전 일정을 확인해, 일정이 있으면 브레이크를 10%p 강화합니다.
-        </Text>
-      </View>
-
-      {/* 건강·안전 */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>건강 · 안전</Text>
+      {/* 건강 · 목표 */}
+      <Section title="건강 · 목표" open={!!open.health} onToggle={() => toggle('health')} c={c} styles={styles}>
         <Text style={styles.label}>물 알림 (몇 잔마다, 0=끔)</Text>
         <TextInput
           style={styles.input}
@@ -424,23 +439,6 @@ export default function SettingsScreen() {
           <Text style={styles.label}>흡연 트래킹 (음주 중 잔당 흡연)</Text>
           <Switch value={smokingEnabled} onValueChange={setSmokingEnabled} />
         </View>
-        <View style={styles.toggleRow}>
-          <Text style={styles.label}>귀가 체크인 알림</Text>
-          <Switch value={checkinEnabled} onValueChange={setCheckinEnabled} />
-        </View>
-        <Text style={styles.label}>체크인까지 (분)</Text>
-        <TextInput
-          style={styles.input}
-          keyboardType="number-pad"
-          value={checkinText}
-          onChangeText={(t) => {
-            setCheckinText(t);
-            commitNum(t, setCheckinDelayMin, 5, 240);
-          }}
-          placeholder="60"
-          placeholderTextColor={c.textFaint}
-        />
-        <Text style={styles.help}>음주모드를 끄면 이 시간 뒤 "집에 잘 도착했어요?" 알림이 와요.</Text>
         <Text style={styles.label}>월 술값 예산 (원, 0=끔)</Text>
         <TextInput
           style={styles.input}
@@ -455,12 +453,10 @@ export default function SettingsScreen() {
           placeholderTextColor={c.textFaint}
         />
         <Text style={styles.help}>기록의 술값 합계가 예산을 넘으면 알려줘요.</Text>
-      </View>
+      </Section>
 
       {/* 가짜 전화 */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>가짜 전화 발신자</Text>
-
+      <Section title="가짜 전화" open={!!open.fakecall} onToggle={() => toggle('fakecall')} c={c} styles={styles}>
         <Text style={styles.label}>이름</Text>
         <TextInput
           style={styles.input}
@@ -536,16 +532,50 @@ export default function SettingsScreen() {
             </Text>
           </>
         )}
-      </View>
+      </Section>
+
+      {/* 일반 */}
+      <Section title="일반" open={!!open.general} onToggle={() => toggle('general')} c={c} styles={styles}>
+        <Text style={styles.subTitle}>테마</Text>
+        <View style={styles.segment}>
+          {THEMES.map((t) => {
+            const active = t.key === theme;
+            return (
+              <Pressable
+                key={t.key}
+                style={[styles.segmentItem, active && styles.segmentItemActive]}
+                onPress={() => setTheme(t.key)}
+              >
+                <Text style={[styles.segmentText, active && styles.segmentTextActive]}>
+                  {t.label}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+
+        <Text style={styles.subTitle}>다음날 일정 연동</Text>
+        <View style={styles.toggleRow}>
+          <Text style={styles.label}>캘린더 일정으로 브레이크 강화</Text>
+          <Switch value={calendarSync} onValueChange={setCalendarSync} />
+        </View>
+        <Text style={styles.help}>
+          켜면 캘린더에서 내일 정오 이전 일정을 확인해, 일정이 있으면 브레이크를 10%p 강화합니다.
+        </Text>
+      </Section>
+
       <Text style={[styles.help, { textAlign: 'center', marginTop: 8 }]}>브레이크포인트 v{APP_VERSION}</Text>
     </ScrollView>
   );
 }
 
 const makeStyles = (c: Palette) => StyleSheet.create({
-  container: { padding: 20, gap: 28, backgroundColor: c.bg },
-  section: { gap: 8 },
-  sectionTitle: { fontSize: 18, fontWeight: '700', color: c.text },
+  container: { padding: 20, paddingTop: 4, gap: 0, backgroundColor: c.bg },
+  section: { borderBottomWidth: 1, borderBottomColor: c.border },
+  accHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 18 },
+  accBody: { gap: 8, paddingBottom: 18 },
+  sectionTitle: { fontSize: 17, fontWeight: '700', color: c.text },
+  subTitle: { fontSize: 15, fontWeight: '700', color: c.text, marginTop: 10 },
   label: { fontSize: 13, color: c.textMuted, marginTop: 4 },
   help: { fontSize: 13, color: c.textFaint },
   input: {
