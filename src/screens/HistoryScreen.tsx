@@ -33,6 +33,10 @@ export default function HistoryScreen() {
   const styles = useMemo(() => makeStyles(c), [c]);
   const navigation = useNavigation();
   const [selected, setSelected] = useState<SessionRecord | null>(null);
+  // 달력 날짜 탭 → 그 날 세션 목록
+  const [dayOpen, setDayOpen] = useState(false);
+  const [dayRecs, setDayRecs] = useState<SessionRecord[]>([]);
+  const [dayLabel, setDayLabel] = useState('');
 
   // 수동 기록 입력 (editingId 있으면 기존 기록 수정 모드)
   const [manualOpen, setManualOpen] = useState(false);
@@ -131,6 +135,22 @@ export default function HistoryScreen() {
     if (t <= 4) return c.blue + 'aa';
     if (t <= 7) return c.blue;
     return c.red;
+  };
+
+  // 달력 날짜 탭 → 그 날 세션들
+  const openDay = (day: number) => {
+    const recs = history
+      .filter((r) => {
+        const d = new Date(r.endedAt);
+        return d.getFullYear() === calYear && d.getMonth() === calMonth && d.getDate() === day;
+      })
+      .sort((a, b) => a.endedAt - b.endedAt);
+    if (recs.length === 0) return;
+    setDayRecs(recs);
+    setDayLabel(
+      `${calYear}.${String(calMonth + 1).padStart(2, '0')}.${String(day).padStart(2, '0')} (${WEEKDAYS[new Date(calYear, calMonth, day).getDay()]})`
+    );
+    setDayOpen(true);
   };
 
   // 월간 리포트 (히트맵과 같은 달)
@@ -283,11 +303,19 @@ export default function HistoryScreen() {
               ))}
               {cells.map((day, i) => (
                 <View key={i} style={styles.calCellWrap}>
-                  {day != null && (
-                    <View style={[styles.calCell, { backgroundColor: cellBg(totals[day]) }]}>
-                      <Text style={[styles.calDay, !!totals[day] && styles.calDayOn]}>{day}</Text>
-                    </View>
-                  )}
+                  {day != null &&
+                    (totals[day] ? (
+                      <Pressable
+                        style={[styles.calCell, { backgroundColor: cellBg(totals[day]) }]}
+                        onPress={() => openDay(day)}
+                      >
+                        <Text style={[styles.calDay, styles.calDayOn]}>{day}</Text>
+                      </Pressable>
+                    ) : (
+                      <View style={[styles.calCell, { backgroundColor: cellBg(totals[day]) }]}>
+                        <Text style={styles.calDay}>{day}</Text>
+                      </View>
+                    ))}
                 </View>
               ))}
             </View>
@@ -462,6 +490,41 @@ export default function HistoryScreen() {
         </View>
       </Modal>
 
+      {/* 날짜별 세션 목록 (달력 탭) */}
+      <Modal visible={dayOpen} transparent animationType="slide" onRequestClose={() => setDayOpen(false)}>
+        <View style={styles.detailBg}>
+          <View style={styles.detailCard}>
+            <Text style={styles.detailTitle}>{dayLabel}</Text>
+            <Text style={styles.muted}>
+              {dayRecs.length}건 · 총 {dayRecs.reduce((a, r) => a + r.count, 0)}
+              {unit}
+            </Text>
+            {dayRecs.map((r) => (
+              <Pressable
+                key={r.id}
+                style={styles.dayRow}
+                onPress={() => {
+                  setDayOpen(false);
+                  setSelected(r);
+                }}
+              >
+                <Text style={styles.dayRowText} numberOfLines={1}>
+                  {r.round ? `${r.round}차 · ` : ''}
+                  {r.count}
+                  {r.unit ?? unit}
+                  {r.count >= r.limit ? ' ⚠️' : ''}
+                  {r.place ? ` · ${r.place}` : ''}
+                </Text>
+                <Text style={styles.dayRowTime}>{fmtClock(r.endedAt)}</Text>
+              </Pressable>
+            ))}
+            <Pressable style={styles.detailClose} onPress={() => setDayOpen(false)}>
+              <Text style={styles.detailCloseText}>닫기</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
+
       {/* 수동 기록 추가 */}
       <Modal visible={manualOpen} transparent animationType="slide" onRequestClose={() => setManualOpen(false)}>
         <View style={styles.detailBg}>
@@ -534,6 +597,9 @@ const makeStyles = (c: Palette) => StyleSheet.create({
   tlRow: { flexDirection: 'row', alignItems: 'baseline', gap: 10, paddingVertical: 5, borderBottomWidth: 1, borderBottomColor: c.border },
   tlTime: { fontSize: 15, fontWeight: '700', color: c.text, width: 52 },
   tlText: { fontSize: 14, color: c.textMuted, flex: 1 },
+  dayRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, paddingVertical: 12, borderTopWidth: 1, borderTopColor: c.border },
+  dayRowText: { flex: 1, fontSize: 15, color: c.text },
+  dayRowTime: { fontSize: 13, color: c.textMuted },
   detailActions: { flexDirection: 'row', gap: 10, marginTop: 14 },
   detailDelete: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, paddingVertical: 13, paddingHorizontal: 16, borderRadius: radius.md, borderWidth: 1, borderColor: c.red },
   detailDeleteText: { fontSize: 16, fontWeight: '700', color: c.red },
