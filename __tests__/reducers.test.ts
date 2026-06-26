@@ -5,6 +5,7 @@ import {
   endSession,
   addManualRecord,
   deleteRecord,
+  updateRecord,
 } from '../src/state/reducers';
 import { DEFAULT_STATE, type AppState, type SessionRecord } from '../src/storage';
 
@@ -145,6 +146,36 @@ describe('deleteRecord', () => {
   it('없는 id면 그대로 반환(no-op)', () => {
     const s = base({ history: h });
     expect(deleteRecord(s, 'zzz')).toBe(s);
+  });
+});
+
+describe('updateRecord', () => {
+  const h: SessionRecord[] = [
+    { id: 'a', endedAt: T, count: 3, limit: 5, place: '강남', round: 1, events: [{ t: T, n: 3 }] },
+  ];
+
+  it('잔수·한계·장소·메모·술값을 갱신하고 날짜/차수/타임라인은 유지', () => {
+    const r = updateRecord(base({ history: h }), 'a', {
+      count: 5,
+      limit: 6,
+      place: '  홍대  ',
+      memo: '',
+      cost: 0,
+    });
+    const rec = r.history[0];
+    expect(rec.count).toBe(5);
+    expect(rec.limit).toBe(6);
+    expect(rec.place).toBe('홍대'); // trim
+    expect(rec.memo).toBeUndefined(); // 빈 문자열 → undefined
+    expect(rec.cost).toBeUndefined(); // 0 → undefined
+    expect(rec.endedAt).toBe(T); // 날짜 유지
+    expect(rec.round).toBe(1); // 차수 유지
+    expect(rec.events).toEqual([{ t: T, n: 3 }]); // 타임라인 유지
+  });
+
+  it('없는 id면 그대로 반환(no-op)', () => {
+    const s = base({ history: h });
+    expect(updateRecord(s, 'zzz', { count: 1, limit: 5 })).toBe(s);
   });
 });
 

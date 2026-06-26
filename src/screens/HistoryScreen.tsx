@@ -24,7 +24,7 @@ const mean = (rs: SessionRecord[]) =>
   rs.length ? rs.reduce((a, r) => a + r.count, 0) / rs.length : 0;
 
 export default function HistoryScreen() {
-  const { state, clearHistory, addManualRecord, deleteRecord } = useAppState();
+  const { state, clearHistory, addManualRecord, deleteRecord, updateRecord } = useAppState();
   const { history, weeklyGoalSessions, limit, unit, monthlyBudget } = state;
   const [monthOffset, setMonthOffset] = useState(0);
   const streak = limitStreak(history);
@@ -34,8 +34,9 @@ export default function HistoryScreen() {
   const navigation = useNavigation();
   const [selected, setSelected] = useState<SessionRecord | null>(null);
 
-  // 수동 기록 입력
+  // 수동 기록 입력 (editingId 있으면 기존 기록 수정 모드)
   const [manualOpen, setManualOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [mCount, setMCount] = useState('');
   const [mLimit, setMLimit] = useState(String(limit));
   const [mDaysAgo, setMDaysAgo] = useState('0');
@@ -45,6 +46,7 @@ export default function HistoryScreen() {
   const [mCost, setMCost] = useState('');
 
   const openManual = () => {
+    setEditingId(null);
     setMCount('');
     setMLimit(String(limit));
     setMDaysAgo('0');
@@ -54,6 +56,16 @@ export default function HistoryScreen() {
     setMCost('');
     setManualOpen(true);
   };
+  const openEdit = (rec: SessionRecord) => {
+    setEditingId(rec.id);
+    setMCount(String(rec.count));
+    setMLimit(String(rec.limit));
+    setMPlace(rec.place ?? '');
+    setMMemo(rec.memo ?? '');
+    setMCost(rec.cost ? String(rec.cost) : '');
+    setSelected(null);
+    setManualOpen(true);
+  };
   const saveManual = () => {
     const count = parseInt(mCount, 10);
     if (!Number.isFinite(count) || count < 0) {
@@ -61,18 +73,24 @@ export default function HistoryScreen() {
       return;
     }
     const lim = parseInt(mLimit, 10);
-    const daysAgo = parseInt(mDaysAgo, 10) || 0;
+    const limitVal = Number.isFinite(lim) && lim >= 1 ? lim : limit;
     const won = parseInt(mCost.replace(/[^0-9]/g, ''), 10);
-    addManualRecord({
-      count,
-      limit: Number.isFinite(lim) && lim >= 1 ? lim : limit,
-      daysAgo,
-      time: mTime,
-      place: mPlace,
-      memo: mMemo,
-      cost: Number.isFinite(won) ? won : undefined,
-    });
+    const cost = Number.isFinite(won) ? won : undefined;
+    if (editingId) {
+      updateRecord(editingId, { count, limit: limitVal, place: mPlace, memo: mMemo, cost });
+    } else {
+      addManualRecord({
+        count,
+        limit: limitVal,
+        daysAgo: parseInt(mDaysAgo, 10) || 0,
+        time: mTime,
+        place: mPlace,
+        memo: mMemo,
+        cost,
+      });
+    }
     setManualOpen(false);
+    setEditingId(null);
   };
 
   useLayoutEffect(() => {
@@ -430,6 +448,10 @@ export default function HistoryScreen() {
                     <Ionicons name="trash-outline" size={16} color={c.red} />
                     <Text style={styles.detailDeleteText}>삭제</Text>
                   </Pressable>
+                  <Pressable style={styles.detailEdit} onPress={() => openEdit(selected)}>
+                    <Ionicons name="create-outline" size={16} color={c.blue} />
+                    <Text style={styles.detailEditText}>수정</Text>
+                  </Pressable>
                   <Pressable style={styles.detailClose} onPress={() => setSelected(null)}>
                     <Text style={styles.detailCloseText}>닫기</Text>
                   </Pressable>
@@ -444,8 +466,10 @@ export default function HistoryScreen() {
       <Modal visible={manualOpen} transparent animationType="slide" onRequestClose={() => setManualOpen(false)}>
         <View style={styles.detailBg}>
           <View style={styles.detailCard}>
-            <Text style={styles.detailTitle}>수동 기록 추가</Text>
-            <Text style={styles.muted}>앱으로 못 센 지난 술자리를 직접 추가해요.</Text>
+            <Text style={styles.detailTitle}>{editingId ? '기록 수정' : '수동 기록 추가'}</Text>
+            <Text style={styles.muted}>
+              {editingId ? '날짜는 그대로 두고 내용만 수정해요.' : '앱으로 못 센 지난 술자리를 직접 추가해요.'}
+            </Text>
             <View style={styles.mRow}>
               <View style={styles.mCol}>
                 <Text style={styles.mLabel}>마신 {unit}</Text>
@@ -456,16 +480,18 @@ export default function HistoryScreen() {
                 <TextInput style={styles.mInput} keyboardType="number-pad" value={mLimit} onChangeText={setMLimit} placeholder={String(limit)} placeholderTextColor={c.textFaint} />
               </View>
             </View>
-            <View style={styles.mRow}>
-              <View style={styles.mCol}>
-                <Text style={styles.mLabel}>며칠 전 (0=오늘)</Text>
-                <TextInput style={styles.mInput} keyboardType="number-pad" value={mDaysAgo} onChangeText={setMDaysAgo} placeholder="0" placeholderTextColor={c.textFaint} />
+            {!editingId && (
+              <View style={styles.mRow}>
+                <View style={styles.mCol}>
+                  <Text style={styles.mLabel}>며칠 전 (0=오늘)</Text>
+                  <TextInput style={styles.mInput} keyboardType="number-pad" value={mDaysAgo} onChangeText={setMDaysAgo} placeholder="0" placeholderTextColor={c.textFaint} />
+                </View>
+                <View style={styles.mCol}>
+                  <Text style={styles.mLabel}>시각 (HH:MM)</Text>
+                  <TextInput style={styles.mInput} value={mTime} onChangeText={setMTime} placeholder="21:00" placeholderTextColor={c.textFaint} />
+                </View>
               </View>
-              <View style={styles.mCol}>
-                <Text style={styles.mLabel}>시각 (HH:MM)</Text>
-                <TextInput style={styles.mInput} value={mTime} onChangeText={setMTime} placeholder="21:00" placeholderTextColor={c.textFaint} />
-              </View>
-            </View>
+            )}
             <Text style={styles.mLabel}>장소 (선택)</Text>
             <TextInput style={styles.mInput} value={mPlace} onChangeText={setMPlace} placeholder="예: 연신내 ○○" placeholderTextColor={c.textFaint} />
             <Text style={styles.mLabel}>메모 (선택)</Text>
@@ -473,11 +499,11 @@ export default function HistoryScreen() {
             <Text style={styles.mLabel}>술값 (선택, 원)</Text>
             <TextInput style={styles.mInput} keyboardType="number-pad" value={mCost} onChangeText={setMCost} placeholder="예: 35000" placeholderTextColor={c.textFaint} />
             <View style={styles.mBtns}>
-              <Pressable onPress={() => setManualOpen(false)} hitSlop={8}>
+              <Pressable onPress={() => { setManualOpen(false); setEditingId(null); }} hitSlop={8}>
                 <Text style={styles.clearText}>취소</Text>
               </Pressable>
               <Pressable style={styles.mSave} onPress={saveManual}>
-                <Text style={styles.mSaveText}>기록 추가</Text>
+                <Text style={styles.mSaveText}>{editingId ? '수정 저장' : '기록 추가'}</Text>
               </Pressable>
             </View>
           </View>
@@ -509,8 +535,10 @@ const makeStyles = (c: Palette) => StyleSheet.create({
   tlTime: { fontSize: 15, fontWeight: '700', color: c.text, width: 52 },
   tlText: { fontSize: 14, color: c.textMuted, flex: 1 },
   detailActions: { flexDirection: 'row', gap: 10, marginTop: 14 },
-  detailDelete: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, paddingVertical: 13, paddingHorizontal: 18, borderRadius: radius.md, borderWidth: 1, borderColor: c.red },
+  detailDelete: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, paddingVertical: 13, paddingHorizontal: 16, borderRadius: radius.md, borderWidth: 1, borderColor: c.red },
   detailDeleteText: { fontSize: 16, fontWeight: '700', color: c.red },
+  detailEdit: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, paddingVertical: 13, paddingHorizontal: 16, borderRadius: radius.md, borderWidth: 1, borderColor: c.blue },
+  detailEditText: { fontSize: 16, fontWeight: '700', color: c.blue },
   detailClose: { flex: 1, backgroundColor: c.cardAlt, paddingVertical: 13, borderRadius: radius.md, alignItems: 'center' },
   detailCloseText: { fontSize: 16, fontWeight: '700', color: c.text },
   mRow: { flexDirection: 'row', gap: 12, marginTop: 4 },

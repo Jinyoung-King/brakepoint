@@ -89,6 +89,28 @@ export function deleteRecord(s: AppState, id: string): AppState {
   return { ...s, history: s.history.filter((r) => r.id !== id) };
 }
 
+export type RecordPatch = { count: number; limit: number; place?: string; memo?: string; cost?: number };
+
+// 기록 1건의 잔수·한계·장소·메모·술값만 수정. 날짜(endedAt)·차수·타임라인은 유지. 없는 id면 그대로.
+export function updateRecord(s: AppState, id: string, patch: RecordPatch): AppState {
+  if (!s.history.some((r) => r.id === id)) return s;
+  return {
+    ...s,
+    history: s.history.map((r) =>
+      r.id === id
+        ? {
+            ...r,
+            count: patch.count,
+            limit: patch.limit,
+            place: patch.place?.trim() || undefined,
+            memo: patch.memo?.trim() || undefined,
+            cost: patch.cost && patch.cost > 0 ? patch.cost : undefined,
+          }
+        : r
+    ),
+  };
+}
+
 export function addManualRecord(s: AppState, r: ManualRecordInput, now: number): AppState {
   const d = new Date(now);
   d.setDate(d.getDate() - Math.max(0, Math.floor(r.daysAgo)));
