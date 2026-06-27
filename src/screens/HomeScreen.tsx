@@ -449,7 +449,13 @@ export default function HomeScreen({ navigation }: Props) {
         {count > 0 && bacOpen && (
           <View style={styles.bacDetail}>
             {bacPoints.length >= 2 && (
-              <BacChart points={bacPoints} nowMs={now} driveLimit={DRIVE_LIMIT} c={c} />
+              <BacChart
+                points={bacPoints}
+                nowMs={now}
+                driveLimit={DRIVE_LIMIT}
+                c={c}
+                eventTimes={drinkEvents.map((e) => e.t)}
+              />
             )}
             {canDrive ? (
               <Text style={styles.muted}>

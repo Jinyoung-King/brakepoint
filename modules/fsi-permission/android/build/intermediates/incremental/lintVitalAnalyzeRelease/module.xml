@@ -1,12 +1,12 @@
 <lint-module
     format="1"
-    dir="/Users/jiny/dev/projects/brakepoint/modules/fsi-permission/android"
+    dir="/home/jiny/projects/brakepoint/modules/fsi-permission/android"
     name=":fsi-permission"
     type="LIBRARY"
     maven="expo.modules.fsipermission:fsi-permission:0.1.0"
     agpVersion="8.12.0"
     buildFolder="build"
-    bootClassPath="/opt/homebrew/share/android-commandlinetools/platforms/android-36/android.jar:/opt/homebrew/share/android-commandlinetools/build-tools/35.0.0/core-lambda-stubs.jar"
+    bootClassPath="/home/jiny/android-sdk/platforms/android-36/android.jar:/home/jiny/android-sdk/build-tools/35.0.0/core-lambda-stubs.jar"
     javaSourceLevel="17"
     compileTarget="android-36"
     neverShrinking="true">
