@@ -52,6 +52,8 @@ const GAUGES: { key: GaugeStyle; label: string }[] = [
   { key: 'hearts', label: '하트' },
   { key: 'boss', label: '보스' },
   { key: 'mp', label: 'MP' },
+  { key: 'tacho', label: '타코미터' },
+  { key: 'protoss', label: '프로토스' },
 ];
 
 const SEXES: { key: Sex; label: string }[] = [
@@ -649,13 +651,13 @@ export default function SettingsScreen() {
         </View>
 
         <Text style={styles.subTitle}>홈 게이지 스타일</Text>
-        <View style={styles.segment}>
+        <View style={styles.gaugeWrap}>
           {GAUGES.map((g) => {
             const active = g.key === gaugeStyle;
             return (
               <Pressable
                 key={g.key}
-                style={[styles.segmentItem, active && styles.segmentItemActive]}
+                style={[styles.gaugeChip, active && styles.segmentItemActive]}
                 onPress={() => setGaugeStyle(g.key)}
               >
                 <Text style={[styles.segmentText, active && styles.segmentTextActive]}>{g.label}</Text>
@@ -711,6 +713,8 @@ const makeStyles = (c: Palette) => StyleSheet.create({
   brakeRow: { flexDirection: 'row', gap: 12 },
   brakeCol: { flex: 1, gap: 6 },
   segment: { flexDirection: 'row', gap: 8 },
+  gaugeWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  gaugeChip: { paddingVertical: 10, paddingHorizontal: 16, borderRadius: radius.sm, borderWidth: 1, borderColor: c.border },
   segmentItem: {
     flex: 1,
     paddingVertical: 12,

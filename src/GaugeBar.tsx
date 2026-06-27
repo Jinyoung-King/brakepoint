@@ -13,6 +13,7 @@ const pixelText = () => (isFontLoaded(PIXEL_FONT) ? { fontFamily: PIXEL_FONT } :
 // HP/보스 전용 8비트 레트로 팔레트 (테마와 무관하게 고정 — 게임 화면 느낌)
 const RETRO = { green: '#3ae62a', yellow: '#ffd23d', red: '#ff3b3b', empty: '#191c22' };
 const MP = { blue: '#2f7ff0', glow: '#7fd0ff', empty: '#101f38', edge: '#2a4a7a' };
+const PROTOSS = { shield: '#37b6ff', green: '#39d353', yellow: '#ffd23d', red: '#ff3b3b', empty: '#12161d' };
 const DOTS_PER_DRINK = 4; // 잔당 LED 도트 수 (0.25 = 도트 1칸)
 
 type Props = {
@@ -37,6 +38,10 @@ export default function GaugeBar(props: Props) {
       return <BossBar {...props} />;
     case 'mp':
       return <MpBar {...props} />;
+    case 'tacho':
+      return <Tachometer {...props} />;
+    case 'protoss':
+      return <ProtossBar {...props} />;
     default:
       return <Classic {...props} />;
   }
@@ -194,7 +199,6 @@ function BossBar({ count, limit, inBrake, overLimit, c }: Props) {
   );
 }
 
-// MP(마나) 바: 파란 마나가 취기만큼 차오른다. 매끈한 둥근 글로시 + 마나 눈금.
 // MP(마나) 바: 마실수록 남은 마나가 감소(보스처럼). 매끈한 둥근 글로시 블루 + 눈금.
 function MpBar({ count, limit, c }: Props) {
   const s = makeStyles(c);
@@ -219,6 +223,69 @@ function MpBar({ count, limit, c }: Props) {
             <View key={i} style={[s.mpTick, { left: `${((i + 1) / limit) * 100}%` }]} />
           ))}
       </View>
+    </View>
+  );
+}
+
+// 프로토스 스타일: 위=쉴드(파랑, 먼저 닳음), 아래=체력(초록→노랑→빨강). 마실수록 감소.
+function ProtossBar({ count, limit, c }: Props) {
+  const s = makeStyles(c);
+  if (limit <= 0) return <View style={{ height: 23 }} />;
+  const shieldMax = limit * 0.4;
+  const hpMax = limit - shieldMax;
+  const shieldRem = Math.max(0, Math.min(shieldMax, shieldMax - count)); // 쉴드 먼저 소모
+  const hpDmg = Math.max(0, count - shieldMax);
+  const hpRem = Math.max(0, hpMax - hpDmg);
+  const shieldPct = shieldMax > 0 ? shieldRem / shieldMax : 0;
+  const hpPct = hpMax > 0 ? hpRem / hpMax : 0;
+  const hpColor = hpPct > 0.5 ? PROTOSS.green : hpPct > 0.25 ? PROTOSS.yellow : PROTOSS.red;
+  return (
+    <View style={s.ptWrap}>
+      <View style={s.ptTrack}>
+        <View style={[s.ptFill, { width: `${shieldPct * 100}%`, backgroundColor: PROTOSS.shield }]} />
+      </View>
+      <View style={s.ptTrack}>
+        <View style={[s.ptFill, { width: `${hpPct * 100}%`, backgroundColor: hpColor }]} />
+      </View>
+    </View>
+  );
+}
+
+// 타코미터: 반원 다이얼 + 잔별 눈금(초록→노랑→빨강 레드존) + 취기를 가리키는 바늘.
+function Tachometer({ count, limit, brakeCounts, c }: Props) {
+  const s = makeStyles(c);
+  const pf = pixelText();
+  const W = 184;
+  const R = 80;
+  if (limit <= 0) return <View style={{ height: R + 24 }} />;
+  const firstBrake = brakeCounts.length ? Math.min(...brakeCounts) : limit;
+  const tickColor = (i: number) => (i >= limit ? RETRO.red : i >= firstBrake ? RETRO.yellow : RETRO.green);
+  const npct = Math.min(count / limit, 1);
+  const needleAngle = -90 + npct * 180;
+  const overLimit = count >= limit;
+  return (
+    <View style={s.tachoWrap}>
+      <View style={{ width: W, height: R + 12 }}>
+        {Array.from({ length: limit + 1 }, (_, i) => {
+          const angle = -90 + (i / limit) * 180;
+          return (
+            <View key={i} style={[s.tachoSpoke, { height: R, left: W / 2 - 1, transform: [{ rotate: `${angle}deg` }] }]}>
+              <View style={[s.tachoTick, { backgroundColor: tickColor(i) }]} />
+            </View>
+          );
+        })}
+        <View
+          style={[
+            s.tachoNeedle,
+            { height: R - 12, left: W / 2 - 1.5, backgroundColor: overLimit ? RETRO.red : c.text, transform: [{ rotate: `${needleAngle}deg` }] },
+          ]}
+        />
+        <View style={[s.tachoHub, { left: W / 2 - 7 }]} />
+      </View>
+      <Text style={[s.tachoReadout, pf && s.tachoReadoutPixel]}>
+        {Math.min(count, limit)}/{limit}
+        {count > limit ? ` +${count - limit}` : ''}
+      </Text>
     </View>
   );
 }
@@ -280,6 +347,18 @@ const makeStyles = (c: Palette) =>
     mpFill: { height: '100%', backgroundColor: MP.blue, borderRadius: 9 },
     mpGloss: { height: '45%', backgroundColor: '#fff', opacity: 0.3, borderTopLeftRadius: 9, borderTopRightRadius: 9 },
     mpTick: { position: 'absolute', top: 0, bottom: 0, width: 1, backgroundColor: '#0a1830', opacity: 0.6 },
+    // 프로토스 — 위 쉴드 / 아래 체력 두 줄
+    ptWrap: { width: '100%', gap: 3 },
+    ptTrack: { width: '100%', height: 10, backgroundColor: PROTOSS.empty, borderRadius: 2, overflow: 'hidden' },
+    ptFill: { height: '100%', borderRadius: 2 },
+    // 타코미터 — 반원 다이얼 + 바늘
+    tachoWrap: { width: '100%', alignItems: 'center', gap: 2 },
+    tachoSpoke: { position: 'absolute', bottom: 0, width: 2, alignItems: 'center', transformOrigin: 'bottom' },
+    tachoTick: { width: 3, height: 11, borderRadius: 1 },
+    tachoNeedle: { position: 'absolute', bottom: 0, width: 3, borderRadius: 2, transformOrigin: 'bottom' },
+    tachoHub: { position: 'absolute', bottom: -7, width: 14, height: 14, borderRadius: 7, backgroundColor: c.text },
+    tachoReadout: { fontSize: 13, fontWeight: '800', color: c.text },
+    tachoReadoutPixel: { fontFamily: PIXEL_FONT, fontSize: 11, fontWeight: '400' },
   });
 
 // 색 팔레트와 무관한 정적 스타일

@@ -15,7 +15,7 @@ export type DrinkUnit = '잔' | '병' | '캔';
 export type ThemeMode = 'dark' | 'light' | 'system';
 
 // 홈 진행률 게이지 스타일 (기본 바 / 게임 체력바 류)
-export type GaugeStyle = 'classic' | 'hp' | 'hearts' | 'boss' | 'mp';
+export type GaugeStyle = 'classic' | 'hp' | 'hearts' | 'boss' | 'mp' | 'tacho' | 'protoss';
 
 export type Sex = 'male' | 'female';
 

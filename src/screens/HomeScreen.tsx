@@ -33,13 +33,15 @@ import { PIXEL_FONT } from '../fonts';
 import type { GaugeStyle } from '../storage';
 
 // 게이지 바 탭 시 순환 순서 + 표시 이름
-const GAUGE_CYCLE: GaugeStyle[] = ['classic', 'hp', 'hearts', 'boss', 'mp'];
+const GAUGE_CYCLE: GaugeStyle[] = ['classic', 'hp', 'hearts', 'boss', 'mp', 'tacho', 'protoss'];
 const GAUGE_LABEL: Record<GaugeStyle, string> = {
   classic: '기본',
   hp: 'HP',
   hearts: '하트',
   boss: '보스',
   mp: 'MP',
+  tacho: '타코미터',
+  protoss: '프로토스',
 };
 import { alcoholKcal, hangoverForecast, limitStreak, sessionsThisWeek } from '../stats';
 import { cancelCheckin } from '../checkin';
@@ -689,6 +691,7 @@ export default function HomeScreen({ navigation }: Props) {
         <Pressable style={styles.modalBg} onPress={() => setStyleOpen(false)}>
           <Pressable style={styles.modalCard} onPress={(e) => e.stopPropagation()}>
             <Text style={styles.modalTitle}>게이지 스타일</Text>
+            <ScrollView style={styles.styleScroll} contentContainerStyle={{ gap: 10 }}>
             {GAUGE_CYCLE.map((opt) => {
               const active = opt === gaugeStyle;
               return (
@@ -709,9 +712,9 @@ export default function HomeScreen({ navigation }: Props) {
                   </View>
                   <GaugeBar
                     style={opt}
-                    count={2}
+                    count={1}
                     limit={5}
-                    pct={0.4}
+                    pct={0.5}
                     effPercents={[60, 80]}
                     brakeCounts={[3, 4]}
                     inBrake={false}
@@ -721,6 +724,7 @@ export default function HomeScreen({ navigation }: Props) {
                 </Pressable>
               );
             })}
+            </ScrollView>
           </Pressable>
         </Pressable>
       </Modal>
@@ -745,6 +749,7 @@ const makeStyles = (c: Palette) =>
     muted: { fontSize: 13, color: c.textMuted, textAlign: 'center' },
     warnText: { color: c.red, fontWeight: '700' },
     card: { width: '100%', gap: 10 },
+    styleScroll: { width: '100%', maxHeight: 460 },
     styleRow: { width: '100%', gap: 8, paddingVertical: 12, paddingHorizontal: 12, borderRadius: radius.md, borderWidth: 1, borderColor: c.border },
     styleRowActive: { borderColor: c.blue, backgroundColor: c.cardAlt },
     styleRowTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
