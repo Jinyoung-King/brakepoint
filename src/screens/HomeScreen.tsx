@@ -118,6 +118,7 @@ export default function HomeScreen({ navigation }: Props) {
   const [addrError, setAddrError] = useState('');
   const [bacOpen, setBacOpen] = useState(false);
   const [safeOpen, setSafeOpen] = useState(false);
+  const [styleOpen, setStyleOpen] = useState(false);
 
   // 시간 기반 표시(BAC·잔 간격)를 1분마다 갱신
   const [, setTick] = useState(0);
@@ -220,13 +221,6 @@ export default function HomeScreen({ navigation }: Props) {
     }
     if (n === 1 && gap < QUICK_GAP_MS)
       Alert.alert('천천히 마셔요', '방금 마셨어요. 한 잔 텀을 좀 더 두는 게 좋아요.');
-  };
-
-  // 게이지 바 탭 → 다음 스타일로 순환
-  const cycleGauge = () => {
-    tapHaptic();
-    const idx = GAUGE_CYCLE.indexOf(gaugeStyle);
-    setGaugeStyle(GAUGE_CYCLE[(idx + 1) % GAUGE_CYCLE.length]);
   };
 
   const onArrivedHome = () => {
@@ -401,7 +395,7 @@ export default function HomeScreen({ navigation }: Props) {
         </View>
 
         {/* 진행률 + 한 줄 상태 (페이스/브레이크 통합) */}
-        <Pressable style={styles.card} onPress={cycleGauge} hitSlop={6}>
+        <Pressable style={styles.card} onPress={() => { tapHaptic(); setStyleOpen(true); }} hitSlop={6}>
           <GaugeBar
             style={gaugeStyle}
             count={count}
@@ -694,6 +688,47 @@ export default function HomeScreen({ navigation }: Props) {
           </Pressable>
         </Pressable>
       </Modal>
+
+      {/* 게이지 스타일 선택 (미리보기) */}
+      <Modal visible={styleOpen} transparent animationType="fade" onRequestClose={() => setStyleOpen(false)}>
+        <Pressable style={styles.modalBg} onPress={() => setStyleOpen(false)}>
+          <Pressable style={styles.modalCard} onPress={(e) => e.stopPropagation()}>
+            <Text style={styles.modalTitle}>게이지 스타일</Text>
+            {GAUGE_CYCLE.map((opt) => {
+              const active = opt === gaugeStyle;
+              return (
+                <Pressable
+                  key={opt}
+                  style={[styles.styleRow, active && styles.styleRowActive]}
+                  onPress={() => {
+                    tapHaptic();
+                    setGaugeStyle(opt);
+                    setStyleOpen(false);
+                  }}
+                >
+                  <View style={styles.styleRowTop}>
+                    <Text style={[styles.styleName, active && styles.styleNameActive]}>
+                      {GAUGE_LABEL[opt]}
+                    </Text>
+                    {active && <Ionicons name="checkmark-circle" size={18} color={c.blue} />}
+                  </View>
+                  <GaugeBar
+                    style={opt}
+                    count={2}
+                    limit={5}
+                    pct={0.4}
+                    effPercents={[60, 80]}
+                    brakeCounts={[3, 4]}
+                    inBrake={false}
+                    overLimit={false}
+                    c={c}
+                  />
+                </Pressable>
+              );
+            })}
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -715,6 +750,11 @@ const makeStyles = (c: Palette) =>
     muted: { fontSize: 13, color: c.textMuted, textAlign: 'center' },
     warnText: { color: c.red, fontWeight: '700' },
     card: { width: '100%', gap: 10 },
+    styleRow: { width: '100%', gap: 8, paddingVertical: 12, paddingHorizontal: 12, borderRadius: radius.md, borderWidth: 1, borderColor: c.border },
+    styleRowActive: { borderColor: c.blue, backgroundColor: c.cardAlt },
+    styleRowTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+    styleName: { fontSize: 15, fontWeight: '700', color: c.text },
+    styleNameActive: { color: c.blue },
     gaugeHint: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, marginTop: -4 },
     gaugeHintText: { fontSize: 11, color: c.textFaint },
     brakeText: { fontSize: 13, color: c.textMuted, textAlign: 'center' },

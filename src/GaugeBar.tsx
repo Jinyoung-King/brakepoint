@@ -57,20 +57,22 @@ function Classic({ pct, effPercents, inBrake, c }: Props) {
 
 // 칸 분할 체력바. 칸마다 위치에 따라 초록→노랑→빨강, 브레이크 칸은 주황 테두리.
 // 반잔(0.5)은 해당 칸을 부분 채움으로 표시.
-function HpBar({ count, limit, brakeCounts, c }: Props) {
+function HpBar({ count, limit, brakeCounts, inBrake, overLimit, c }: Props) {
   const s = makeStyles(c);
   if (limit <= 0) return <View style={s.track} />;
-  const firstBrake = brakeCounts.length ? Math.min(...brakeCounts) : limit;
-  const colorAt = (i: number) => (i >= limit ? RETRO.red : i >= firstBrake ? RETRO.yellow : RETRO.green);
-  // 잔마다 그룹, 그룹은 DOTS_PER_DRINK개의 LED 도트로 분할(잔당 0.25 단위로 점등).
+  // 남은 HP가 왼쪽부터 점등되고, 마실수록 오른쪽부터 꺼진다(보스처럼 감소).
+  // 색은 현재 위험도에 따라 통일: 안전 초록 → 브레이크 노랑 → 초과 빨강.
+  const litDots = Math.round(Math.max(0, limit - count) * DOTS_PER_DRINK);
+  const color = overLimit ? RETRO.red : inBrake ? RETRO.yellow : RETRO.green;
+  let g = 0;
   const groups = [];
   for (let i = 1; i <= limit; i++) {
     const isBrake = brakeCounts.includes(i);
     const dots = [];
     for (let d = 0; d < DOTS_PER_DRINK; d++) {
-      const threshold = i - 1 + (d + 1) / DOTS_PER_DRINK;
-      const lit = count >= threshold - 1e-9;
-      dots.push(<View key={d} style={s.hpDot}>{lit && <PixelBlock color={colorAt(i)} />}</View>);
+      const lit = g < litDots;
+      g += 1;
+      dots.push(<View key={d} style={s.hpDot}>{lit && <PixelBlock color={color} />}</View>);
     }
     groups.push(
       <View key={i} style={[s.hpGroup, isBrake && s.hpGroupBrake]}>
@@ -81,7 +83,7 @@ function HpBar({ count, limit, brakeCounts, c }: Props) {
   const over = Math.max(0, count - limit);
   return (
     <View style={s.hpRow}>
-      <View style={s.hpFrame}>
+      <View style={[s.hpFrame, overLimit && { borderColor: RETRO.red }]}>
         <View style={s.hpCells}>{groups}</View>
       </View>
       {over > 0 && <Text style={[s.hpOver, pixelText() && s.hpOverPixel]}>+{over}</Text>}
@@ -186,10 +188,12 @@ function BossBar({ count, limit, inBrake, overLimit, c }: Props) {
 }
 
 // MP(마나) 바: 파란 마나가 취기만큼 차오른다. 매끈한 둥근 글로시 + 마나 눈금.
-function MpBar({ pct, count, limit, c }: Props) {
+// MP(마나) 바: 마실수록 남은 마나가 감소(보스처럼). 매끈한 둥근 글로시 블루 + 눈금.
+function MpBar({ count, limit, c }: Props) {
   const s = makeStyles(c);
   const pf = pixelText();
   const ticks = Math.max(0, Math.ceil(limit) - 1);
+  const remaining = limit > 0 ? Math.max(0, Math.min(1, (limit - count) / limit)) : 0;
   return (
     <View style={s.bossWrap}>
       <View style={s.bossLabels}>
@@ -200,7 +204,7 @@ function MpBar({ pct, count, limit, c }: Props) {
         </Text>
       </View>
       <View style={s.mpTrack}>
-        <View style={[s.mpFill, { width: `${Math.min(pct, 1) * 100}%` }]}>
+        <View style={[s.mpFill, { width: `${remaining * 100}%` }]}>
           <View style={s.mpGloss} />
         </View>
         {limit > 0 &&
