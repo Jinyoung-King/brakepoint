@@ -358,9 +358,10 @@ const makeStyles = (c: Palette) =>
     mpFill: { height: '100%', backgroundColor: MP.blue, borderRadius: 9 },
     mpGloss: { height: '45%', backgroundColor: '#fff', opacity: 0.3, borderTopLeftRadius: 9, borderTopRightRadius: 9 },
     mpTick: { position: 'absolute', top: 0, bottom: 0, width: 1, backgroundColor: '#0a1830', opacity: 0.6 },
-    // 프로토스 — 위 쉴드 / 아래 체력, 스타1 체력바(얇은 세그 + 검은 칸선)
-    ptWrap: { width: '100%', gap: 4 },
-    ptDotRow: { width: '100%', flexDirection: 'row', gap: 1, height: 12, backgroundColor: '#000', padding: 1, borderRadius: 1 },
+    // 프로토스 — 위 쉴드 / 아래 체력. 두 바는 붙어있고(gap 0), 전체를 skewX로 기울여
+    // 세그먼트가 비스듬한 평행사변형이 되게(스타1 체력바 느낌). 사선 모서리 여유로 폭 약간 축소.
+    ptWrap: { width: '94%', alignSelf: 'center', gap: 0, transform: [{ skewX: '-18deg' }] },
+    ptDotRow: { width: '100%', flexDirection: 'row', gap: 1, height: 12, backgroundColor: '#000', padding: 1 },
     ptDot: { flex: 1, height: '100%' },
     // 타코미터 — 반원 다이얼 + 바늘
     tachoWrap: { width: '100%', alignItems: 'center', gap: 2 },
