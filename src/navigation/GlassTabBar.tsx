@@ -1,4 +1,4 @@
-import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { View, Pressable, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
@@ -37,15 +37,17 @@ export default function GlassTabBar({ state, navigation }: BottomTabBarProps) {
             <Pressable
               key={route.key}
               onPress={onPress}
-              hitSlop={6}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel={item.label}
+              accessibilityState={{ selected: focused }}
               style={[styles.item, focused && { backgroundColor: c.blue }]}
             >
               <Ionicons
                 name={focused ? item.activeIcon : item.icon}
-                size={20}
+                size={23}
                 color={focused ? '#fff' : c.textMuted}
               />
-              <Text style={[styles.label, { color: focused ? '#fff' : c.textMuted }]}>{item.label}</Text>
             </Pressable>
           );
         })}
@@ -70,12 +72,10 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   item: {
-    flexDirection: 'row',
     alignItems: 'center',
-    gap: 7,
-    paddingHorizontal: 16,
-    paddingVertical: 9,
-    borderRadius: 24,
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 11,
+    borderRadius: 22,
   },
-  label: { fontSize: 14, fontWeight: '600' },
 });
