@@ -28,6 +28,8 @@ import { cancelCheckin } from '../checkin';
 import { geocodeAddress } from '../geocode';
 import { getCurrentPlace, getCurrentCoords } from '../location';
 import { buildSafeReturnMessage } from '../share';
+import { openFullScreenIntentSettings } from '../fakeCall/notifications';
+import { canUseFullScreenIntent } from '../../modules/fsi-permission';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
 
@@ -126,6 +128,21 @@ export default function HomeScreen({ navigation }: Props) {
   const active = drinkingMode || count > 0; // 음주 중일 때만 보조 카드 노출
   const streak = limitStreak(history); // 시작 전 카드용
   const weekCount = sessionsThisWeek(history);
+
+  // 음주모드 ON 시, 잠금화면 위 통화 권한(전체 화면 알림)이 막혀 있으면 안내
+  const toggleDrinkingMode = (on: boolean) => {
+    setDrinkingMode(on);
+    if (on && !canUseFullScreenIntent()) {
+      Alert.alert(
+        '전체 화면 알림이 꺼져 있어요',
+        '이게 꺼져 있으면 잠금화면에서 가짜 전화가 진동만 울리고 화면이 안 떠요. 지금 켜둘까요?\n\n삼성은 추가로:\n· 설정 → 앱 → 브레이크포인트 → 알림 → "전체 화면 알림 표시" ON\n· 배터리 → "제한 없음"',
+        [
+          { text: '나중에', style: 'cancel' },
+          { text: '설정 열기', onPress: openFullScreenIntentSettings },
+        ]
+      );
+    }
+  };
 
   // BAC 추정
   const hoursSince = sessionStartMs ? (now - sessionStartMs) / 3600000 : 0;
@@ -488,7 +505,7 @@ export default function HomeScreen({ navigation }: Props) {
             <Text style={styles.modeTitle}>음주모드</Text>
             <Text style={styles.muted}>켜면 주기마다 가짜 전화가 와요</Text>
           </View>
-          <Switch value={drinkingMode} onValueChange={setDrinkingMode} />
+          <Switch value={drinkingMode} onValueChange={toggleDrinkingMode} />
         </View>
 
         {/* 하단 액션: 안전 귀가 + 종료 (음주 중일 때만 — 0잔엔 종료할 게 없음) */}
