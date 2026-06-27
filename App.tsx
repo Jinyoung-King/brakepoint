@@ -9,6 +9,7 @@ import { AppStateProvider, useAppState } from './src/state/AppStateContext';
 import FakeCallController from './src/fakeCall/FakeCallController';
 import CheckinController from './src/CheckinController';
 import WeeklyReportController from './src/WeeklyReportController';
+import OngoingController from './src/OngoingController';
 import ErrorBoundary from './src/ErrorBoundary';
 import { lightColors } from './src/theme';
 import { useColors } from './src/useColors';
@@ -37,6 +38,7 @@ function Root() {
       <FakeCallController />
       <CheckinController />
       <WeeklyReportController />
+      <OngoingController />
       <ErrorBoundary>
         <RootNavigator />
       </ErrorBoundary>

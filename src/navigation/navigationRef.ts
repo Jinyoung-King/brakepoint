@@ -9,6 +9,7 @@ export const navigationRef = createNavigationContainerRef<RootStackParamList>();
 // 네비게이터가 준비되기 전에 resolve될 수 있다. 준비 전 요청은 버리지 말고 쌓아뒀다가
 // onReady에서 흘려보낸다. (이게 없으면 통화 화면으로 못 넘어가고 Home에 머무름)
 let pendingFakeCall = false;
+let pendingGate = false;
 
 export function navigateToFakeCall() {
   if (navigationRef.isReady()) {
@@ -18,10 +19,31 @@ export function navigateToFakeCall() {
   }
 }
 
+// 상시 알림으로 잔 추가 → 브레이크 도달 시 인지게이트로 (콜드스타트 대비 pending).
+export function navigateToGate() {
+  if (navigationRef.isReady()) {
+    navigationRef.navigate('CognitiveGate');
+  } else {
+    pendingGate = true;
+  }
+}
+
+// 알림 "종료" → 홈 탭으로 (홈은 콜드스타트 기본 화면이라 pending 불필요).
+export function navigateToHome() {
+  if (navigationRef.isReady()) {
+    navigationRef.navigate('Main', { screen: 'Home' });
+  }
+}
+
 // NavigationContainer onReady에서 호출.
 export function flushPendingNavigation() {
-  if (pendingFakeCall && navigationRef.isReady()) {
+  if (!navigationRef.isReady()) return;
+  if (pendingFakeCall) {
     pendingFakeCall = false;
     navigationRef.navigate('FakeCall');
+  }
+  if (pendingGate) {
+    pendingGate = false;
+    navigationRef.navigate('CognitiveGate');
   }
 }

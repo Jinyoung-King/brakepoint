@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
+import { AppState as RNAppState } from 'react-native';
 
 import {
   type AppState,
@@ -17,6 +18,7 @@ import * as reducers from './reducers';
 type AppStateContextValue = {
   state: AppState;
   ready: boolean; // AsyncStorage 로드 완료 여부 (초기 깜빡임 방지)
+  reload: () => void; // 디스크에서 다시 읽어 메모리에 반영 (백그라운드 알림 변경 흡수)
   addDrink: (n?: number) => void;
   undoDrink: () => void; // 직전 추가(+1잔/+1병) 되돌리기
   addCig: () => void;
@@ -53,6 +55,9 @@ type AppStateContextValue = {
   setCheckinEnabled: (on: boolean) => void;
   setCheckinDelayMin: (min: number) => void;
   setWeeklyReportEnabled: (on: boolean) => void;
+  setOngoingNotifEnabled: (on: boolean) => void;
+  clearPendingGate: () => void;
+  setPendingEnd: (on: boolean) => void;
   updateFakeCall: (patch: Partial<FakeCallConfig>) => void;
   setBrakePercents: (percents: number[]) => void;
   setRepeatEveryDrinks: (n: number) => void;
@@ -80,9 +85,20 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     if (loaded.current) saveState(state);
   }, [state]);
 
+  // 앱이 포그라운드로 돌아올 때 디스크에서 다시 읽는다. 백그라운드일 때
+  // 상시 알림 액션(잔 +1 등)이 React 밖에서 디스크를 바꿨을 수 있어 메모리를 맞춘다.
+  // (백그라운드에선 JS가 멈춰 메모리 변경이 없으므로 디스크가 최신 = 안전)
+  useEffect(() => {
+    const sub = RNAppState.addEventListener('change', (s) => {
+      if (s === 'active' && loaded.current) loadState().then(setState);
+    });
+    return () => sub.remove();
+  }, []);
+
   const value: AppStateContextValue = {
     state,
     ready,
+    reload: () => loadState().then(setState),
     addDrink: (n = 1) => setState((s) => reducers.addDrink(s, n, Date.now())),
     undoDrink: () => setState((s) => reducers.undoDrink(s)),
     addCig: () => setState((s) => reducers.addCig(s)),
@@ -111,6 +127,9 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     setCheckinEnabled: (checkinEnabled) => setState((s) => ({ ...s, checkinEnabled })),
     setCheckinDelayMin: (checkinDelayMin) => setState((s) => ({ ...s, checkinDelayMin })),
     setWeeklyReportEnabled: (weeklyReportEnabled) => setState((s) => ({ ...s, weeklyReportEnabled })),
+    setOngoingNotifEnabled: (ongoingNotifEnabled) => setState((s) => ({ ...s, ongoingNotifEnabled })),
+    clearPendingGate: () => setState((s) => (s.pendingGate ? { ...s, pendingGate: false } : s)),
+    setPendingEnd: (pendingEnd) => setState((s) => (s.pendingEnd === pendingEnd ? s : { ...s, pendingEnd })),
     updateFakeCall: (patch) => setState((s) => ({ ...s, fakeCall: { ...s.fakeCall, ...patch } })),
     setBrakePercents: (brakePercents) => setState((s) => ({ ...s, brakePercents })),
     setRepeatEveryDrinks: (repeatEveryDrinks) => setState((s) => ({ ...s, repeatEveryDrinks })),

@@ -25,6 +25,7 @@ import { useMorningSchedule } from '../calendar/useMorningSchedule';
 import { radius, type Palette } from '../theme';
 import { useColors } from '../useColors';
 import { alcoholGrams, estimateBac, hoursUntil, fmtHours, bacCurve, DRIVE_LIMIT } from '../bac';
+import { effectiveBrakePercents, brakeCountsFor, crossesBrake } from '../brake';
 import BacChart from '../BacChart';
 import { alcoholKcal, hangoverForecast, limitStreak, sessionsThisWeek } from '../stats';
 import { cancelCheckin } from '../checkin';
@@ -63,7 +64,7 @@ const geocodeTransientMsg = (reason: 'rate-limited' | 'network' | 'error' | stri
 };
 
 export default function HomeScreen({ navigation }: Props) {
-  const { state, addDrink, undoDrink, addCig, endSession, setDrinkingMode, setHomeCoords, setHomeAddress } =
+  const { state, addDrink, undoDrink, addCig, endSession, setDrinkingMode, setHomeCoords, setHomeAddress, setPendingEnd } =
     useAppState();
   const insets = useSafeAreaInsets();
   const c = useColors();
@@ -112,10 +113,10 @@ export default function HomeScreen({ navigation }: Props) {
   const now = Date.now();
 
   const morning = useMorningSchedule(calendarSync);
-  const effPercents = morning ? brakePercents.map((p) => Math.max(20, p - 10)) : brakePercents;
+  const effPercents = effectiveBrakePercents(brakePercents, !!morning);
 
   const pct = limit > 0 ? Math.min(count / limit, 1) : 0;
-  const brakeCounts = effPercents.map((p) => Math.ceil((limit * p) / 100));
+  const brakeCounts = brakeCountsFor(limit, effPercents);
   const firstBrake = brakeCounts.length ? Math.min(...brakeCounts) : Infinity;
   const overLimit = limit > 0 && count >= limit;
   const inBrake = limit > 0 && count >= firstBrake;
@@ -186,13 +187,6 @@ export default function HomeScreen({ navigation }: Props) {
     } else setAddrError('위치를 못 가져왔어요. 직접 입력해주세요.');
   };
 
-  const brakeAt = (n: number) => {
-    if (limit <= 0) return false;
-    const hitFixed = brakeCounts.includes(n);
-    const repeat = n >= limit && (n - limit) % Math.max(1, repeatEveryDrinks) === 0;
-    return hitFixed || repeat;
-  };
-
   // n잔 추가. 여러 잔을 한 번에 더해도(=병) 그 구간에 브레이크 지점이 있으면 게이트 발동.
   const onAdd = (n: number) => {
     addHaptic();
@@ -200,9 +194,7 @@ export default function HomeScreen({ navigation }: Props) {
     const next = prev + n;
     const gap = lastDrinkMs ? now - lastDrinkMs : Infinity;
     addDrink(n);
-    let crossed = false;
-    for (let k = prev + 1; k <= next; k++) if (brakeAt(k)) { crossed = true; break; }
-    if (crossed) {
+    if (crossesBrake({ prev, next, limit, brakeCounts, repeatEveryDrinks })) {
       navigation.navigate('CognitiveGate');
       return;
     }
@@ -236,6 +228,14 @@ export default function HomeScreen({ navigation }: Props) {
     setCost('');
     setEndOpen(false);
   };
+
+  // 상시 알림의 "종료" 액션으로 앱이 열린 경우(pendingEnd): 평소 종료 흐름과 동일하게 모달을 연다.
+  useEffect(() => {
+    if (!state.pendingEnd) return;
+    setPendingEnd(false);
+    onEndSession();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.pendingEnd]);
 
   // 앱 스킴 시도 → 실패 시 웹으로 폴백
   const openExternal = (appUrl: string, webUrl: string) => {

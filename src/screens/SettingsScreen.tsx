@@ -107,9 +107,10 @@ export default function SettingsScreen() {
     setSmokingEnabled,
     setMonthlyBudget,
     setWeeklyReportEnabled,
+    setOngoingNotifEnabled,
     importState,
   } = useAppState();
-  const { limit, difficulty, fakeCall, brakePercents, repeatEveryDrinks, unit, calendarSync, theme, sex, weightKg, drinkType, homeAddress, bottleToGlasses, waterEvery, weeklyGoalSessions, checkinEnabled, checkinDelayMin, smokingEnabled, monthlyBudget, weeklyReportEnabled } =
+  const { limit, difficulty, fakeCall, brakePercents, repeatEveryDrinks, unit, calendarSync, theme, sex, weightKg, drinkType, homeAddress, bottleToGlasses, waterEvery, weeklyGoalSessions, checkinEnabled, checkinDelayMin, smokingEnabled, monthlyBudget, weeklyReportEnabled, ongoingNotifEnabled } =
     state;
   const c = useColors();
   const styles = useMemo(() => makeStyles(c), [c]);
@@ -463,6 +464,15 @@ export default function SettingsScreen() {
           placeholderTextColor={c.textFaint}
         />
         <Text style={styles.help}>음주모드를 끄면 이 시간 뒤 "집에 잘 도착했어요?" 알림이 와요.</Text>
+
+        <Text style={styles.subTitle}>진행 중 알림</Text>
+        <View style={styles.toggleRow}>
+          <Text style={styles.label}>음주 중 상시 알림</Text>
+          <Switch value={ongoingNotifEnabled} onValueChange={setOngoingNotifEnabled} />
+        </View>
+        <Text style={styles.help}>
+          음주모드를 켜면 상태표시줄에 잔/혈중알코올이 뜨고, 앱을 안 열어도 "+1잔·종료"를 누를 수 있어요. 워치에도 그대로 표시돼요.
+        </Text>
       </Section>
 
       {/* 건강 · 목표 */}
