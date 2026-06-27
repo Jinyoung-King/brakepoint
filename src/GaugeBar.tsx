@@ -227,26 +227,35 @@ function MpBar({ count, limit, c }: Props) {
   );
 }
 
-// 프로토스 스타일: 위=쉴드(파랑, 먼저 닳음), 아래=체력(초록→노랑→빨강). 마실수록 감소.
+// 프로토스 스타일(LED 도트): 위=쉴드(파랑, 먼저 닳음), 아래=체력(초록→노랑→빨강).
+// 마실수록 오른쪽부터 도트가 꺼진다.
 function ProtossBar({ count, limit, c }: Props) {
   const s = makeStyles(c);
-  if (limit <= 0) return <View style={{ height: 23 }} />;
+  if (limit <= 0) return <View style={{ height: 24 }} />;
   const shieldMax = limit * 0.4;
   const hpMax = limit - shieldMax;
   const shieldRem = Math.max(0, Math.min(shieldMax, shieldMax - count)); // 쉴드 먼저 소모
   const hpDmg = Math.max(0, count - shieldMax);
   const hpRem = Math.max(0, hpMax - hpDmg);
-  const shieldPct = shieldMax > 0 ? shieldRem / shieldMax : 0;
   const hpPct = hpMax > 0 ? hpRem / hpMax : 0;
   const hpColor = hpPct > 0.5 ? PROTOSS.green : hpPct > 0.25 ? PROTOSS.yellow : PROTOSS.red;
+
+  const dotRow = (max: number, rem: number, color: string, key: string) => {
+    const total = Math.max(1, Math.round(max * DOTS_PER_DRINK));
+    const lit = Math.min(total, Math.round(rem * DOTS_PER_DRINK));
+    return (
+      <View key={key} style={s.ptDotRow}>
+        {Array.from({ length: total }, (_, i) => (
+          <View key={i} style={s.ptDot}>{i < lit && <PixelBlock color={color} />}</View>
+        ))}
+      </View>
+    );
+  };
+
   return (
     <View style={s.ptWrap}>
-      <View style={s.ptTrack}>
-        <View style={[s.ptFill, { width: `${shieldPct * 100}%`, backgroundColor: PROTOSS.shield }]} />
-      </View>
-      <View style={s.ptTrack}>
-        <View style={[s.ptFill, { width: `${hpPct * 100}%`, backgroundColor: hpColor }]} />
-      </View>
+      {dotRow(shieldMax, shieldRem, PROTOSS.shield, 'shield')}
+      {dotRow(hpMax, hpRem, hpColor, 'hp')}
     </View>
   );
 }
@@ -347,10 +356,10 @@ const makeStyles = (c: Palette) =>
     mpFill: { height: '100%', backgroundColor: MP.blue, borderRadius: 9 },
     mpGloss: { height: '45%', backgroundColor: '#fff', opacity: 0.3, borderTopLeftRadius: 9, borderTopRightRadius: 9 },
     mpTick: { position: 'absolute', top: 0, bottom: 0, width: 1, backgroundColor: '#0a1830', opacity: 0.6 },
-    // 프로토스 — 위 쉴드 / 아래 체력 두 줄
-    ptWrap: { width: '100%', gap: 3 },
-    ptTrack: { width: '100%', height: 10, backgroundColor: PROTOSS.empty, borderRadius: 2, overflow: 'hidden' },
-    ptFill: { height: '100%', borderRadius: 2 },
+    // 프로토스 — 위 쉴드 / 아래 체력, LED 도트 두 줄
+    ptWrap: { width: '100%', gap: 4 },
+    ptDotRow: { width: '100%', flexDirection: 'row', gap: 2, height: 12 },
+    ptDot: { flex: 1, height: '100%', backgroundColor: PROTOSS.empty, overflow: 'hidden' },
     // 타코미터 — 반원 다이얼 + 바늘
     tachoWrap: { width: '100%', alignItems: 'center', gap: 2 },
     tachoSpoke: { position: 'absolute', bottom: 0, width: 2, alignItems: 'center', transformOrigin: 'bottom' },
