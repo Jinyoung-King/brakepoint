@@ -5,6 +5,10 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import type { GaugeStyle } from './storage';
 import { radius, type Palette } from './theme';
 
+// HP바 전용 8비트 레트로 팔레트 (테마와 무관하게 고정 — 게임 화면 느낌)
+const RETRO = { green: '#3ae62a', yellow: '#ffd23d', red: '#ff3b3b', empty: '#191c22' };
+const DOTS_PER_DRINK = 4; // 잔당 LED 도트 수 (0.25 = 도트 1칸)
+
 type Props = {
   style: GaugeStyle;
   count: number;
@@ -56,21 +60,20 @@ function HpBar({ count, limit, brakeCounts, c }: Props) {
   const s = makeStyles(c);
   if (limit <= 0) return <View style={s.track} />;
   const firstBrake = brakeCounts.length ? Math.min(...brakeCounts) : limit;
-  const colorAt = (i: number) => (i >= limit ? c.red : i >= firstBrake ? c.amber : c.green);
-  const full = Math.floor(count);
-  const frac = count - full;
-  const cells = [];
+  const colorAt = (i: number) => (i >= limit ? RETRO.red : i >= firstBrake ? RETRO.yellow : RETRO.green);
+  // 잔마다 그룹, 그룹은 DOTS_PER_DRINK개의 LED 도트로 분할(잔당 0.25 단위로 점등).
+  const groups = [];
   for (let i = 1; i <= limit; i++) {
     const isBrake = brakeCounts.includes(i);
-    const isPartial = i === full + 1 && frac > 0;
-    cells.push(
-      <View key={i} style={[s.hpCell, isBrake && s.hpCellBrake]}>
-        {i <= full && <PixelBlock color={colorAt(i)} />}
-        {isPartial && (
-          <View style={[s.hpPartial, { width: `${frac * 100}%` }]}>
-            <PixelBlock color={colorAt(i)} />
-          </View>
-        )}
+    const dots = [];
+    for (let d = 0; d < DOTS_PER_DRINK; d++) {
+      const threshold = i - 1 + (d + 1) / DOTS_PER_DRINK;
+      const lit = count >= threshold - 1e-9;
+      dots.push(<View key={d} style={s.hpDot}>{lit && <PixelBlock color={colorAt(i)} />}</View>);
+    }
+    groups.push(
+      <View key={i} style={[s.hpGroup, isBrake && s.hpGroupBrake]}>
+        {dots}
       </View>
     );
   }
@@ -78,9 +81,9 @@ function HpBar({ count, limit, brakeCounts, c }: Props) {
   return (
     <View style={s.hpRow}>
       <View style={s.hpFrame}>
-        <View style={s.hpCells}>{cells}</View>
+        <View style={s.hpCells}>{groups}</View>
       </View>
-      {over > 0 && <Text style={s.hpOver}>+{over % 1 === 0 ? over : over.toFixed(1)}</Text>}
+      {over > 0 && <Text style={s.hpOver}>+{over}</Text>}
     </View>
   );
 }
@@ -197,10 +200,10 @@ const makeStyles = (c: Palette) =>
       backgroundColor: c.track,
       padding: 2,
     },
-    hpCells: { flex: 1, flexDirection: 'row', gap: 2, height: 22 },
-    hpCell: { flex: 1, height: '100%', backgroundColor: c.track, overflow: 'hidden' },
-    hpCellBrake: { borderWidth: 2, borderColor: c.amber },
-    hpPartial: { position: 'absolute', left: 0, top: 0, bottom: 0 },
+    hpCells: { flex: 1, flexDirection: 'row', gap: 3, height: 22 },
+    hpGroup: { flex: 1, flexDirection: 'row', gap: 1 },
+    hpGroupBrake: { borderWidth: 2, borderColor: c.text },
+    hpDot: { flex: 1, height: '100%', backgroundColor: RETRO.empty, overflow: 'hidden' },
     hpOver: { fontSize: 15, fontWeight: '800', color: c.red },
     // boss
     bossWrap: { width: '100%', gap: 4 },
