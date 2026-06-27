@@ -248,7 +248,7 @@ const makeStyles = (c: Palette) =>
       backgroundColor: c.track,
       padding: 2,
     },
-    hpCells: { flex: 1, flexDirection: 'row', gap: 3, height: 22 },
+    hpCells: { width: '100%', flexDirection: 'row', gap: 3, height: 22 },
     hpGroup: { flex: 1, flexDirection: 'row', gap: 1 },
     hpGroupBrake: { borderWidth: 2, borderColor: c.text },
     hpDot: { flex: 1, height: '100%', backgroundColor: RETRO.empty, overflow: 'hidden' },
@@ -262,7 +262,7 @@ const makeStyles = (c: Palette) =>
     bossHp: { fontSize: 12, fontWeight: '700', color: c.textMuted },
     bossHpPixel: { fontFamily: PIXEL_FONT, fontSize: 9, fontWeight: '400' },
     // 보스 트랙(픽셀 프레임 hpFrame 안에 들어감) — 각진 다크 트랙
-    bossTrack: { flex: 1, height: 22, backgroundColor: RETRO.empty, overflow: 'hidden' },
+    bossTrack: { width: '100%', height: 22, backgroundColor: RETRO.empty, overflow: 'hidden' },
     bossFill: { height: '100%' },
     bossGloss: { height: '40%', backgroundColor: '#fff', opacity: 0.28 },
     // MP(마나) 바 — 매끈한 둥근 글로시 블루
