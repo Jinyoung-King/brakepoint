@@ -24,6 +24,7 @@ import { useColors } from '../useColors';
 import { importWeightFromHealthConnect, openHealthConnectSettings } from '../health';
 import { exportBackup, importBackup } from '../backupIO';
 import { APP_VERSION } from '../version';
+import * as Updates from 'expo-updates';
 import { canUseFullScreenIntent } from '../../modules/fsi-permission';
 import {
   ensureNotificationSetup,
@@ -211,6 +212,27 @@ export default function SettingsScreen() {
         },
       },
     ]);
+  };
+
+  const onCheckUpdate = async () => {
+    if (!Updates.isEnabled) {
+      Alert.alert('업데이트', '개발 빌드에선 OTA 업데이트를 확인할 수 없어요.');
+      return;
+    }
+    try {
+      const r = await Updates.checkForUpdateAsync();
+      if (!r.isAvailable) {
+        Alert.alert('최신이에요', '받을 업데이트가 없어요.');
+        return;
+      }
+      await Updates.fetchUpdateAsync();
+      Alert.alert('업데이트를 받았어요', '앱을 다시 시작하면 적용돼요.', [
+        { text: '나중에', style: 'cancel' },
+        { text: '지금 재시작', onPress: () => Updates.reloadAsync() },
+      ]);
+    } catch {
+      Alert.alert('업데이트 확인 실패', '네트워크 상태를 확인하고 다시 시도해주세요.');
+    }
   };
 
   const brake1 = brakePercents[0] ?? 60;
@@ -617,7 +639,15 @@ export default function SettingsScreen() {
         </Text>
       </Section>
 
+      <Pressable style={[styles.permBtn, { marginTop: 12 }]} onPress={onCheckUpdate}>
+        <Text style={styles.permBtnText}>지금 업데이트 확인 (OTA)</Text>
+      </Pressable>
       <Text style={[styles.help, { textAlign: 'center', marginTop: 8 }]}>브레이크포인트 v{APP_VERSION}</Text>
+      {Updates.isEnabled && (
+        <Text style={[styles.help, { textAlign: 'center' }]}>
+          업데이트 적용: {Updates.createdAt ? new Date(Updates.createdAt).toLocaleString('ko-KR') : '내장 번들(OTA 없음)'}
+        </Text>
+      )}
     </ScrollView>
   );
 }
