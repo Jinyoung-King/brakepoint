@@ -113,8 +113,10 @@ const pixel = StyleSheet.create({
 function Hearts({ count, limit, c }: Props) {
   const [rowW, setRowW] = useState(0);
   if (limit <= 0) return <View style={{ height: 28 }} />;
-  const full = Math.floor(count);
-  const frac = count - full;
+  // 남은 하트(빨강)가 마실수록 오른쪽부터 줄어든다(HP/보스처럼 감소). 0.25 단위는 부분 하트.
+  const remaining = Math.max(0, limit - count);
+  const fullHearts = Math.floor(remaining);
+  const fracRem = remaining - fullHearts;
   const broken = Math.floor(Math.max(0, count - limit));
   const n = limit + broken;
   const gap = 6;
@@ -122,8 +124,9 @@ function Hearts({ count, limit, c }: Props) {
   const size = rowW > 0 ? Math.round(Math.max(16, Math.min(30, (rowW - gap * (n - 1)) / n))) : 24;
   const items = [];
   for (let i = 1; i <= limit; i++) {
-    if (i <= full) items.push(<Ionicons key={i} name="heart" size={size} color={c.red} />);
-    else if (i === full + 1 && frac > 0) items.push(<PartialHeart key={i} size={size} frac={frac} c={c} />);
+    if (i <= fullHearts) items.push(<Ionicons key={i} name="heart" size={size} color={c.red} />);
+    else if (i === fullHearts + 1 && fracRem > 0)
+      items.push(<PartialHeart key={i} size={size} frac={fracRem} c={c} />);
     else items.push(<Ionicons key={i} name="heart-outline" size={size} color={c.textFaint} />);
   }
   for (let i = 0; i < broken; i++)
@@ -236,7 +239,10 @@ const makeStyles = (c: Palette) =>
     // hp (픽셀/레트로): 두꺼운 각진 프레임 + 격자 칸 + 청키 블록
     hpRow: { width: '100%', flexDirection: 'row', alignItems: 'center', gap: 8 },
     hpFrame: {
-      flex: 1,
+      // flexGrow로 폭만 채우고 높이는 콘텐츠대로(flexBasis auto) — flex:1이면 콘텐츠
+      // 높이 컨테이너(모달 등)에서 높이가 0으로 접힘.
+      flexGrow: 1,
+      flexBasis: 'auto',
       borderWidth: 3,
       borderColor: c.text,
       backgroundColor: c.track,
