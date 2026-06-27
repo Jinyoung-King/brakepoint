@@ -107,16 +107,34 @@ function Hearts({ count, limit }: Props) {
   const heartStyle = { fontSize: size, lineHeight: Math.round(size * 1.3) };
   return (
     <View style={styles.heartRow} onLayout={(e) => setRowW(e.nativeEvent.layout.width)}>
-      {tokens.map((t, i) => (
-        <Text key={i} style={[heartStyle, t === 'half' && styles.heartHalf]}>
-          {t === 'empty' ? '🤍' : '❤️'}
-        </Text>
-      ))}
+      {tokens.map((t, i) =>
+        t === 'half' ? (
+          <HalfHeart key={i} style={heartStyle} />
+        ) : (
+          <Text key={i} style={heartStyle}>
+            {t === 'empty' ? '🤍' : '❤️'}
+          </Text>
+        )
+      )}
       {Array.from({ length: broken }, (_, i) => (
         <Text key={`b${i}`} style={heartStyle}>
           💔
         </Text>
       ))}
+    </View>
+  );
+}
+
+// 반 하트: 빈 하트 위에 빨강 하트를 왼쪽 절반만 노출(overflow clip)해 겹친다.
+function HalfHeart({ style }: { style: { fontSize: number; lineHeight: number } }) {
+  return (
+    <View>
+      <Text style={style}>🤍</Text>
+      <View style={styles.halfClip}>
+        <Text style={style} numberOfLines={1}>
+          ❤️
+        </Text>
+      </View>
     </View>
   );
 }
@@ -199,5 +217,5 @@ const makeStyles = (c: Palette) =>
 // 색 팔레트와 무관한 정적 스타일
 const styles = StyleSheet.create({
   heartRow: { width: '100%', flexDirection: 'row', gap: 4, justifyContent: 'center', alignItems: 'center' },
-  heartHalf: { opacity: 0.4 },
+  halfClip: { position: 'absolute', left: 0, top: 0, bottom: 0, width: '50%', overflow: 'hidden' },
 });
