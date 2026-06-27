@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Animated, StyleSheet, Text, View } from 'react-native';
 
 import type { GaugeStyle } from './storage';
@@ -87,7 +87,9 @@ function HpBar({ count, limit, brakeCounts, c }: Props) {
 }
 
 // 하트 게이지. 한 하트 = 1잔, 마신 만큼 빨강, 반잔은 반투명 하트, 초과분은 깨진 하트.
+// 한도가 커도 항상 한 줄에 들어가도록 폭을 측정해 하트 크기를 자동 조절한다.
 function Hearts({ count, limit }: Props) {
+  const [rowW, setRowW] = useState(0);
   if (limit <= 0) return <View style={{ height: 26 }} />;
   const full = Math.floor(count);
   const frac = count - full;
@@ -98,15 +100,20 @@ function Hearts({ count, limit }: Props) {
     else tokens.push('empty');
   }
   const broken = Math.floor(Math.max(0, count - limit));
+  const n = limit + broken;
+  const gap = 4;
+  // 글리프 가로폭 ≈ fontSize*1.15. 폭 안에 n개가 한 줄로 들어가도록 크기 산출.
+  const size = rowW > 0 ? Math.max(12, Math.min(26, (rowW - gap * (n - 1)) / n / 1.15)) : 22;
+  const heartStyle = { fontSize: size, lineHeight: Math.round(size * 1.3) };
   return (
-    <View style={styles.heartRow}>
+    <View style={styles.heartRow} onLayout={(e) => setRowW(e.nativeEvent.layout.width)}>
       {tokens.map((t, i) => (
-        <Text key={i} style={[styles.heart, t === 'half' && styles.heartHalf]}>
+        <Text key={i} style={[heartStyle, t === 'half' && styles.heartHalf]}>
           {t === 'empty' ? '🤍' : '❤️'}
         </Text>
       ))}
       {Array.from({ length: broken }, (_, i) => (
-        <Text key={`b${i}`} style={styles.heart}>
+        <Text key={`b${i}`} style={heartStyle}>
           💔
         </Text>
       ))}
@@ -191,7 +198,6 @@ const makeStyles = (c: Palette) =>
 
 // 색 팔레트와 무관한 정적 스타일
 const styles = StyleSheet.create({
-  heartRow: { width: '100%', flexDirection: 'row', flexWrap: 'wrap', gap: 4, justifyContent: 'center' },
-  heart: { fontSize: 24 },
+  heartRow: { width: '100%', flexDirection: 'row', gap: 4, justifyContent: 'center', alignItems: 'center' },
   heartHalf: { opacity: 0.4 },
 });
