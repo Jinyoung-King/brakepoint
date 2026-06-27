@@ -9,6 +9,8 @@ import {
   lastWeekReport,
   nextWeeklyReportAt,
   formatWeekReport,
+  hourlyTotals,
+  peakHour,
   placeStats,
 } from '../src/stats';
 import type { SessionRecord } from '../src/storage';
@@ -192,6 +194,38 @@ describe('formatWeekReport', () => {
     expect(s).toContain('3회');
     expect(s).toContain('2/3');
     expect(s).toContain('50,000원');
+  });
+});
+
+describe('hourlyTotals / peakHour', () => {
+  const atHour = (h: number, count: number, events?: { t: number; n: number }[]): SessionRecord => ({
+    id: `${h}-${Math.random()}`,
+    endedAt: new Date(2026, 5, 1, h, 0, 0).getTime(),
+    count,
+    limit: 5,
+    events,
+  });
+
+  it('events가 있으면 잔별 시각으로 합산', () => {
+    const ev = [
+      { t: new Date(2026, 5, 1, 20, 10).getTime(), n: 2 },
+      { t: new Date(2026, 5, 1, 22, 30).getTime(), n: 1 },
+    ];
+    const h = hourlyTotals([atHour(22, 3, ev)]);
+    expect(h[20]).toBe(2);
+    expect(h[22]).toBe(1);
+    expect(h[21]).toBe(0);
+  });
+
+  it('events가 없으면 종료 시각에 합산', () => {
+    const h = hourlyTotals([atHour(19, 4)]);
+    expect(h[19]).toBe(4);
+  });
+
+  it('peakHour는 최다 시간대 index, 비면 null', () => {
+    const h = hourlyTotals([atHour(19, 2), atHour(21, 5), atHour(21, 1)]);
+    expect(peakHour(h)).toBe(21);
+    expect(peakHour(Array(24).fill(0))).toBeNull();
   });
 });
 

@@ -7,7 +7,7 @@ import { useAppState } from '../state/AppStateContext';
 import type { SessionRecord } from '../storage';
 import { radius, type Palette } from '../theme';
 import { useColors } from '../useColors';
-import { limitStreak, sessionsThisWeek, dailyTotals, monthSpend, monthlyReport, placeStats } from '../stats';
+import { limitStreak, sessionsThisWeek, dailyTotals, monthSpend, monthlyReport, hourlyTotals, peakHour, placeStats } from '../stats';
 
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
@@ -160,6 +160,11 @@ export default function HistoryScreen() {
   // 비용/장소
   const spend = monthSpend(history, calYear, calMonth);
   const places = placeStats(history);
+
+  // 시간대별 음주 (전체 기록)
+  const hourly = hourlyTotals(history);
+  const peakH = peakHour(hourly);
+  const hourlyMax = Math.max(...hourly, 1);
   const won = (n: number) => n.toLocaleString('ko-KR');
 
   const confirmClear = () =>
@@ -405,6 +410,37 @@ export default function HistoryScreen() {
               ))}
             </View>
           )}
+
+          {/* 시간대별 음주 */}
+          {peakH != null && (
+            <View style={styles.chartCard}>
+              <Text style={styles.chartTitle}>주로 마시는 시간대</Text>
+              <View style={styles.hourChart}>
+                {hourly.map((v, i) => (
+                  <View
+                    key={i}
+                    style={[
+                      styles.hourBar,
+                      {
+                        height: v > 0 ? 4 + (v / hourlyMax) * 44 : 2,
+                        backgroundColor: i === peakH ? c.amber : v > 0 ? c.blue : c.cardAlt,
+                      },
+                    ]}
+                  />
+                ))}
+              </View>
+              <View style={styles.hourAxis}>
+                {['0시', '6', '12', '18', '24'].map((l) => (
+                  <Text key={l} style={styles.hourAxisLabel}>
+                    {l}
+                  </Text>
+                ))}
+              </View>
+              <Text style={styles.muted}>
+                가장 많이 마시는 시간대: {peakH}시–{(peakH + 1) % 24}시
+              </Text>
+            </View>
+          )}
         </View>
       }
       ListEmptyComponent={
@@ -642,6 +678,10 @@ const makeStyles = (c: Palette) => StyleSheet.create({
   calDayOn: { color: '#fff', fontWeight: '700' },
   budgetAmt: { fontSize: 22, fontWeight: '800', color: c.text },
   placeRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+  hourChart: { flexDirection: 'row', alignItems: 'flex-end', height: 50, gap: 2 },
+  hourBar: { flex: 1, borderTopLeftRadius: 2, borderTopRightRadius: 2 },
+  hourAxis: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 4 },
+  hourAxisLabel: { fontSize: 10, color: c.textFaint },
   placeName: { fontSize: 14, color: c.text, fontWeight: '600', flex: 1 },
   chartTitle: { fontSize: 13, color: c.textMuted },
   reportRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },

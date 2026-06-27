@@ -141,6 +141,33 @@ export function monthlyReport(history: SessionRecord[], year: number, month: num
   return { sessions, prevSessions, deltaPct, withinLimit, withinRate, weekdayCounts, topWeekday, spend };
 }
 
+// 시간대(0~23시)별 총 잔수. 잔별 타임라인(events)이 있으면 그 시각으로,
+// 없으면(수동 기록 등) 종료 시각에 합산. 전체 기록 기준.
+export function hourlyTotals(history: SessionRecord[]): number[] {
+  const out = Array(24).fill(0) as number[];
+  for (const r of history) {
+    if (r.events && r.events.length > 0) {
+      for (const e of r.events) out[new Date(e.t).getHours()] += e.n;
+    } else {
+      out[new Date(r.endedAt).getHours()] += r.count;
+    }
+  }
+  return out;
+}
+
+// 가장 많이 마신 시간대 index(0~23). 데이터 없으면 null.
+export function peakHour(hours: number[]): number | null {
+  let idx = -1;
+  let max = 0;
+  hours.forEach((v, i) => {
+    if (v > max) {
+      max = v;
+      idx = i;
+    }
+  });
+  return idx >= 0 ? idx : null;
+}
+
 // 장소별 통계 (세션 수 desc), 상위 limit개
 export function placeStats(
   history: SessionRecord[],
