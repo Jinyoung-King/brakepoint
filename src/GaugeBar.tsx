@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Animated, StyleSheet, Text, View } from 'react-native';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 
 import type { GaugeStyle } from './storage';
 import { radius, type Palette } from './theme';
@@ -86,11 +87,11 @@ function HpBar({ count, limit, brakeCounts, c }: Props) {
   );
 }
 
-// 하트 게이지. 한 하트 = 1잔, 마신 만큼 빨강, 반잔은 반투명 하트, 초과분은 깨진 하트.
-// 한도가 커도 항상 한 줄에 들어가도록 폭을 측정해 하트 크기를 자동 조절한다.
-function Hearts({ count, limit }: Props) {
+// 하트 게이지(벡터 아이콘). 한 하트 = 1잔, 마신 만큼 빨강, 반잔은 반하트, 초과분은 깨진 하트.
+// 한도가 커도 항상 한 줄에 들어가도록 폭을 측정해 아이콘 크기를 자동 조절한다.
+function Hearts({ count, limit, c }: Props) {
   const [rowW, setRowW] = useState(0);
-  if (limit <= 0) return <View style={{ height: 26 }} />;
+  if (limit <= 0) return <View style={{ height: 28 }} />;
   const full = Math.floor(count);
   const frac = count - full;
   const tokens: ('full' | 'half' | 'empty')[] = [];
@@ -101,40 +102,23 @@ function Hearts({ count, limit }: Props) {
   }
   const broken = Math.floor(Math.max(0, count - limit));
   const n = limit + broken;
-  const gap = 4;
-  // 글리프 가로폭 ≈ fontSize*1.15. 폭 안에 n개가 한 줄로 들어가도록 크기 산출.
-  const size = rowW > 0 ? Math.max(12, Math.min(26, (rowW - gap * (n - 1)) / n / 1.15)) : 22;
-  const heartStyle = { fontSize: size, lineHeight: Math.round(size * 1.3) };
+  const gap = 6;
+  // 아이콘은 거의 정사각형(가로폭 ≈ size). n개가 한 줄에 들어가게 크기 산출.
+  const size = rowW > 0 ? Math.round(Math.max(16, Math.min(30, (rowW - gap * (n - 1)) / n))) : 24;
   return (
-    <View style={styles.heartRow} onLayout={(e) => setRowW(e.nativeEvent.layout.width)}>
+    <View style={[styles.heartRow, { gap }]} onLayout={(e) => setRowW(e.nativeEvent.layout.width)}>
       {tokens.map((t, i) =>
-        t === 'half' ? (
-          <HalfHeart key={i} style={heartStyle} />
+        t === 'full' ? (
+          <Ionicons key={i} name="heart" size={size} color={c.red} />
+        ) : t === 'half' ? (
+          <Ionicons key={i} name="heart-half" size={size} color={c.red} />
         ) : (
-          <Text key={i} style={heartStyle}>
-            {t === 'empty' ? '🤍' : '❤️'}
-          </Text>
+          <Ionicons key={i} name="heart-outline" size={size} color={c.textFaint} />
         )
       )}
       {Array.from({ length: broken }, (_, i) => (
-        <Text key={`b${i}`} style={heartStyle}>
-          💔
-        </Text>
+        <MaterialCommunityIcons key={`b${i}`} name="heart-broken" size={size} color={c.red} />
       ))}
-    </View>
-  );
-}
-
-// 반 하트: 빈 하트 위에 빨강 하트를 왼쪽 절반만 노출(overflow clip)해 겹친다.
-function HalfHeart({ style }: { style: { fontSize: number; lineHeight: number } }) {
-  return (
-    <View>
-      <Text style={style}>🤍</Text>
-      <View style={styles.halfClip}>
-        <Text style={style} numberOfLines={1}>
-          ❤️
-        </Text>
-      </View>
     </View>
   );
 }
@@ -216,6 +200,5 @@ const makeStyles = (c: Palette) =>
 
 // 색 팔레트와 무관한 정적 스타일
 const styles = StyleSheet.create({
-  heartRow: { width: '100%', flexDirection: 'row', gap: 4, justifyContent: 'center', alignItems: 'center' },
-  halfClip: { position: 'absolute', left: 0, top: 0, bottom: 0, width: '50%', overflow: 'hidden' },
+  heartRow: { width: '100%', flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },
 });
