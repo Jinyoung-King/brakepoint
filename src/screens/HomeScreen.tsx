@@ -34,6 +34,7 @@ import { buildSafeReturnMessage } from '../share';
 import { openFullScreenIntentSettings } from '../fakeCall/notifications';
 import { canUseFullScreenIntent } from '../../modules/fsi-permission';
 import { addHaptic, tapHaptic } from '../haptics';
+import { notifyWater } from '../water';
 
 type Props = CompositeScreenProps<
   BottomTabScreenProps<MainTabParamList, 'Home'>,
@@ -205,9 +206,9 @@ export default function HomeScreen({ navigation }: Props) {
       navigation.navigate('CognitiveGate');
       return;
     }
-    // 물 알림: waterEvery 배수를 넘었으면
+    // 물 알림: waterEvery 배수를 넘으면 헤드업 알림 (비블로킹)
     if (waterEvery > 0 && Math.floor(prev / waterEvery) < Math.floor(next / waterEvery)) {
-      Alert.alert('물 한 잔', '술 사이에 물 한 잔이면 다음날이 한결 나아요.');
+      notifyWater();
       return;
     }
     if (n === 1 && gap < QUICK_GAP_MS)
