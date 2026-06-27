@@ -653,7 +653,7 @@ export default function SettingsScreen() {
 }
 
 const makeStyles = (c: Palette) => StyleSheet.create({
-  container: { padding: 20, paddingTop: 4, gap: 0, backgroundColor: c.bg },
+  container: { padding: 20, paddingTop: 4, paddingBottom: 110, gap: 0, backgroundColor: c.bg },
   section: { borderBottomWidth: 1, borderBottomColor: c.border },
   accHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 18 },
   accBody: { gap: 8, paddingBottom: 18 },

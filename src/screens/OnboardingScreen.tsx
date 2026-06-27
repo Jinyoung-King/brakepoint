@@ -40,7 +40,7 @@ export default function OnboardingScreen({ navigation }: Props) {
 
   const finish = () => {
     completeOnboarding();
-    navigation.replace('Home');
+    navigation.replace('Main');
   };
 
   return (

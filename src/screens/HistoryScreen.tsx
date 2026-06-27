@@ -620,7 +620,7 @@ function fmtClock(ms: number): string {
 
 const makeStyles = (c: Palette) => StyleSheet.create({
   root: { flex: 1, backgroundColor: c.bg },
-  container: { padding: 20, gap: 12, backgroundColor: c.bg, flexGrow: 1 },
+  container: { padding: 20, paddingBottom: 110, gap: 12, backgroundColor: c.bg, flexGrow: 1 },
   rowRight: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   detailBg: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
   detailCard: { backgroundColor: c.card, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, gap: 6, maxHeight: '80%' },
