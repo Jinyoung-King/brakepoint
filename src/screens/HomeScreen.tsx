@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   Linking,
@@ -19,7 +19,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/RootNavigator';
 import { useAppState } from '../state/AppStateContext';
 import { useMorningSchedule } from '../calendar/useMorningSchedule';
-import { radius, type Palette } from '../theme';
+import { radius, darkColors, type Palette } from '../theme';
 import { useColors } from '../useColors';
 import { alcoholGrams, estimateBac, hoursUntil, fmtHours, bacCurve, DRIVE_LIMIT } from '../bac';
 import BacChart from '../BacChart';
@@ -61,21 +61,7 @@ export default function HomeScreen({ navigation }: Props) {
   const c = useColors();
   const styles = useMemo(() => makeStyles(c), [c]);
 
-  // 헤더 우측: 기록 / 설정 아이콘
-  useLayoutEffect(() => {
-    navigation.setOptions({
-      headerRight: () => (
-        <View style={styles.headerBtns}>
-          <Pressable onPress={() => navigation.navigate('History')} hitSlop={10}>
-            <Ionicons name="stats-chart" size={22} color={c.text} />
-          </Pressable>
-          <Pressable onPress={() => navigation.navigate('Settings')} hitSlop={10}>
-            <Ionicons name="settings-outline" size={22} color={c.text} />
-          </Pressable>
-        </View>
-      ),
-    });
-  }, [navigation, c, styles]);
+  // 대시보드/설정 진입은 하단 글라스 알약(navPill)으로 이동했다.
 
   const {
     limit,
@@ -353,7 +339,7 @@ export default function HomeScreen({ navigation }: Props) {
 
   return (
     <View style={styles.root}>
-      <ScrollView contentContainerStyle={[styles.container, { paddingBottom: insets.bottom + 24 }]}>
+      <ScrollView contentContainerStyle={[styles.container, { paddingBottom: insets.bottom + 96 }]}>
         {morning && (
           <View style={styles.scheduleBanner}>
             <Ionicons name="calendar-outline" size={16} color={c.amber} />
@@ -523,6 +509,21 @@ export default function HomeScreen({ navigation }: Props) {
         )}
       </ScrollView>
 
+      {/* 하단 글라스 알약 네비게이션 (One UI 스타일) */}
+      <View pointerEvents="box-none" style={[styles.navWrap, { bottom: insets.bottom + 14 }]}>
+        <View style={styles.navPill}>
+          <Pressable style={styles.navItem} onPress={() => navigation.navigate('History')} hitSlop={6}>
+            <Ionicons name="grid-outline" size={20} color={c.text} />
+            <Text style={styles.navLabel}>대시보드</Text>
+          </Pressable>
+          <View style={styles.navDivider} />
+          <Pressable style={styles.navItem} onPress={() => navigation.navigate('Settings')} hitSlop={6}>
+            <Ionicons name="settings-outline" size={20} color={c.text} />
+            <Text style={styles.navLabel}>설정</Text>
+          </Pressable>
+        </View>
+      </View>
+
       {/* 술자리 종료 모달 */}
       <Modal visible={endOpen} transparent animationType="fade" onRequestClose={() => setEndOpen(false)}>
         <View style={styles.modalBg}>
@@ -654,8 +655,12 @@ export default function HomeScreen({ navigation }: Props) {
   );
 }
 
-const makeStyles = (c: Palette) =>
-  StyleSheet.create({
+const makeStyles = (c: Palette) => {
+  const isDark = c === darkColors;
+  // 단색 배경 위 반투명 "글라스" 톤 (실제 블러 없이도 단색 위에선 동일하게 보임)
+  const glassBg = isDark ? 'rgba(255,255,255,0.10)' : 'rgba(255,255,255,0.72)';
+  const glassBorder = isDark ? 'rgba(255,255,255,0.20)' : 'rgba(0,0,0,0.08)';
+  return StyleSheet.create({
     root: { flex: 1, backgroundColor: c.bg },
     container: { paddingHorizontal: 20, paddingTop: 16, alignItems: 'center', gap: 14 },
     scheduleBanner: { width: '100%', backgroundColor: c.amberBg, borderRadius: radius.md, paddingVertical: 10, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 8 },
@@ -728,4 +733,33 @@ const makeStyles = (c: Palette) =>
     modalBtns: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 20, marginTop: 8 },
     saveBtn: { backgroundColor: c.blue, paddingVertical: 12, paddingHorizontal: 20, borderRadius: radius.sm },
     saveBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+
+    // 하단 글라스 알약 네비게이션
+    navWrap: { position: 'absolute', left: 0, right: 0, alignItems: 'center' },
+    navPill: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: glassBg,
+      borderColor: glassBorder,
+      borderWidth: 1,
+      borderRadius: 30,
+      paddingHorizontal: 6,
+      paddingVertical: 6,
+      shadowColor: '#000',
+      shadowOpacity: 0.25,
+      shadowRadius: 12,
+      shadowOffset: { width: 0, height: 6 },
+      elevation: 8,
+    },
+    navItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 7,
+      paddingHorizontal: 18,
+      paddingVertical: 9,
+      borderRadius: 24,
+    },
+    navLabel: { color: c.text, fontSize: 14, fontWeight: '600' },
+    navDivider: { width: 1, height: 20, backgroundColor: glassBorder, marginHorizontal: 2 },
   });
+};
