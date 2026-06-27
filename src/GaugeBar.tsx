@@ -237,16 +237,18 @@ function ProtossBar({ count, limit, c }: Props) {
   const shieldRem = Math.max(0, Math.min(shieldMax, shieldMax - count)); // 쉴드 먼저 소모
   const hpDmg = Math.max(0, count - shieldMax);
   const hpRem = Math.max(0, hpMax - hpDmg);
+  const shieldPct = shieldMax > 0 ? shieldRem / shieldMax : 0;
   const hpPct = hpMax > 0 ? hpRem / hpMax : 0;
   const hpColor = hpPct > 0.5 ? PROTOSS.green : hpPct > 0.25 ? PROTOSS.yellow : PROTOSS.red;
+  // 쉴드·체력 동일한 세그먼트 수(스타1 체력바처럼 얇은 칸 + 검은 칸선)
+  const SEG = Math.max(8, Math.round(limit * DOTS_PER_DRINK));
 
-  const dotRow = (max: number, rem: number, color: string, key: string) => {
-    const total = Math.max(1, Math.round(max * DOTS_PER_DRINK));
-    const lit = Math.min(total, Math.round(rem * DOTS_PER_DRINK));
+  const dotRow = (pct: number, color: string, key: string) => {
+    const lit = Math.round(pct * SEG);
     return (
       <View key={key} style={s.ptDotRow}>
-        {Array.from({ length: total }, (_, i) => (
-          <View key={i} style={s.ptDot}>{i < lit && <PixelBlock color={color} />}</View>
+        {Array.from({ length: SEG }, (_, i) => (
+          <View key={i} style={[s.ptDot, { backgroundColor: i < lit ? color : PROTOSS.empty }]} />
         ))}
       </View>
     );
@@ -254,8 +256,8 @@ function ProtossBar({ count, limit, c }: Props) {
 
   return (
     <View style={s.ptWrap}>
-      {dotRow(shieldMax, shieldRem, PROTOSS.shield, 'shield')}
-      {dotRow(hpMax, hpRem, hpColor, 'hp')}
+      {dotRow(shieldPct, PROTOSS.shield, 'shield')}
+      {dotRow(hpPct, hpColor, 'hp')}
     </View>
   );
 }
@@ -356,10 +358,10 @@ const makeStyles = (c: Palette) =>
     mpFill: { height: '100%', backgroundColor: MP.blue, borderRadius: 9 },
     mpGloss: { height: '45%', backgroundColor: '#fff', opacity: 0.3, borderTopLeftRadius: 9, borderTopRightRadius: 9 },
     mpTick: { position: 'absolute', top: 0, bottom: 0, width: 1, backgroundColor: '#0a1830', opacity: 0.6 },
-    // 프로토스 — 위 쉴드 / 아래 체력, LED 도트 두 줄
+    // 프로토스 — 위 쉴드 / 아래 체력, 스타1 체력바(얇은 세그 + 검은 칸선)
     ptWrap: { width: '100%', gap: 4 },
-    ptDotRow: { width: '100%', flexDirection: 'row', gap: 2, height: 12 },
-    ptDot: { flex: 1, height: '100%', backgroundColor: PROTOSS.empty, overflow: 'hidden' },
+    ptDotRow: { width: '100%', flexDirection: 'row', gap: 1, height: 12, backgroundColor: '#000', padding: 1, borderRadius: 1 },
+    ptDot: { flex: 1, height: '100%' },
     // 타코미터 — 반원 다이얼 + 바늘
     tachoWrap: { width: '100%', alignItems: 'center', gap: 2 },
     tachoSpoke: { position: 'absolute', bottom: 0, width: 2, alignItems: 'center', transformOrigin: 'bottom' },
