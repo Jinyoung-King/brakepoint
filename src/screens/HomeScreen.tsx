@@ -396,19 +396,23 @@ export default function HomeScreen({ navigation }: Props) {
           <Pressable style={styles.addBtn} onPress={() => onAdd(1)}>
             <Text style={styles.addBtnText}>+1{unit}</Text>
           </Pressable>
-          {unit === '잔' && (
-            <Pressable style={styles.bottleBtn} onPress={() => onAdd(0.5)}>
+        </View>
+        {unit === '잔' && (
+          <View style={styles.fracRow}>
+            <Pressable style={styles.fracBtn} onPress={() => onAdd(0.25)}>
+              <Text style={styles.bottleBtnText}>+¼</Text>
+              <Text style={styles.bottleSub}>0.25잔</Text>
+            </Pressable>
+            <Pressable style={styles.fracBtn} onPress={() => onAdd(0.5)}>
               <Text style={styles.bottleBtnText}>+½</Text>
               <Text style={styles.bottleSub}>반잔</Text>
             </Pressable>
-          )}
-          {unit === '잔' && (
-            <Pressable style={styles.bottleBtn} onPress={() => onAdd(bottleToGlasses)}>
+            <Pressable style={styles.fracBtn} onPress={() => onAdd(bottleToGlasses)}>
               <Text style={styles.bottleBtnText}>+1병</Text>
               <Text style={styles.bottleSub}>={bottleToGlasses}잔</Text>
             </Pressable>
-          )}
-        </View>
+          </View>
+        )}
 
         {/* 시작 전(0잔·음주모드 off) 상태: 빈 화면 대신 지표 + 다음에 나타날 것 안내 */}
         {!active && (
@@ -692,7 +696,8 @@ const makeStyles = (c: Palette) =>
     addRow: { width: '100%', flexDirection: 'row', gap: 10 },
     addBtn: { flex: 2, backgroundColor: c.blue, paddingVertical: 18, borderRadius: radius.lg, alignItems: 'center' },
     addBtnText: { color: '#fff', fontSize: 24, fontWeight: '800' },
-    bottleBtn: { flex: 1, backgroundColor: c.cardAlt, paddingVertical: 12, borderRadius: radius.lg, alignItems: 'center', justifyContent: 'center' },
+    fracRow: { width: '100%', flexDirection: 'row', gap: 10 },
+    fracBtn: { flex: 1, backgroundColor: c.cardAlt, paddingVertical: 12, borderRadius: radius.lg, alignItems: 'center', justifyContent: 'center' },
     bottleBtnText: { color: c.text, fontSize: 18, fontWeight: '800' },
     bottleSub: { color: c.textMuted, fontSize: 11, marginTop: 2 },
     undoBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: -4 },
