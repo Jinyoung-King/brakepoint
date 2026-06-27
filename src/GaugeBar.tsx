@@ -64,16 +64,12 @@ function HpBar({ count, limit, brakeCounts, c }: Props) {
     const isBrake = brakeCounts.includes(i);
     const isPartial = i === full + 1 && frac > 0;
     cells.push(
-      <View
-        key={i}
-        style={[
-          s.hpCell,
-          { backgroundColor: i <= full ? colorAt(i) : c.track },
-          isBrake && { borderColor: c.amber, borderWidth: 2 },
-        ]}
-      >
+      <View key={i} style={[s.hpCell, isBrake && s.hpCellBrake]}>
+        {i <= full && <PixelBlock color={colorAt(i)} />}
         {isPartial && (
-          <View style={[s.hpPartial, { width: `${frac * 100}%`, backgroundColor: colorAt(i) }]} />
+          <View style={[s.hpPartial, { width: `${frac * 100}%` }]}>
+            <PixelBlock color={colorAt(i)} />
+          </View>
         )}
       </View>
     );
@@ -81,11 +77,29 @@ function HpBar({ count, limit, brakeCounts, c }: Props) {
   const over = Math.max(0, count - limit);
   return (
     <View style={s.hpRow}>
-      <View style={s.hpCells}>{cells}</View>
+      <View style={s.hpFrame}>
+        <View style={s.hpCells}>{cells}</View>
+      </View>
       {over > 0 && <Text style={s.hpOver}>+{over % 1 === 0 ? over : over.toFixed(1)}</Text>}
     </View>
   );
 }
+
+// 청키한 픽셀 블록: 단색 위에 상단 하이라이트 + 하단 그림자(각진 모서리, 베벨 느낌).
+function PixelBlock({ color }: { color: string }) {
+  return (
+    <View style={[pixel.block, { backgroundColor: color }]}>
+      <View style={pixel.hi} />
+      <View style={pixel.lo} />
+    </View>
+  );
+}
+
+const pixel = StyleSheet.create({
+  block: { flex: 1, height: '100%' },
+  hi: { height: '32%', backgroundColor: '#fff', opacity: 0.3 },
+  lo: { position: 'absolute', left: 0, right: 0, bottom: 0, height: '26%', backgroundColor: '#000', opacity: 0.22 },
+});
 
 // 하트 게이지(벡터 아이콘). 한 하트 = 1잔, 마신 만큼 빨강, 반잔은 반하트, 초과분은 깨진 하트.
 // 한도가 커도 항상 한 줄에 들어가도록 폭을 측정해 아이콘 크기를 자동 조절한다.
@@ -174,11 +188,19 @@ const makeStyles = (c: Palette) =>
     },
     fill: { position: 'absolute', left: 0, top: 0, bottom: 0, backgroundColor: c.blue, borderRadius: 11 },
     thresholdLine: { position: 'absolute', top: 0, bottom: 0, width: 2, backgroundColor: c.text, opacity: 0.55 },
-    // hp
+    // hp (픽셀/레트로): 두꺼운 각진 프레임 + 격자 칸 + 청키 블록
     hpRow: { width: '100%', flexDirection: 'row', alignItems: 'center', gap: 8 },
-    hpCells: { flex: 1, flexDirection: 'row', gap: 3 },
-    hpCell: { flex: 1, height: 22, borderRadius: 4, backgroundColor: c.track, overflow: 'hidden' },
-    hpPartial: { position: 'absolute', left: 0, top: 0, bottom: 0, borderRadius: 4 },
+    hpFrame: {
+      flex: 1,
+      borderWidth: 3,
+      borderColor: c.text,
+      backgroundColor: c.track,
+      padding: 2,
+    },
+    hpCells: { flex: 1, flexDirection: 'row', gap: 2, height: 22 },
+    hpCell: { flex: 1, height: '100%', backgroundColor: c.track, overflow: 'hidden' },
+    hpCellBrake: { borderWidth: 2, borderColor: c.amber },
+    hpPartial: { position: 'absolute', left: 0, top: 0, bottom: 0 },
     hpOver: { fontSize: 15, fontWeight: '800', color: c.red },
     // boss
     bossWrap: { width: '100%', gap: 4 },
