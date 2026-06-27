@@ -10,8 +10,9 @@ import { radius, type Palette } from './theme';
 // 숫자 표시에 픽셀 폰트(로드됐을 때만). Press Start 2P는 라틴/숫자 전용.
 const pixelText = () => (isFontLoaded(PIXEL_FONT) ? { fontFamily: PIXEL_FONT } : null);
 
-// HP바 전용 8비트 레트로 팔레트 (테마와 무관하게 고정 — 게임 화면 느낌)
+// HP/보스 전용 8비트 레트로 팔레트 (테마와 무관하게 고정 — 게임 화면 느낌)
 const RETRO = { green: '#3ae62a', yellow: '#ffd23d', red: '#ff3b3b', empty: '#191c22' };
+const MP = { blue: '#2f7ff0', glow: '#7fd0ff', empty: '#101f38', edge: '#2a4a7a' };
 const DOTS_PER_DRINK = 4; // 잔당 LED 도트 수 (0.25 = 도트 1칸)
 
 type Props = {
@@ -26,13 +27,6 @@ type Props = {
   c: Palette;
 };
 
-// 현재 취기 단계 색: 안전(초록) → 브레이크(주황) → 초과(빨강)
-function zoneColor(c: Palette, inBrake: boolean, overLimit: boolean): string {
-  if (overLimit) return c.red;
-  if (inBrake) return c.amber;
-  return c.green;
-}
-
 export default function GaugeBar(props: Props) {
   switch (props.style) {
     case 'hp':
@@ -41,6 +35,8 @@ export default function GaugeBar(props: Props) {
       return <Hearts {...props} />;
     case 'boss':
       return <BossBar {...props} />;
+    case 'mp':
+      return <MpBar {...props} />;
     default:
       return <Classic {...props} />;
   }
@@ -145,9 +141,11 @@ function Hearts({ count, limit, c }: Props) {
   );
 }
 
-// 격투/RPG 보스 체력바. 글로시 단색 + 라벨, 초과 시 깜빡임.
-function BossBar({ pct, count, limit, inBrake, overLimit, c }: Props) {
+// 보스 체력바: 한계를 보스로 보고 취기가 찰수록 오른쪽부터 깎인다(=보스 HP 감소).
+// 픽셀 프레임 + BOSS 라벨, 한계 도달(보스 처치) 시 빨강으로 깜빡.
+function BossBar({ count, limit, inBrake, overLimit, c }: Props) {
   const s = makeStyles(c);
+  const pf = pixelText();
   const blink = useRef(new Animated.Value(1)).current;
   useEffect(() => {
     if (!overLimit) {
@@ -156,28 +154,59 @@ function BossBar({ pct, count, limit, inBrake, overLimit, c }: Props) {
     }
     const loop = Animated.loop(
       Animated.sequence([
-        Animated.timing(blink, { toValue: 0.35, duration: 450, useNativeDriver: true }),
-        Animated.timing(blink, { toValue: 1, duration: 450, useNativeDriver: true }),
+        Animated.timing(blink, { toValue: 0.3, duration: 420, useNativeDriver: true }),
+        Animated.timing(blink, { toValue: 1, duration: 420, useNativeDriver: true }),
       ])
     );
     loop.start();
     return () => loop.stop();
   }, [overLimit, blink]);
 
-  const fillColor = zoneColor(c, inBrake, overLimit);
+  const remaining = limit > 0 ? Math.max(0, Math.min(1, (limit - count) / limit)) : 0;
+  const fillW = overLimit ? 1 : remaining; // 초과(보스 처치)면 빨강 전체 + 깜빡
+  const fillColor = overLimit ? RETRO.red : inBrake ? RETRO.yellow : RETRO.green;
   return (
     <View style={s.bossWrap}>
       <View style={s.bossLabels}>
-        <Text style={s.bossName}>나</Text>
-        <Text style={[s.bossHp, pixelText() && s.bossHpPixel]}>
+        <Text style={[s.bossName, pf && s.bossNamePixel]}>BOSS</Text>
+        <Text style={[s.bossHp, pf && s.bossHpPixel]}>
           {Math.min(count, limit)} / {limit}
           {count > limit ? ` (+${count - limit})` : ''}
         </Text>
       </View>
-      <View style={s.bossTrack}>
-        <Animated.View style={[s.bossFill, { width: `${pct * 100}%`, backgroundColor: fillColor, opacity: blink }]}>
-          <View style={s.bossGloss} />
-        </Animated.View>
+      <View style={s.hpFrame}>
+        <View style={s.bossTrack}>
+          <Animated.View style={[s.bossFill, { width: `${fillW * 100}%`, backgroundColor: fillColor, opacity: blink }]}>
+            <View style={s.bossGloss} />
+          </Animated.View>
+        </View>
+      </View>
+    </View>
+  );
+}
+
+// MP(마나) 바: 파란 마나가 취기만큼 차오른다. 매끈한 둥근 글로시 + 마나 눈금.
+function MpBar({ pct, count, limit, c }: Props) {
+  const s = makeStyles(c);
+  const pf = pixelText();
+  const ticks = Math.max(0, Math.ceil(limit) - 1);
+  return (
+    <View style={s.bossWrap}>
+      <View style={s.bossLabels}>
+        <Text style={[s.mpName, pf && s.mpNamePixel]}>MP</Text>
+        <Text style={[s.bossHp, pf && s.bossHpPixel]}>
+          {Math.min(count, limit)} / {limit}
+          {count > limit ? ` (+${count - limit})` : ''}
+        </Text>
+      </View>
+      <View style={s.mpTrack}>
+        <View style={[s.mpFill, { width: `${Math.min(pct, 1) * 100}%` }]}>
+          <View style={s.mpGloss} />
+        </View>
+        {limit > 0 &&
+          Array.from({ length: ticks }, (_, i) => (
+            <View key={i} style={[s.mpTick, { left: `${((i + 1) / limit) * 100}%` }]} />
+          ))}
       </View>
     </View>
   );
@@ -215,19 +244,28 @@ const makeStyles = (c: Palette) =>
     bossWrap: { width: '100%', gap: 4 },
     bossLabels: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' },
     bossName: { fontSize: 12, fontWeight: '800', color: c.text, letterSpacing: 1 },
+    bossNamePixel: { fontFamily: PIXEL_FONT, fontSize: 10, fontWeight: '400', color: RETRO.red },
     bossHp: { fontSize: 12, fontWeight: '700', color: c.textMuted },
     bossHpPixel: { fontFamily: PIXEL_FONT, fontSize: 9, fontWeight: '400' },
-    bossTrack: {
+    // 보스 트랙(픽셀 프레임 hpFrame 안에 들어감) — 각진 다크 트랙
+    bossTrack: { flex: 1, height: 22, backgroundColor: RETRO.empty, overflow: 'hidden' },
+    bossFill: { height: '100%' },
+    bossGloss: { height: '40%', backgroundColor: '#fff', opacity: 0.28 },
+    // MP(마나) 바 — 매끈한 둥근 글로시 블루
+    mpName: { fontSize: 12, fontWeight: '800', color: MP.glow, letterSpacing: 1 },
+    mpNamePixel: { fontFamily: PIXEL_FONT, fontSize: 10, fontWeight: '400', color: MP.glow },
+    mpTrack: {
       width: '100%',
       height: 18,
-      backgroundColor: c.track,
-      borderRadius: 4,
-      borderWidth: 2,
-      borderColor: c.text,
+      backgroundColor: MP.empty,
+      borderRadius: 9,
+      borderWidth: 1,
+      borderColor: MP.edge,
       overflow: 'hidden',
     },
-    bossFill: { height: '100%', borderRadius: 2 },
-    bossGloss: { height: '45%', backgroundColor: '#fff', opacity: 0.25, borderTopLeftRadius: 2, borderTopRightRadius: 2 },
+    mpFill: { height: '100%', backgroundColor: MP.blue, borderRadius: 9 },
+    mpGloss: { height: '45%', backgroundColor: '#fff', opacity: 0.3, borderTopLeftRadius: 9, borderTopRightRadius: 9 },
+    mpTick: { position: 'absolute', top: 0, bottom: 0, width: 1, backgroundColor: '#0a1830', opacity: 0.6 },
   });
 
 // 색 팔레트와 무관한 정적 스타일

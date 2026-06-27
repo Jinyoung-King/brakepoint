@@ -51,6 +51,7 @@ const GAUGES: { key: GaugeStyle; label: string }[] = [
   { key: 'hp', label: 'HP 바' },
   { key: 'hearts', label: '하트' },
   { key: 'boss', label: '보스' },
+  { key: 'mp', label: 'MP' },
 ];
 
 const SEXES: { key: Sex; label: string }[] = [
