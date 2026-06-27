@@ -48,7 +48,7 @@ const THEMES: { key: ThemeMode; label: string }[] = [
 
 const GAUGES: { key: GaugeStyle; label: string }[] = [
   { key: 'classic', label: '기본' },
-  { key: 'hp', label: 'HP 바' },
+  { key: 'hp', label: 'HP' },
   { key: 'hearts', label: '하트' },
   { key: 'boss', label: '보스' },
   { key: 'mp', label: 'MP' },

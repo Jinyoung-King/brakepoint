@@ -91,7 +91,6 @@ export default function HomeScreen({ navigation }: Props) {
     count,
     cigs,
     unit,
-    bottleToGlasses,
     drinkingMode,
     brakePercents,
     repeatEveryDrinks,
@@ -432,10 +431,6 @@ export default function HomeScreen({ navigation }: Props) {
             <Pressable style={styles.fracBtn} onPress={() => onAdd(0.5)}>
               <Text style={styles.bottleBtnText}>+½</Text>
               <Text style={styles.bottleSub}>반잔</Text>
-            </Pressable>
-            <Pressable style={styles.fracBtn} onPress={() => onAdd(bottleToGlasses)}>
-              <Text style={styles.bottleBtnText}>+1병</Text>
-              <Text style={styles.bottleSub}>={bottleToGlasses}잔</Text>
             </Pressable>
           </View>
         )}
