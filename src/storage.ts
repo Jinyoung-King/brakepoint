@@ -14,6 +14,9 @@ export type DrinkUnit = '잔' | '병' | '캔';
 
 export type ThemeMode = 'dark' | 'light' | 'system';
 
+// 홈 진행률 게이지 스타일 (기본 바 / 게임 체력바 류)
+export type GaugeStyle = 'classic' | 'hp' | 'hearts' | 'boss';
+
 export type Sex = 'male' | 'female';
 
 export type DrinkType = '소주' | '맥주' | '와인' | '양주';
@@ -65,6 +68,7 @@ export type AppState = {
   checkinDelayMin: number; // 음주모드 종료 후 체크인까지(분)
   monthlyBudget: number; // 월 술값 예산(원, 0=끔)
   weeklyReportEnabled: boolean; // 매주 월요일 아침 지난주 요약 알림
+  gaugeStyle: GaugeStyle; // 홈 진행률 게이지 스타일
   ongoingNotifEnabled: boolean; // 음주 중 상시 알림(잔/BAC + 잔+1·종료 액션)
   pendingGate: boolean; // 백그라운드에서 알림으로 잔 추가 시 브레이크 도달 → 앱 복귀 후 게이트
   pendingEnd: boolean; // 알림 "종료" 액션 → 앱 복귀 후 종료 모달 열기
@@ -106,6 +110,7 @@ export const DEFAULT_STATE: AppState = {
   checkinDelayMin: 60,
   monthlyBudget: 0,
   weeklyReportEnabled: true,
+  gaugeStyle: 'classic',
   ongoingNotifEnabled: true,
   pendingGate: false,
   pendingEnd: false,

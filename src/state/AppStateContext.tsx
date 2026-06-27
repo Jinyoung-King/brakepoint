@@ -6,6 +6,7 @@ import {
   type Difficulty,
   type DrinkUnit,
   type FakeCallConfig,
+  type GaugeStyle,
   type ThemeMode,
   type Sex,
   type DrinkType,
@@ -45,6 +46,7 @@ type AppStateContextValue = {
   setSmokingEnabled: (on: boolean) => void;
   setMonthlyBudget: (won: number) => void;
   setTheme: (theme: ThemeMode) => void;
+  setGaugeStyle: (style: GaugeStyle) => void;
   setSex: (sex: Sex) => void;
   setWeightKg: (kg: number) => void;
   setDrinkType: (type: DrinkType) => void;
@@ -117,6 +119,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     setSmokingEnabled: (smokingEnabled) => setState((s) => ({ ...s, smokingEnabled })),
     setMonthlyBudget: (monthlyBudget) => setState((s) => ({ ...s, monthlyBudget })),
     setTheme: (theme) => setState((s) => ({ ...s, theme })),
+    setGaugeStyle: (gaugeStyle) => setState((s) => ({ ...s, gaugeStyle })),
     setSex: (sex) => setState((s) => ({ ...s, sex })),
     setWeightKg: (weightKg) => setState((s) => ({ ...s, weightKg })),
     setDrinkType: (drinkType) => setState((s) => ({ ...s, drinkType })),

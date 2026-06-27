@@ -18,7 +18,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 
 import { useAppState } from '../state/AppStateContext';
-import type { Difficulty, DrinkUnit, ThemeMode, Sex, DrinkType } from '../storage';
+import type { Difficulty, DrinkUnit, ThemeMode, Sex, DrinkType, GaugeStyle } from '../storage';
 import { radius, type Palette } from '../theme';
 import { useColors } from '../useColors';
 import { importWeightFromHealthConnect, openHealthConnectSettings } from '../health';
@@ -44,6 +44,13 @@ const THEMES: { key: ThemeMode; label: string }[] = [
   { key: 'dark', label: '다크' },
   { key: 'light', label: '라이트' },
   { key: 'system', label: '시스템' },
+];
+
+const GAUGES: { key: GaugeStyle; label: string }[] = [
+  { key: 'classic', label: '기본' },
+  { key: 'hp', label: 'HP 바' },
+  { key: 'hearts', label: '하트' },
+  { key: 'boss', label: '보스' },
 ];
 
 const SEXES: { key: Sex; label: string }[] = [
@@ -95,6 +102,7 @@ export default function SettingsScreen() {
     setUnit,
     setCalendarSync,
     setTheme,
+    setGaugeStyle,
     setSex,
     setWeightKg,
     setDrinkType,
@@ -110,7 +118,7 @@ export default function SettingsScreen() {
     setOngoingNotifEnabled,
     importState,
   } = useAppState();
-  const { limit, difficulty, fakeCall, brakePercents, repeatEveryDrinks, unit, calendarSync, theme, sex, weightKg, drinkType, homeAddress, bottleToGlasses, waterEvery, weeklyGoalSessions, checkinEnabled, checkinDelayMin, smokingEnabled, monthlyBudget, weeklyReportEnabled, ongoingNotifEnabled } =
+  const { limit, difficulty, fakeCall, brakePercents, repeatEveryDrinks, unit, calendarSync, theme, sex, weightKg, drinkType, homeAddress, bottleToGlasses, waterEvery, weeklyGoalSessions, checkinEnabled, checkinDelayMin, smokingEnabled, monthlyBudget, weeklyReportEnabled, ongoingNotifEnabled, gaugeStyle } =
     state;
   const c = useColors();
   const styles = useMemo(() => makeStyles(c), [c]);
@@ -638,6 +646,23 @@ export default function SettingsScreen() {
             );
           })}
         </View>
+
+        <Text style={styles.subTitle}>홈 게이지 스타일</Text>
+        <View style={styles.segment}>
+          {GAUGES.map((g) => {
+            const active = g.key === gaugeStyle;
+            return (
+              <Pressable
+                key={g.key}
+                style={[styles.segmentItem, active && styles.segmentItemActive]}
+                onPress={() => setGaugeStyle(g.key)}
+              >
+                <Text style={[styles.segmentText, active && styles.segmentTextActive]}>{g.label}</Text>
+              </Pressable>
+            );
+          })}
+        </View>
+        <Text style={styles.help}>홈 화면 진행률 바 모양이에요. 취기가 차오를수록 색이 바뀌어요.</Text>
 
         <Text style={styles.subTitle}>다음날 일정 연동</Text>
         <View style={styles.toggleRow}>

@@ -27,6 +27,7 @@ import { useColors } from '../useColors';
 import { alcoholGrams, estimateBac, hoursUntil, fmtHours, bacCurve, DRIVE_LIMIT } from '../bac';
 import { effectiveBrakePercents, brakeCountsFor, crossesBrake } from '../brake';
 import BacChart from '../BacChart';
+import GaugeBar from '../GaugeBar';
 import { alcoholKcal, hangoverForecast, limitStreak, sessionsThisWeek } from '../stats';
 import { cancelCheckin } from '../checkin';
 import { geocodeAddress } from '../geocode';
@@ -95,6 +96,7 @@ export default function HomeScreen({ navigation }: Props) {
     homeLat,
     homeLng,
     smokingEnabled,
+    gaugeStyle,
   } = state;
   const [transitLoading, setTransitLoading] = useState(false);
   const [shareLoading, setShareLoading] = useState(false);
@@ -372,12 +374,17 @@ export default function HomeScreen({ navigation }: Props) {
 
         {/* 진행률 + 한 줄 상태 (페이스/브레이크 통합) */}
         <View style={styles.card}>
-          <View style={styles.track}>
-            <View style={[styles.fill, { width: `${pct * 100}%` }, inBrake && styles.fillOver]} />
-            {effPercents.map((p) => (
-              <View key={p} style={[styles.thresholdLine, { left: `${Math.min(p, 100)}%` }]} />
-            ))}
-          </View>
+          <GaugeBar
+            style={gaugeStyle}
+            count={count}
+            limit={limit}
+            pct={pct}
+            effPercents={effPercents}
+            brakeCounts={brakeCounts}
+            inBrake={inBrake}
+            overLimit={overLimit}
+            c={c}
+          />
           <View style={styles.brakeRow}>
             {inBrake && <Ionicons name="warning" size={14} color={c.red} />}
             <Text style={[styles.brakeText, inBrake && styles.warnText]}>{statusText}</Text>
@@ -665,10 +672,6 @@ const makeStyles = (c: Palette) =>
     muted: { fontSize: 13, color: c.textMuted, textAlign: 'center' },
     warnText: { color: c.red, fontWeight: '700' },
     card: { width: '100%', gap: 10 },
-    track: { width: '100%', height: 22, backgroundColor: c.track, borderRadius: 11, overflow: 'hidden', position: 'relative' },
-    fill: { position: 'absolute', left: 0, top: 0, bottom: 0, backgroundColor: c.blue, borderRadius: 11 },
-    fillOver: { backgroundColor: c.red },
-    thresholdLine: { position: 'absolute', top: 0, bottom: 0, width: 2, backgroundColor: c.text, opacity: 0.55 },
     brakeText: { fontSize: 13, color: c.textMuted, textAlign: 'center' },
     startCard: { width: '100%', backgroundColor: c.card, borderRadius: radius.md, padding: 16, gap: 10, borderWidth: 1, borderColor: c.border },
     startTitle: { fontSize: 15, color: c.text, fontWeight: '700' },
