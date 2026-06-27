@@ -28,7 +28,7 @@ export async function openFullScreenIntentSettings(): Promise<void> {
     await notifee.openNotificationSettings();
   }
 }
-const FAKE_CALL_NOTIF_ID = 'fake-call'; // 고정 ID로 중복 방지/취소 용이
+export const FAKE_CALL_NOTIF_ID = 'fake-call'; // 고정 ID로 중복 방지/취소 용이
 
 async function ensureCallChannel(): Promise<void> {
   await notifee.createChannel({
