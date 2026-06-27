@@ -1,9 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import { Animated, StyleSheet, Text, View } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { isLoaded as isFontLoaded } from 'expo-font';
 
 import type { GaugeStyle } from './storage';
+import { PIXEL_FONT } from './fonts';
 import { radius, type Palette } from './theme';
+
+// 숫자 표시에 픽셀 폰트(로드됐을 때만). Press Start 2P는 라틴/숫자 전용.
+const pixelText = () => (isFontLoaded(PIXEL_FONT) ? { fontFamily: PIXEL_FONT } : null);
 
 // HP바 전용 8비트 레트로 팔레트 (테마와 무관하게 고정 — 게임 화면 느낌)
 const RETRO = { green: '#3ae62a', yellow: '#ffd23d', red: '#ff3b3b', empty: '#191c22' };
@@ -83,7 +88,7 @@ function HpBar({ count, limit, brakeCounts, c }: Props) {
       <View style={s.hpFrame}>
         <View style={s.hpCells}>{groups}</View>
       </View>
-      {over > 0 && <Text style={s.hpOver}>+{over}</Text>}
+      {over > 0 && <Text style={[s.hpOver, pixelText() && s.hpOverPixel]}>+{over}</Text>}
     </View>
   );
 }
@@ -164,7 +169,7 @@ function BossBar({ pct, count, limit, inBrake, overLimit, c }: Props) {
     <View style={s.bossWrap}>
       <View style={s.bossLabels}>
         <Text style={s.bossName}>나</Text>
-        <Text style={s.bossHp}>
+        <Text style={[s.bossHp, pixelText() && s.bossHpPixel]}>
           {Math.min(count, limit)} / {limit}
           {count > limit ? ` (+${count - limit})` : ''}
         </Text>
@@ -205,11 +210,13 @@ const makeStyles = (c: Palette) =>
     hpGroupBrake: { borderWidth: 2, borderColor: c.text },
     hpDot: { flex: 1, height: '100%', backgroundColor: RETRO.empty, overflow: 'hidden' },
     hpOver: { fontSize: 15, fontWeight: '800', color: c.red },
+    hpOverPixel: { fontFamily: PIXEL_FONT, fontSize: 12, fontWeight: '400' },
     // boss
     bossWrap: { width: '100%', gap: 4 },
     bossLabels: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' },
     bossName: { fontSize: 12, fontWeight: '800', color: c.text, letterSpacing: 1 },
     bossHp: { fontSize: 12, fontWeight: '700', color: c.textMuted },
+    bossHpPixel: { fontFamily: PIXEL_FONT, fontSize: 9, fontWeight: '400' },
     bossTrack: {
       width: '100%',
       height: 18,

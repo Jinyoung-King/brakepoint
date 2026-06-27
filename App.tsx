@@ -1,7 +1,10 @@
 import { StatusBar } from 'expo-status-bar';
 import { View } from 'react-native';
+import { useFonts } from 'expo-font';
 import { NavigationContainer, DarkTheme, DefaultTheme } from '@react-navigation/native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+
+import { PIXEL_FONT } from './src/fonts';
 
 import RootNavigator from './src/navigation/RootNavigator';
 import { navigationRef, flushPendingNavigation } from './src/navigation/navigationRef';
@@ -18,6 +21,8 @@ import { useColors } from './src/useColors';
 // (onboarded 값이 정해져야 시작 화면을 올바르게 고를 수 있음)
 function Root() {
   const { ready } = useAppState();
+  // 픽셀 폰트 로드. 실패해도(fontError) 시스템 폰트로 폴백하고 앱은 진행한다.
+  const [fontsLoaded, fontError] = useFonts({ [PIXEL_FONT]: require('./assets/fonts/PressStart2P-Regular.ttf') });
   const c = useColors();
   const isDark = c !== lightColors;
   const base = isDark ? DarkTheme : DefaultTheme;
@@ -32,7 +37,7 @@ function Root() {
       primary: c.blue,
     },
   };
-  if (!ready) return <View style={{ flex: 1, backgroundColor: c.bg }} />;
+  if (!ready || (!fontsLoaded && !fontError)) return <View style={{ flex: 1, backgroundColor: c.bg }} />;
   return (
     <NavigationContainer ref={navigationRef} theme={navTheme} onReady={flushPendingNavigation}>
       <FakeCallController />

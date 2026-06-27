@@ -28,6 +28,8 @@ import { alcoholGrams, estimateBac, hoursUntil, fmtHours, bacCurve, DRIVE_LIMIT 
 import { effectiveBrakePercents, brakeCountsFor, crossesBrake } from '../brake';
 import BacChart from '../BacChart';
 import GaugeBar from '../GaugeBar';
+import { isLoaded as isFontLoaded } from 'expo-font';
+import { PIXEL_FONT } from '../fonts';
 import { alcoholKcal, hangoverForecast, limitStreak, sessionsThisWeek } from '../stats';
 import { cancelCheckin } from '../checkin';
 import { geocodeAddress } from '../geocode';
@@ -363,7 +365,15 @@ export default function HomeScreen({ navigation }: Props) {
         {/* 현재 잔수 */}
         <View style={styles.counterBlock}>
           <View style={styles.countRow}>
-            <Text style={[styles.countBig, inBrake && styles.countOver]}>{count}</Text>
+            <Text
+              style={[
+                styles.countBig,
+                inBrake && styles.countOver,
+                gaugeStyle !== 'classic' && isFontLoaded(PIXEL_FONT) && styles.countPixel,
+              ]}
+            >
+              {count}
+            </Text>
             <Text style={styles.countLimit}>
               {' '}
               / {limit}
@@ -677,6 +687,7 @@ const makeStyles = (c: Palette) =>
     counterBlock: { alignItems: 'center', gap: 2, marginTop: 4 },
     countRow: { flexDirection: 'row', alignItems: 'baseline' },
     countBig: { fontSize: 72, fontWeight: '800', color: c.text },
+    countPixel: { fontFamily: PIXEL_FONT, fontSize: 48, fontWeight: '400' },
     countOver: { color: c.red },
     countLimit: { fontSize: 24, fontWeight: '600', color: c.textFaint },
     muted: { fontSize: 13, color: c.textMuted, textAlign: 'center' },
