@@ -25,7 +25,9 @@ export function isBrakeAt(opts: {
   return hitFixed || repeat;
 }
 
-// prev→next로 잔을 더하는 구간에 브레이크 지점이 하나라도 있으면 true.
+// prev→next로 잔을 더하는 구간에 브레이크 지점(정수 잔수)을 하나라도 넘으면 true.
+// 반잔(0.5) 등 소수 스텝도 처리: prev 초과 ~ next 이하의 정수 N만 검사한다.
+// (예: 2.5→3.0은 N=3을 새로 밟음, 3.0→3.5는 새 정수 없음)
 export function crossesBrake(opts: {
   prev: number;
   next: number;
@@ -34,7 +36,7 @@ export function crossesBrake(opts: {
   repeatEveryDrinks: number;
 }): boolean {
   const { prev, next, limit, brakeCounts, repeatEveryDrinks } = opts;
-  for (let k = prev + 1; k <= next; k++) {
+  for (let k = Math.floor(prev) + 1; k <= next; k++) {
     if (isBrakeAt({ n: k, limit, brakeCounts, repeatEveryDrinks })) return true;
   }
   return false;

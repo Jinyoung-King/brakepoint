@@ -55,4 +55,12 @@ describe('crossesBrake', () => {
     expect(crossesBrake({ prev: 5, next: 8, ...base })).toBe(true); // 8잔째가 지점
     expect(crossesBrake({ prev: 1, next: 4, ...base })).toBe(true); // 3,4잔째
   });
+
+  it('반잔(0.5) 스텝: 정수 지점을 새로 밟을 때만 true', () => {
+    expect(crossesBrake({ prev: 2.5, next: 3, ...base })).toBe(true); // 3을 밟음
+    expect(crossesBrake({ prev: 3, next: 3.5, ...base })).toBe(false); // 새 정수 없음
+    expect(crossesBrake({ prev: 2, next: 2.5, ...base })).toBe(false); // 아직 3 안 됨
+    expect(crossesBrake({ prev: 3.5, next: 4, ...base })).toBe(true); // 4를 밟음
+    expect(crossesBrake({ prev: 4.5, next: 5, ...base })).toBe(true); // 한계 5 도달
+  });
 });

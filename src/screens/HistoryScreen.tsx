@@ -71,7 +71,7 @@ export default function HistoryScreen() {
     setManualOpen(true);
   };
   const saveManual = () => {
-    const count = parseInt(mCount, 10);
+    const count = parseFloat(mCount);
     if (!Number.isFinite(count) || count < 0) {
       Alert.alert('잔수를 입력해주세요');
       return;
@@ -572,7 +572,7 @@ export default function HistoryScreen() {
             <View style={styles.mRow}>
               <View style={styles.mCol}>
                 <Text style={styles.mLabel}>마신 {unit}</Text>
-                <TextInput style={styles.mInput} keyboardType="number-pad" value={mCount} onChangeText={setMCount} placeholder="0" placeholderTextColor={c.textFaint} />
+                <TextInput style={styles.mInput} keyboardType="decimal-pad" value={mCount} onChangeText={setMCount} placeholder="0" placeholderTextColor={c.textFaint} />
               </View>
               <View style={styles.mCol}>
                 <Text style={styles.mLabel}>한계</Text>

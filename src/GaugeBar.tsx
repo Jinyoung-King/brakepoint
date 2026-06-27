@@ -50,48 +50,64 @@ function Classic({ pct, effPercents, inBrake, c }: Props) {
 }
 
 // 칸 분할 체력바. 칸마다 위치에 따라 초록→노랑→빨강, 브레이크 칸은 주황 테두리.
+// 반잔(0.5)은 해당 칸을 부분 채움으로 표시.
 function HpBar({ count, limit, brakeCounts, c }: Props) {
   const s = makeStyles(c);
   if (limit <= 0) return <View style={s.track} />;
   const firstBrake = brakeCounts.length ? Math.min(...brakeCounts) : limit;
+  const colorAt = (i: number) => (i >= limit ? c.red : i >= firstBrake ? c.amber : c.green);
+  const full = Math.floor(count);
+  const frac = count - full;
   const cells = [];
   for (let i = 1; i <= limit; i++) {
-    const filled = i <= count;
     const isBrake = brakeCounts.includes(i);
-    let bg = c.track;
-    if (filled) bg = i >= limit ? c.red : i >= firstBrake ? c.amber : c.green;
+    const isPartial = i === full + 1 && frac > 0;
     cells.push(
       <View
         key={i}
         style={[
           s.hpCell,
-          { backgroundColor: bg },
+          { backgroundColor: i <= full ? colorAt(i) : c.track },
           isBrake && { borderColor: c.amber, borderWidth: 2 },
         ]}
-      />
+      >
+        {isPartial && (
+          <View style={[s.hpPartial, { width: `${frac * 100}%`, backgroundColor: colorAt(i) }]} />
+        )}
+      </View>
     );
   }
   const over = Math.max(0, count - limit);
   return (
     <View style={s.hpRow}>
       <View style={s.hpCells}>{cells}</View>
-      {over > 0 && <Text style={s.hpOver}>+{over}</Text>}
+      {over > 0 && <Text style={s.hpOver}>+{over % 1 === 0 ? over : over.toFixed(1)}</Text>}
     </View>
   );
 }
 
-// 하트 게이지. 한 하트 = 1잔, 마신 만큼 빨강, 초과분은 깨진 하트.
+// 하트 게이지. 한 하트 = 1잔, 마신 만큼 빨강, 반잔은 반투명 하트, 초과분은 깨진 하트.
 function Hearts({ count, limit }: Props) {
   if (limit <= 0) return <View style={{ height: 26 }} />;
-  const hearts = [];
-  for (let i = 1; i <= limit; i++) hearts.push(i <= count ? '❤️' : '🤍');
-  const over = Math.max(0, count - limit);
-  for (let i = 0; i < over; i++) hearts.push('💔');
+  const full = Math.floor(count);
+  const frac = count - full;
+  const tokens: ('full' | 'half' | 'empty')[] = [];
+  for (let i = 1; i <= limit; i++) {
+    if (i <= full) tokens.push('full');
+    else if (i === full + 1 && frac > 0) tokens.push('half');
+    else tokens.push('empty');
+  }
+  const broken = Math.floor(Math.max(0, count - limit));
   return (
     <View style={styles.heartRow}>
-      {hearts.map((h, i) => (
-        <Text key={i} style={styles.heart}>
-          {h}
+      {tokens.map((t, i) => (
+        <Text key={i} style={[styles.heart, t === 'half' && styles.heartHalf]}>
+          {t === 'empty' ? '🤍' : '❤️'}
+        </Text>
+      ))}
+      {Array.from({ length: broken }, (_, i) => (
+        <Text key={`b${i}`} style={styles.heart}>
+          💔
         </Text>
       ))}
     </View>
@@ -152,7 +168,8 @@ const makeStyles = (c: Palette) =>
     // hp
     hpRow: { width: '100%', flexDirection: 'row', alignItems: 'center', gap: 8 },
     hpCells: { flex: 1, flexDirection: 'row', gap: 3 },
-    hpCell: { flex: 1, height: 22, borderRadius: 4, backgroundColor: c.track },
+    hpCell: { flex: 1, height: 22, borderRadius: 4, backgroundColor: c.track, overflow: 'hidden' },
+    hpPartial: { position: 'absolute', left: 0, top: 0, bottom: 0, borderRadius: 4 },
     hpOver: { fontSize: 15, fontWeight: '800', color: c.red },
     // boss
     bossWrap: { width: '100%', gap: 4 },
@@ -176,4 +193,5 @@ const makeStyles = (c: Palette) =>
 const styles = StyleSheet.create({
   heartRow: { width: '100%', flexDirection: 'row', flexWrap: 'wrap', gap: 4, justifyContent: 'center' },
   heart: { fontSize: 24 },
+  heartHalf: { opacity: 0.4 },
 });

@@ -397,6 +397,12 @@ export default function HomeScreen({ navigation }: Props) {
             <Text style={styles.addBtnText}>+1{unit}</Text>
           </Pressable>
           {unit === '잔' && (
+            <Pressable style={styles.bottleBtn} onPress={() => onAdd(0.5)}>
+              <Text style={styles.bottleBtnText}>+½</Text>
+              <Text style={styles.bottleSub}>반잔</Text>
+            </Pressable>
+          )}
+          {unit === '잔' && (
             <Pressable style={styles.bottleBtn} onPress={() => onAdd(bottleToGlasses)}>
               <Text style={styles.bottleBtnText}>+1병</Text>
               <Text style={styles.bottleSub}>={bottleToGlasses}잔</Text>
