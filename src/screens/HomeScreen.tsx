@@ -30,6 +30,17 @@ import BacChart from '../BacChart';
 import GaugeBar from '../GaugeBar';
 import { isLoaded as isFontLoaded } from 'expo-font';
 import { PIXEL_FONT } from '../fonts';
+import type { GaugeStyle } from '../storage';
+
+// 게이지 바 탭 시 순환 순서 + 표시 이름
+const GAUGE_CYCLE: GaugeStyle[] = ['classic', 'hp', 'hearts', 'boss', 'mp'];
+const GAUGE_LABEL: Record<GaugeStyle, string> = {
+  classic: '기본',
+  hp: 'HP',
+  hearts: '하트',
+  boss: '보스',
+  mp: 'MP',
+};
 import { alcoholKcal, hangoverForecast, limitStreak, sessionsThisWeek } from '../stats';
 import { cancelCheckin } from '../checkin';
 import { geocodeAddress } from '../geocode';
@@ -67,7 +78,7 @@ const geocodeTransientMsg = (reason: 'rate-limited' | 'network' | 'error' | stri
 };
 
 export default function HomeScreen({ navigation }: Props) {
-  const { state, addDrink, undoDrink, addCig, endSession, setDrinkingMode, setHomeCoords, setHomeAddress, setPendingEnd } =
+  const { state, addDrink, undoDrink, addCig, endSession, setDrinkingMode, setHomeCoords, setHomeAddress, setPendingEnd, setGaugeStyle } =
     useAppState();
   const insets = useSafeAreaInsets();
   const c = useColors();
@@ -209,6 +220,13 @@ export default function HomeScreen({ navigation }: Props) {
     }
     if (n === 1 && gap < QUICK_GAP_MS)
       Alert.alert('천천히 마셔요', '방금 마셨어요. 한 잔 텀을 좀 더 두는 게 좋아요.');
+  };
+
+  // 게이지 바 탭 → 다음 스타일로 순환
+  const cycleGauge = () => {
+    tapHaptic();
+    const idx = GAUGE_CYCLE.indexOf(gaugeStyle);
+    setGaugeStyle(GAUGE_CYCLE[(idx + 1) % GAUGE_CYCLE.length]);
   };
 
   const onArrivedHome = () => {
@@ -383,7 +401,7 @@ export default function HomeScreen({ navigation }: Props) {
         </View>
 
         {/* 진행률 + 한 줄 상태 (페이스/브레이크 통합) */}
-        <View style={styles.card}>
+        <Pressable style={styles.card} onPress={cycleGauge} hitSlop={6}>
           <GaugeBar
             style={gaugeStyle}
             count={count}
@@ -395,11 +413,15 @@ export default function HomeScreen({ navigation }: Props) {
             overLimit={overLimit}
             c={c}
           />
+          <View style={styles.gaugeHint}>
+            <Ionicons name="color-palette-outline" size={12} color={c.textFaint} />
+            <Text style={styles.gaugeHintText}>{GAUGE_LABEL[gaugeStyle]} · 탭해서 변경</Text>
+          </View>
           <View style={styles.brakeRow}>
             {inBrake && <Ionicons name="warning" size={14} color={c.red} />}
             <Text style={[styles.brakeText, inBrake && styles.warnText]}>{statusText}</Text>
           </View>
-        </View>
+        </Pressable>
 
         {/* +1잔 / +1병 */}
         <View style={styles.addRow}>
@@ -693,6 +715,8 @@ const makeStyles = (c: Palette) =>
     muted: { fontSize: 13, color: c.textMuted, textAlign: 'center' },
     warnText: { color: c.red, fontWeight: '700' },
     card: { width: '100%', gap: 10 },
+    gaugeHint: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, marginTop: -4 },
+    gaugeHintText: { fontSize: 11, color: c.textFaint },
     brakeText: { fontSize: 13, color: c.textMuted, textAlign: 'center' },
     startCard: { width: '100%', backgroundColor: c.card, borderRadius: radius.md, padding: 16, gap: 10, borderWidth: 1, borderColor: c.border },
     startTitle: { fontSize: 15, color: c.text, fontWeight: '700' },
