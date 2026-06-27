@@ -5,6 +5,7 @@ import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 
 import { useColors } from '../useColors';
 import { darkColors } from '../theme';
+import { tapHaptic } from '../haptics';
 
 type Item = { label: string; icon: keyof typeof Ionicons.glyphMap; activeIcon: keyof typeof Ionicons.glyphMap };
 
@@ -31,7 +32,10 @@ export default function GlassTabBar({ state, navigation }: BottomTabBarProps) {
           const focused = state.index === i;
           const onPress = () => {
             const event = navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
-            if (!focused && !event.defaultPrevented) navigation.navigate(route.name);
+            if (!focused && !event.defaultPrevented) {
+              tapHaptic();
+              navigation.navigate(route.name);
+            }
           };
           return (
             <Pressable

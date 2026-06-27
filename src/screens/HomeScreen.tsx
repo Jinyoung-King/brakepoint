@@ -33,6 +33,7 @@ import { getCurrentPlace, getCurrentCoords } from '../location';
 import { buildSafeReturnMessage } from '../share';
 import { openFullScreenIntentSettings } from '../fakeCall/notifications';
 import { canUseFullScreenIntent } from '../../modules/fsi-permission';
+import { addHaptic, tapHaptic } from '../haptics';
 
 type Props = CompositeScreenProps<
   BottomTabScreenProps<MainTabParamList, 'Home'>,
@@ -193,6 +194,7 @@ export default function HomeScreen({ navigation }: Props) {
 
   // n잔 추가. 여러 잔을 한 번에 더해도(=병) 그 구간에 브레이크 지점이 있으면 게이트 발동.
   const onAdd = (n: number) => {
+    addHaptic();
     const prev = count;
     const next = prev + n;
     const gap = lastDrinkMs ? now - lastDrinkMs : Infinity;
@@ -421,7 +423,7 @@ export default function HomeScreen({ navigation }: Props) {
 
         {/* 방금 추가 취소 (잘못 누른 경우) */}
         {state.drinkEvents.length > 0 && (
-          <Pressable style={styles.undoBtn} onPress={undoDrink} hitSlop={6}>
+          <Pressable style={styles.undoBtn} onPress={() => { tapHaptic(); undoDrink(); }} hitSlop={6}>
             <Ionicons name="arrow-undo" size={14} color={c.textMuted} />
             <Text style={styles.undoText}>방금 추가 취소</Text>
           </Pressable>
@@ -437,7 +439,7 @@ export default function HomeScreen({ navigation }: Props) {
                 {count > 0 && cigs > 0 ? `  ·  잔당 ${(cigs / count).toFixed(1)}개비` : ''}
               </Text>
             </View>
-            <Pressable style={styles.smallBtn} onPress={addCig}>
+            <Pressable style={styles.smallBtn} onPress={() => { tapHaptic(); addCig(); }}>
               <Text style={styles.smallBtnText}>+1</Text>
             </Pressable>
           </View>
