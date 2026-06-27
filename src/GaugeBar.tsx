@@ -107,38 +107,42 @@ const pixel = StyleSheet.create({
   lo: { position: 'absolute', left: 0, right: 0, bottom: 0, height: '26%', backgroundColor: '#000', opacity: 0.22 },
 });
 
-// 하트 게이지(벡터 아이콘). 한 하트 = 1잔, 마신 만큼 빨강, 반잔은 반하트, 초과분은 깨진 하트.
+// 하트 게이지(벡터 아이콘). 한 하트 = 1잔, 마신 만큼 빨강, 부분잔(0.25 단위)은
+// 빈 하트 위에 채운 하트를 비율만큼 잘라 겹쳐 정확히 표시, 초과분은 깨진 하트.
 // 한도가 커도 항상 한 줄에 들어가도록 폭을 측정해 아이콘 크기를 자동 조절한다.
 function Hearts({ count, limit, c }: Props) {
   const [rowW, setRowW] = useState(0);
   if (limit <= 0) return <View style={{ height: 28 }} />;
   const full = Math.floor(count);
   const frac = count - full;
-  const tokens: ('full' | 'half' | 'empty')[] = [];
-  for (let i = 1; i <= limit; i++) {
-    if (i <= full) tokens.push('full');
-    else if (i === full + 1 && frac > 0) tokens.push('half');
-    else tokens.push('empty');
-  }
   const broken = Math.floor(Math.max(0, count - limit));
   const n = limit + broken;
   const gap = 6;
   // 아이콘은 거의 정사각형(가로폭 ≈ size). n개가 한 줄에 들어가게 크기 산출.
   const size = rowW > 0 ? Math.round(Math.max(16, Math.min(30, (rowW - gap * (n - 1)) / n))) : 24;
+  const items = [];
+  for (let i = 1; i <= limit; i++) {
+    if (i <= full) items.push(<Ionicons key={i} name="heart" size={size} color={c.red} />);
+    else if (i === full + 1 && frac > 0) items.push(<PartialHeart key={i} size={size} frac={frac} c={c} />);
+    else items.push(<Ionicons key={i} name="heart-outline" size={size} color={c.textFaint} />);
+  }
+  for (let i = 0; i < broken; i++)
+    items.push(<MaterialCommunityIcons key={`b${i}`} name="heart-broken" size={size} color={c.red} />);
   return (
     <View style={[styles.heartRow, { gap }]} onLayout={(e) => setRowW(e.nativeEvent.layout.width)}>
-      {tokens.map((t, i) =>
-        t === 'full' ? (
-          <Ionicons key={i} name="heart" size={size} color={c.red} />
-        ) : t === 'half' ? (
-          <Ionicons key={i} name="heart-half" size={size} color={c.red} />
-        ) : (
-          <Ionicons key={i} name="heart-outline" size={size} color={c.textFaint} />
-        )
-      )}
-      {Array.from({ length: broken }, (_, i) => (
-        <MaterialCommunityIcons key={`b${i}`} name="heart-broken" size={size} color={c.red} />
-      ))}
+      {items}
+    </View>
+  );
+}
+
+// 부분 하트: 빈 하트 위에 채운 하트를 frac 비율(가로)만큼 잘라 겹친다(정확한 0.25 등).
+function PartialHeart({ size, frac, c }: { size: number; frac: number; c: Palette }) {
+  return (
+    <View style={{ width: size, height: size }}>
+      <Ionicons name="heart-outline" size={size} color={c.textFaint} style={{ position: 'absolute', left: 0, top: 0 }} />
+      <View style={{ position: 'absolute', left: 0, top: 0, height: size, width: size * frac, overflow: 'hidden' }}>
+        <Ionicons name="heart" size={size} color={c.red} />
+      </View>
     </View>
   );
 }
