@@ -6,6 +6,7 @@ const GRAMS: Record<DrinkType, Record<DrinkUnit, number>> = {
   맥주: { 잔: 10, 병: 20, 캔: 16 }, // 500ml 4.5% ≈ 18g
   와인: { 잔: 12, 병: 60, 캔: 12 }, // 750ml 12% ≈ 71g, 잔 150ml ≈ 14g
   양주: { 잔: 12, 병: 200, 캔: 12 }, // 위스키 45ml 40% ≈ 14g
+  청하: { 잔: 5, 병: 30, 캔: 30 }, // 청하 295ml 13% ≈ 30g, 잔(소주잔) ≈ 5g
 };
 
 const ELIMINATION_PER_HOUR = 0.015; // %/시간 (대사 속도)

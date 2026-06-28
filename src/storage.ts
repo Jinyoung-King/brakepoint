@@ -19,7 +19,7 @@ export type GaugeStyle = 'classic' | 'hp' | 'hearts' | 'boss' | 'mp' | 'tacho' |
 
 export type Sex = 'male' | 'female';
 
-export type DrinkType = '소주' | '맥주' | '와인' | '양주';
+export type DrinkType = '소주' | '맥주' | '와인' | '양주' | '청하';
 
 export type DrinkEvent = { t: number; n: number }; // 마신 시각(epoch ms), 그때 추가한 양
 
