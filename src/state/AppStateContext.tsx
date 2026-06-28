@@ -24,15 +24,7 @@ type AppStateContextValue = {
   undoDrink: () => void; // 직전 추가(+1잔/+1병) 되돌리기
   addCig: () => void;
   endSession: (extra?: { place?: string; memo?: string; cost?: number }) => void; // 현재 술자리를 기록에 저장하고 초기화
-  addManualRecord: (r: {
-    count: number;
-    limit: number;
-    daysAgo: number;
-    time?: string;
-    place?: string;
-    memo?: string;
-    cost?: number;
-  }) => void; // 지난 술자리 수동 추가
+  addManualRecord: (r: reducers.ManualRecordInput) => void; // 지난 술자리 수동 추가
   clearHistory: () => void;
   importState: (next: AppState) => void; // 백업 복원 (전체 교체)
   deleteRecord: (id: string) => void;

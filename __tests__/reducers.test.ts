@@ -192,6 +192,13 @@ describe('addManualRecord', () => {
     expect(new Date(r.history[0].endedAt).getHours()).toBe(21);
   });
 
+  it('주종을 주면 단일 이벤트로 기록(통계 집계용), 없으면 빈 events', () => {
+    const withType = addManualRecord(base(), { count: 3, limit: 5, daysAgo: 0, type: '맥주' }, T);
+    expect(withType.history[0].events).toEqual([{ t: withType.history[0].endedAt, n: 3, type: '맥주', unit: '잔' }]);
+    const without = addManualRecord(base(), { count: 3, limit: 5, daysAgo: 0 }, T);
+    expect(without.history[0].events).toEqual([]);
+  });
+
   it('history를 endedAt 내림차순으로 정렬해 끼워넣는다', () => {
     const existing: SessionRecord = { id: 'now', endedAt: T, count: 1, limit: 5 };
     // 어제 기록을 수동 추가하면 오늘 기록 뒤로 정렬돼야 한다

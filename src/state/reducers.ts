@@ -1,6 +1,6 @@
 // AppState 전이(transition) 순수 함수. Provider는 이걸 호출만 한다.
 // `now`(epoch ms)를 인자로 받아 테스트가 결정적이도록 한다.
-import type { AppState, SessionRecord } from '../storage';
+import type { AppState, DrinkType, SessionRecord } from '../storage';
 
 export type EndSessionExtra = { place?: string; memo?: string; cost?: number };
 
@@ -12,6 +12,7 @@ export type ManualRecordInput = {
   place?: string;
   memo?: string;
   cost?: number;
+  type?: DrinkType; // 주종 (통계 주종별 집계용)
 };
 
 function sameDay(a: number, b: number): boolean {
@@ -89,9 +90,17 @@ export function deleteRecord(s: AppState, id: string): AppState {
   return { ...s, history: s.history.filter((r) => r.id !== id) };
 }
 
-export type RecordPatch = { count: number; limit: number; place?: string; memo?: string; cost?: number };
+export type RecordPatch = {
+  count: number;
+  limit: number;
+  place?: string;
+  memo?: string;
+  cost?: number;
+  type?: DrinkType;
+};
 
-// 기록 1건의 잔수·한계·장소·메모·술값만 수정. 날짜(endedAt)·차수·타임라인은 유지. 없는 id면 그대로.
+// 기록 1건의 잔수·한계·장소·메모·술값·주종을 수정. 날짜(endedAt)·차수는 유지. 없는 id면 그대로.
+// 주종(type)이 주어지면 타임라인을 그 주종 단일 이벤트로 재구성(통계 주종별 집계 반영).
 export function updateRecord(s: AppState, id: string, patch: RecordPatch): AppState {
   if (!s.history.some((r) => r.id === id)) return s;
   return {
@@ -105,6 +114,9 @@ export function updateRecord(s: AppState, id: string, patch: RecordPatch): AppSt
             place: patch.place?.trim() || undefined,
             memo: patch.memo?.trim() || undefined,
             cost: patch.cost && patch.cost > 0 ? patch.cost : undefined,
+            events: patch.type
+              ? [{ t: r.endedAt, n: patch.count, type: patch.type, unit: r.unit }]
+              : r.events,
           }
         : r
     ),
@@ -126,7 +138,8 @@ export function addManualRecord(s: AppState, r: ManualRecordInput, now: number):
     place: r.place?.trim() || undefined,
     memo: r.memo?.trim() || undefined,
     round: roundForDay(s.history, endedAt),
-    events: [],
+    // 주종이 있으면 단일 이벤트로 기록 → 주종별 통계에 잡힘.
+    events: r.type ? [{ t: endedAt, n: r.count, type: r.type, unit: s.unit }] : [],
     cost: r.cost && r.cost > 0 ? r.cost : undefined,
   };
   return { ...s, history: [rec, ...s.history].sort((a, b) => b.endedAt - a.endedAt) };

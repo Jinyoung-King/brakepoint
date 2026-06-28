@@ -4,7 +4,14 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 
 import { useAppState } from '../state/AppStateContext';
-import type { SessionRecord } from '../storage';
+import type { SessionRecord, DrinkType } from '../storage';
+
+const DRINK_TYPES: DrinkType[] = ['소주', '맥주', '와인', '양주', '청하'];
+const DAY_CHIPS = [
+  { label: '오늘', v: 0 },
+  { label: '어제', v: 1 },
+  { label: '그저께', v: 2 },
+];
 import { radius, type Palette } from '../theme';
 import { useColors } from '../useColors';
 import { limitStreak, sessionsThisWeek, dailyTotals, monthSpend, monthlyReport, hourlyTotals, peakHour, placeStats, typeTotals } from '../stats';
@@ -25,7 +32,7 @@ const mean = (rs: SessionRecord[]) =>
 
 export default function HistoryScreen() {
   const { state, clearHistory, addManualRecord, deleteRecord, updateRecord } = useAppState();
-  const { history, weeklyGoalSessions, limit, unit, monthlyBudget } = state;
+  const { history, weeklyGoalSessions, limit, unit, monthlyBudget, drinkType } = state;
   const [monthOffset, setMonthOffset] = useState(0);
   const streak = limitStreak(history);
   const weekCount = sessionsThisWeek(history);
@@ -48,6 +55,7 @@ export default function HistoryScreen() {
   const [mPlace, setMPlace] = useState('');
   const [mMemo, setMMemo] = useState('');
   const [mCost, setMCost] = useState('');
+  const [mType, setMType] = useState<DrinkType>(drinkType);
 
   const openManual = () => {
     setEditingId(null);
@@ -58,6 +66,7 @@ export default function HistoryScreen() {
     setMPlace('');
     setMMemo('');
     setMCost('');
+    setMType(drinkType);
     setManualOpen(true);
   };
   const openEdit = (rec: SessionRecord) => {
@@ -67,6 +76,7 @@ export default function HistoryScreen() {
     setMPlace(rec.place ?? '');
     setMMemo(rec.memo ?? '');
     setMCost(rec.cost ? String(rec.cost) : '');
+    setMType(rec.events?.[0]?.type ?? drinkType);
     setSelected(null);
     setManualOpen(true);
   };
@@ -81,7 +91,7 @@ export default function HistoryScreen() {
     const won = parseInt(mCost.replace(/[^0-9]/g, ''), 10);
     const cost = Number.isFinite(won) ? won : undefined;
     if (editingId) {
-      updateRecord(editingId, { count, limit: limitVal, place: mPlace, memo: mMemo, cost });
+      updateRecord(editingId, { count, limit: limitVal, place: mPlace, memo: mMemo, cost, type: mType });
     } else {
       addManualRecord({
         count,
@@ -91,6 +101,7 @@ export default function HistoryScreen() {
         place: mPlace,
         memo: mMemo,
         cost,
+        type: mType,
       });
     }
     setManualOpen(false);
@@ -600,17 +611,45 @@ export default function HistoryScreen() {
                 <TextInput style={styles.mInput} keyboardType="number-pad" value={mLimit} onChangeText={setMLimit} placeholder={String(limit)} placeholderTextColor={c.textFaint} />
               </View>
             </View>
+            <Text style={styles.mLabel}>주종</Text>
+            <View style={styles.mChips}>
+              {DRINK_TYPES.map((t) => {
+                const on = t === mType;
+                return (
+                  <Pressable key={t} style={[styles.mChip, on && styles.mChipOn]} onPress={() => setMType(t)}>
+                    <Text style={[styles.mChipText, on && styles.mChipTextOn]}>{t}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
             {!editingId && (
-              <View style={styles.mRow}>
-                <View style={styles.mCol}>
-                  <Text style={styles.mLabel}>며칠 전 (0=오늘)</Text>
-                  <TextInput style={styles.mInput} keyboardType="number-pad" value={mDaysAgo} onChangeText={setMDaysAgo} placeholder="0" placeholderTextColor={c.textFaint} />
+              <>
+                <Text style={styles.mLabel}>날짜</Text>
+                <View style={styles.mChips}>
+                  {DAY_CHIPS.map((d) => {
+                    const on = String(d.v) === mDaysAgo;
+                    return (
+                      <Pressable
+                        key={d.v}
+                        style={[styles.mChip, on && styles.mChipOn]}
+                        onPress={() => setMDaysAgo(String(d.v))}
+                      >
+                        <Text style={[styles.mChipText, on && styles.mChipTextOn]}>{d.label}</Text>
+                      </Pressable>
+                    );
+                  })}
                 </View>
-                <View style={styles.mCol}>
-                  <Text style={styles.mLabel}>시각 (HH:MM)</Text>
-                  <TextInput style={styles.mInput} value={mTime} onChangeText={setMTime} placeholder="21:00" placeholderTextColor={c.textFaint} />
+                <View style={styles.mRow}>
+                  <View style={styles.mCol}>
+                    <Text style={styles.mLabel}>며칠 전 (직접, 0=오늘)</Text>
+                    <TextInput style={styles.mInput} keyboardType="number-pad" value={mDaysAgo} onChangeText={setMDaysAgo} placeholder="0" placeholderTextColor={c.textFaint} />
+                  </View>
+                  <View style={styles.mCol}>
+                    <Text style={styles.mLabel}>시각 (HH:MM)</Text>
+                    <TextInput style={styles.mInput} value={mTime} onChangeText={setMTime} placeholder="21:00" placeholderTextColor={c.textFaint} />
+                  </View>
                 </View>
-              </View>
+              </>
             )}
             <Text style={styles.mLabel}>장소 (선택)</Text>
             <TextInput style={styles.mInput} value={mPlace} onChangeText={setMPlace} placeholder="예: 연신내 ○○" placeholderTextColor={c.textFaint} />
@@ -667,6 +706,11 @@ const makeStyles = (c: Palette) => StyleSheet.create({
   mRow: { flexDirection: 'row', gap: 12, marginTop: 4 },
   mCol: { flex: 1, gap: 4 },
   mLabel: { fontSize: 13, color: c.textMuted, marginTop: 6 },
+  mChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 4 },
+  mChip: { paddingVertical: 8, paddingHorizontal: 14, borderRadius: radius.sm, borderWidth: 1, borderColor: c.border },
+  mChipOn: { backgroundColor: c.blue, borderColor: c.blue },
+  mChipText: { fontSize: 14, color: c.textMuted, fontWeight: '600' },
+  mChipTextOn: { color: '#fff' },
   mInput: { borderWidth: 1, borderColor: c.border, backgroundColor: c.cardAlt, color: c.text, borderRadius: radius.sm, paddingHorizontal: 12, paddingVertical: 10, fontSize: 16 },
   mBtns: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 20, marginTop: 16 },
   mSave: { backgroundColor: c.blue, paddingVertical: 12, paddingHorizontal: 20, borderRadius: radius.sm },
