@@ -24,13 +24,15 @@ import { useAppState } from '../state/AppStateContext';
 import { useMorningSchedule } from '../calendar/useMorningSchedule';
 import { radius, type Palette } from '../theme';
 import { useColors } from '../useColors';
-import { alcoholGrams, estimateBac, hoursUntil, fmtHours, bacCurve, DRIVE_LIMIT } from '../bac';
+import { alcoholGrams, eventGrams, estimateBac, hoursUntil, fmtHours, bacCurve, DRIVE_LIMIT } from '../bac';
 import { effectiveBrakePercents, brakeCountsFor, crossesBrake } from '../brake';
 import BacChart from '../BacChart';
 import GaugeBar from '../GaugeBar';
 import { isLoaded as isFontLoaded } from 'expo-font';
 import { PIXEL_FONT } from '../fonts';
-import type { GaugeStyle } from '../storage';
+import type { GaugeStyle, DrinkType } from '../storage';
+
+const DRINK_TYPES: DrinkType[] = ['소주', '맥주', '와인', '양주', '청하'];
 
 // 게이지 바 탭 시 순환 순서 + 표시 이름
 const GAUGE_CYCLE: GaugeStyle[] = ['classic', 'hp', 'hearts', 'boss', 'mp', 'tacho', 'protoss'];
@@ -80,7 +82,7 @@ const geocodeTransientMsg = (reason: 'rate-limited' | 'network' | 'error' | stri
 };
 
 export default function HomeScreen({ navigation }: Props) {
-  const { state, addDrink, undoDrink, addCig, endSession, setDrinkingMode, setHomeCoords, setHomeAddress, setPendingEnd, setGaugeStyle } =
+  const { state, addDrink, undoDrink, addCig, endSession, setDrinkingMode, setHomeCoords, setHomeAddress, setPendingEnd, setGaugeStyle, setDrinkType } =
     useAppState();
   const insets = useSafeAreaInsets();
   const c = useColors();
@@ -156,22 +158,33 @@ export default function HomeScreen({ navigation }: Props) {
     }
   };
 
-  // BAC 추정
+  // BAC 추정 — 잔마다 그때 주종/단위로 순알코올을 합산(섞어 마셔도 정확).
   const hoursSince = sessionStartMs ? (now - sessionStartMs) / 3600000 : 0;
-  const grams = alcoholGrams(count, unit, drinkType);
+  const grams = drinkEvents.length
+    ? drinkEvents.reduce((sum, e) => sum + eventGrams(e, unit, drinkType), 0)
+    : alcoholGrams(count, unit, drinkType);
   const bac = estimateBac({ grams, weightKg, sex, hoursSinceStart: hoursSince });
   const canDrive = bac < DRIVE_LIMIT;
   // BAC 시간곡선(잔별 순알코올 g 사용). now가 바뀔 때만 재계산.
   const bacPoints = useMemo(
     () =>
       bacCurve({
-        events: drinkEvents.map((e) => ({ t: e.t, grams: alcoholGrams(e.n, unit, drinkType) })),
+        events: drinkEvents.map((e) => ({ t: e.t, grams: eventGrams(e, unit, drinkType) })),
         weightKg,
         sex,
         nowMs: now,
       }),
     [drinkEvents, unit, drinkType, weightKg, sex, now]
   );
+  // 이번 술자리 주종별 잔수 합계 (섞어 마셨을 때 분해 표시용)
+  const mixByType = useMemo(() => {
+    const m: Partial<Record<typeof drinkType, number>> = {};
+    for (const e of drinkEvents) {
+      const t = e.type ?? drinkType;
+      m[t] = (m[t] ?? 0) + e.n;
+    }
+    return Object.entries(m).filter(([, n]) => (n ?? 0) > 0);
+  }, [drinkEvents, drinkType]);
   const minsSinceLast = lastDrinkMs ? Math.floor((now - lastDrinkMs) / 60000) : null;
 
   const [endOpen, setEndOpen] = useState(false);
@@ -418,6 +431,22 @@ export default function HomeScreen({ navigation }: Props) {
           </View>
         </Pressable>
 
+        {/* 지금 마시는 술 (섞어 마실 때 잔마다 주종 기록) */}
+        <View style={styles.typeRow}>
+          {DRINK_TYPES.map((t) => {
+            const on = t === drinkType;
+            return (
+              <Pressable
+                key={t}
+                style={[styles.typeChip, on && styles.typeChipActive]}
+                onPress={() => { tapHaptic(); setDrinkType(t); }}
+              >
+                <Text style={[styles.typeChipText, on && styles.typeChipTextActive]}>{t}</Text>
+              </Pressable>
+            );
+          })}
+        </View>
+
         {/* +1잔 / +1병 */}
         <View style={styles.addRow}>
           <Pressable style={styles.addBtn} onPress={() => onAdd(1)}>
@@ -528,6 +557,12 @@ export default function HomeScreen({ navigation }: Props) {
                 약 {alcoholKcal(grams)}kcal · 숙취 위험 {hangoverForecast(bac).level}
               </Text>
             </View>
+            {mixByType.length > 1 && (
+              <Text style={styles.muted}>
+                {mixByType.map(([t, n]) => `${t} ${n}`).join(' · ')}
+                {unit}
+              </Text>
+            )}
             <Text style={styles.disclaimer}>
               {hangoverForecast(bac).tip} · 추정치이니 운전 판단 근거로 쓰지 마세요.
             </Text>
@@ -768,6 +803,11 @@ const makeStyles = (c: Palette) =>
     bacSummaryValue: { fontSize: 16, fontWeight: '800' },
     bacDetail: { width: '100%', backgroundColor: c.cardAlt, borderRadius: radius.md, padding: 14, gap: 4, marginTop: -8 },
     disclaimer: { fontSize: 11, color: c.textFaint, marginTop: 2 },
+    typeRow: { width: '100%', flexDirection: 'row', gap: 6 },
+    typeChip: { flex: 1, paddingVertical: 8, borderRadius: radius.sm, borderWidth: 1, borderColor: c.border, alignItems: 'center' },
+    typeChipActive: { backgroundColor: c.blue, borderColor: c.blue },
+    typeChipText: { fontSize: 13, fontWeight: '600', color: c.textMuted },
+    typeChipTextActive: { color: '#fff' },
     addRow: { width: '100%', flexDirection: 'row', gap: 10 },
     addBtn: { flex: 2, backgroundColor: c.blue, paddingVertical: 18, borderRadius: radius.lg, alignItems: 'center' },
     addBtnText: { color: '#fff', fontSize: 24, fontWeight: '800' },

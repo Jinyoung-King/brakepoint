@@ -35,7 +35,7 @@ export function addDrink(s: AppState, n: number, now: number): AppState {
     count: s.count + n,
     lastDrinkMs: now,
     sessionStartMs: s.sessionStartMs ?? now,
-    drinkEvents: [...s.drinkEvents, { t: now, n }],
+    drinkEvents: [...s.drinkEvents, { t: now, n, type: s.drinkType, unit: s.unit }],
   };
 }
 

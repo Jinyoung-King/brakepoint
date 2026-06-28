@@ -21,7 +21,9 @@ export type Sex = 'male' | 'female';
 
 export type DrinkType = '소주' | '맥주' | '와인' | '양주' | '청하';
 
-export type DrinkEvent = { t: number; n: number }; // 마신 시각(epoch ms), 그때 추가한 양
+// 마신 시각(epoch ms), 그때 추가한 양, 그리고 그때의 주종/단위(섞어 마실 때 BAC 정확도용).
+// type/unit은 구버전 기록 호환을 위해 optional — 없으면 세션 기본값으로 대체.
+export type DrinkEvent = { t: number; n: number; type?: DrinkType; unit?: DrinkUnit };
 
 export type SessionRecord = {
   id: string;

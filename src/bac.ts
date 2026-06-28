@@ -16,6 +16,15 @@ export function alcoholGrams(count: number, unit: DrinkUnit, type: DrinkType): n
   return count * (GRAMS[type]?.[unit] ?? 8);
 }
 
+// 잔 이벤트의 순알코올량(g). 이벤트에 주종/단위가 있으면 그걸로, 없으면(구버전) 세션 기본값으로.
+export function eventGrams(
+  e: { n: number; type?: DrinkType; unit?: DrinkUnit },
+  unit: DrinkUnit,
+  type: DrinkType
+): number {
+  return alcoholGrams(e.n, e.unit ?? unit, e.type ?? type);
+}
+
 // Widmark 추정. 반환: 혈중알코올농도 % (예: 0.05)
 export function estimateBac(opts: {
   grams: number;

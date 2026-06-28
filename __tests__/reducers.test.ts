@@ -22,7 +22,7 @@ describe('addDrink', () => {
     expect(s.count).toBe(1);
     expect(s.sessionStartMs).toBe(T);
     expect(s.lastDrinkMs).toBe(T);
-    expect(s.drinkEvents).toEqual([{ t: T, n: 1 }]);
+    expect(s.drinkEvents).toEqual([{ t: T, n: 1, type: '소주', unit: '잔' }]);
   });
 
   it('이미 진행 중이면 sessionStartMs는 유지하고 lastDrinkMs만 갱신', () => {
@@ -35,7 +35,7 @@ describe('addDrink', () => {
     expect(s.count).toBe(5);
     expect(s.sessionStartMs).toBe(start); // 유지
     expect(s.lastDrinkMs).toBe(T);
-    expect(s.drinkEvents).toEqual([{ t: start, n: 2 }, { t: T, n: 3 }]);
+    expect(s.drinkEvents).toEqual([{ t: start, n: 2 }, { t: T, n: 3, type: '소주', unit: '잔' }]);
   });
 });
 
@@ -44,7 +44,7 @@ describe('undoDrink', () => {
     const s = addDrink(addDrink(base(), 1, T - HOUR), 2, T); // count 3, events 2개
     const u = undoDrink(s);
     expect(u.count).toBe(1);
-    expect(u.drinkEvents).toEqual([{ t: T - HOUR, n: 1 }]);
+    expect(u.drinkEvents).toEqual([{ t: T - HOUR, n: 1, type: '소주', unit: '잔' }]);
     expect(u.lastDrinkMs).toBe(T - HOUR); // 이전 이벤트 시각으로 복귀
     expect(u.sessionStartMs).toBe(T - HOUR); // 아직 잔이 남아있으니 세션 유지
   });
