@@ -15,6 +15,7 @@ import {
   saveState,
 } from '../storage';
 import * as reducers from './reducers';
+import { consumePendingWidgetAdds } from '../../modules/widget-bridge';
 
 type AppStateContextValue = {
   state: AppState;
@@ -84,7 +85,13 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   // (백그라운드에선 JS가 멈춰 메모리 변경이 없으므로 디스크가 최신 = 안전)
   useEffect(() => {
     const sub = RNAppState.addEventListener('change', (s) => {
-      if (s === 'active' && loaded.current) loadState().then(setState);
+      if (s === 'active' && loaded.current) {
+        // 디스크 재로드 + 위젯 "+1" 미반영분 흡수를 한 번의 setState로(클로버 방지).
+        loadState().then((disk) => {
+          const pending = consumePendingWidgetAdds();
+          setState(pending > 0 ? reducers.addDrink(disk, pending, Date.now()) : disk);
+        });
+      }
     });
     return () => sub.remove();
   }, []);

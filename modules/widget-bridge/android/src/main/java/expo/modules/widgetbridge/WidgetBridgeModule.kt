@@ -7,31 +7,42 @@ import android.content.Intent
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
 
-// 폰 앱이 현재 잔/한계를 위젯에 반영. prefs에 저장하고 위젯 갱신 브로드캐스트를 보낸다.
+// 폰 앱 ↔ 위젯 다리.
+// - updateWidget: 현재 잔/한계를 prefs에 저장하고 위젯 다시 그림.
+// - consumePendingAdd: 위젯 "+1"로 쌓인 미반영 횟수를 읽고 0으로 리셋(앱이 흡수).
 class WidgetBridgeModule : Module() {
   override fun definition() = ModuleDefinition {
     Name("WidgetBridge")
 
     Function("updateWidget") { count: Double, limit: Int ->
       val ctx = appContext.reactContext ?: return@Function
-      val text = if (count % 1.0 == 0.0) count.toInt().toString() else count.toString()
       ctx
         .getSharedPreferences(BrakepointWidgetProvider.PREFS, Context.MODE_PRIVATE)
         .edit()
-        .putString("count", text)
+        .putFloat("countF", count.toFloat())
         .putInt("limit", limit)
         .apply()
+      refresh(ctx)
+    }
 
-      val manager = AppWidgetManager.getInstance(ctx)
-      val component = ComponentName(ctx, BrakepointWidgetProvider::class.java)
-      val ids = manager.getAppWidgetIds(component)
-      if (ids.isNotEmpty()) {
-        val intent = Intent(ctx, BrakepointWidgetProvider::class.java).apply {
-          action = AppWidgetManager.ACTION_APPWIDGET_UPDATE
-          putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, ids)
-        }
-        ctx.sendBroadcast(intent)
+    Function("consumePendingAdd") {
+      val ctx = appContext.reactContext ?: return@Function 0
+      val prefs = ctx.getSharedPreferences(BrakepointWidgetProvider.PREFS, Context.MODE_PRIVATE)
+      val pending = prefs.getInt("pendingAdd", 0)
+      if (pending != 0) prefs.edit().putInt("pendingAdd", 0).apply()
+      pending
+    }
+  }
+
+  private fun refresh(ctx: Context) {
+    val manager = AppWidgetManager.getInstance(ctx)
+    val ids = manager.getAppWidgetIds(ComponentName(ctx, BrakepointWidgetProvider::class.java))
+    if (ids.isNotEmpty()) {
+      val intent = Intent(ctx, BrakepointWidgetProvider::class.java).apply {
+        action = AppWidgetManager.ACTION_APPWIDGET_UPDATE
+        putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, ids)
       }
+      ctx.sendBroadcast(intent)
     }
   }
 }
