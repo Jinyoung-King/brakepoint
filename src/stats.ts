@@ -168,6 +168,26 @@ export function peakHour(hours: number[]): number | null {
   return idx >= 0 ? idx : null;
 }
 
+// 주종별 총 섭취 잔수 (desc). 잔의 type(섞어 마시기 기록)을 사용하고,
+// type 없는 잔(구버전)이나 수동 기록(events 없음)은 '기타'로 합산.
+export function typeTotals(history: SessionRecord[]): { type: string; count: number }[] {
+  const m = new Map<string, number>();
+  for (const r of history) {
+    if (r.events && r.events.length > 0) {
+      for (const e of r.events) {
+        const key = e.type ?? '기타';
+        m.set(key, (m.get(key) ?? 0) + e.n);
+      }
+    } else if (r.count > 0) {
+      m.set('기타', (m.get('기타') ?? 0) + r.count);
+    }
+  }
+  return Array.from(m.entries())
+    .map(([type, count]) => ({ type, count }))
+    .filter((t) => t.count > 0)
+    .sort((a, b) => b.count - a.count);
+}
+
 // 장소별 통계 (세션 수 desc), 상위 limit개
 export function placeStats(
   history: SessionRecord[],

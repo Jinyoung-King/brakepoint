@@ -12,6 +12,7 @@ import {
   hourlyTotals,
   peakHour,
   placeStats,
+  typeTotals,
 } from '../src/stats';
 import type { SessionRecord } from '../src/storage';
 
@@ -236,5 +237,30 @@ describe('placeStats', () => {
     expect(s[0].place).toBe('A');
     expect(s[0].sessions).toBe(2);
     expect(s[0].avg).toBe(3);
+  });
+});
+
+describe('typeTotals', () => {
+  const r = (events: { t: number; n: number; type?: string }[], count: number): SessionRecord => ({
+    id: String(Math.random()),
+    endedAt: 0,
+    count,
+    limit: 5,
+    events: events as SessionRecord['events'],
+  });
+
+  it('sums per drink type from events (desc)', () => {
+    const h = [
+      r([{ t: 1, n: 3, type: '소주' }, { t: 2, n: 2, type: '양주' }], 5),
+      r([{ t: 3, n: 2, type: '소주' }], 2),
+    ];
+    const s = typeTotals(h);
+    expect(s[0]).toEqual({ type: '소주', count: 5 });
+    expect(s.find((x) => x.type === '양주')?.count).toBe(2);
+  });
+
+  it('untyped events and manual records (no events) go to 기타', () => {
+    const h = [r([{ t: 1, n: 2 }], 2), r([], 3)];
+    expect(typeTotals(h)).toEqual([{ type: '기타', count: 5 }]);
   });
 });

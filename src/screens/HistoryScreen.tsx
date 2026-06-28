@@ -7,7 +7,7 @@ import { useAppState } from '../state/AppStateContext';
 import type { SessionRecord } from '../storage';
 import { radius, type Palette } from '../theme';
 import { useColors } from '../useColors';
-import { limitStreak, sessionsThisWeek, dailyTotals, monthSpend, monthlyReport, hourlyTotals, peakHour, placeStats } from '../stats';
+import { limitStreak, sessionsThisWeek, dailyTotals, monthSpend, monthlyReport, hourlyTotals, peakHour, placeStats, typeTotals } from '../stats';
 
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
@@ -160,6 +160,8 @@ export default function HistoryScreen() {
   // 비용/장소
   const spend = monthSpend(history, calYear, calMonth);
   const places = placeStats(history);
+  const byType = typeTotals(history);
+  const typeMax = Math.max(1, ...byType.map((t) => t.count));
 
   // 시간대별 음주 (전체 기록)
   const hourly = hourlyTotals(history);
@@ -390,6 +392,25 @@ export default function HistoryScreen() {
               {monthlyBudget > 0 && spend > monthlyBudget && (
                 <Text style={[styles.muted, styles.statNumWarn]}>예산을 {won(spend - monthlyBudget)}원 초과했어요</Text>
               )}
+            </View>
+          )}
+
+          {/* 주종별 섭취 */}
+          {byType.length > 0 && (
+            <View style={styles.chartCard}>
+              <Text style={styles.chartTitle}>주종별 섭취</Text>
+              {byType.map((t) => (
+                <View key={t.type} style={styles.typeStatRow}>
+                  <Text style={styles.typeStatName}>{t.type}</Text>
+                  <View style={styles.typeStatTrack}>
+                    <View style={[styles.typeStatFill, { width: `${(t.count / typeMax) * 100}%` }]} />
+                  </View>
+                  <Text style={styles.typeStatNum}>
+                    {t.count}
+                    {unit}
+                  </Text>
+                </View>
+              ))}
             </View>
           )}
 
@@ -684,6 +705,11 @@ const makeStyles = (c: Palette) => StyleSheet.create({
   hourAxisLabel: { fontSize: 10, color: c.textFaint },
   placeName: { fontSize: 14, color: c.text, fontWeight: '600', flex: 1 },
   chartTitle: { fontSize: 13, color: c.textMuted },
+  typeStatRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  typeStatName: { width: 40, fontSize: 14, color: c.text, fontWeight: '600' },
+  typeStatTrack: { flex: 1, height: 10, backgroundColor: c.cardAlt, borderRadius: 5, overflow: 'hidden' },
+  typeStatFill: { height: '100%', backgroundColor: c.blue, borderRadius: 5 },
+  typeStatNum: { width: 52, textAlign: 'right', fontSize: 13, color: c.textMuted },
   reportRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   reportVal: { fontSize: 14, color: c.text, fontWeight: '600' },
   wdChart: { flexDirection: 'row', alignItems: 'flex-end', height: 64, gap: 6, marginTop: 4 },
