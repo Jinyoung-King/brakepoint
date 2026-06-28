@@ -14,6 +14,7 @@ import CheckinController from './src/CheckinController';
 import WeeklyReportController from './src/WeeklyReportController';
 import OngoingController from './src/OngoingController';
 import WearController from './src/WearController';
+import WidgetController from './src/WidgetController';
 import ErrorBoundary from './src/ErrorBoundary';
 import { lightColors } from './src/theme';
 import { useColors } from './src/useColors';
@@ -46,6 +47,7 @@ function Root() {
       <WeeklyReportController />
       <OngoingController />
       <WearController />
+      <WidgetController />
       <ErrorBoundary>
         <RootNavigator />
       </ErrorBoundary>
