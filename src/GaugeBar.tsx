@@ -240,27 +240,23 @@ function ProtossBar({ count, limit, c }: Props) {
   const shieldPct = shieldMax > 0 ? shieldRem / shieldMax : 0;
   const hpPct = hpMax > 0 ? hpRem / hpMax : 0;
   const hpColor = hpPct > 0.5 ? PROTOSS.green : hpPct > 0.25 ? PROTOSS.yellow : PROTOSS.red;
-  // 쉴드·체력 동일한 세그먼트 수(스타1 체력바처럼 얇은 칸 + 검은 칸선)
+  // 동일 세그먼트 수. 각 칸 = 위 쉴드(파랑) + 아래 체력(초록) 한 몸. 검은 칸선으로 분리.
   const SEG = Math.max(8, Math.round(limit * DOTS_PER_DRINK));
   const shieldLit = Math.round(shieldPct * SEG);
   const hpLit = Math.round(hpPct * SEG);
-  // 체력바 왼쪽 2칸은 더 높고 거기서 비스듬히 내려간다(스타1 라이프바 모양).
-  const TALL = 18;
-  const SHORT = 11;
-  const hpH = (i: number) => (i < 2 ? TALL : i < 4 ? TALL - (i - 1) * 3 : SHORT); // 18,18,15,12,11…
+  // 스타1 라이프바: 왼쪽이 높고 오른쪽으로 비스듬히 내려간다(세그 높이 프로필, 바닥 정렬).
+  const TALL = 22;
+  const SHORT = 13;
+  const segH = (i: number) => Math.max(SHORT, TALL - i * 4); // 22,18,14,13,13…
 
   return (
-    <View style={s.ptWrap}>
-      <View style={s.ptShieldRow}>
-        {Array.from({ length: SEG }, (_, i) => (
-          <View key={i} style={[s.ptSeg, { backgroundColor: i < shieldLit ? PROTOSS.shield : PROTOSS.empty }]} />
-        ))}
-      </View>
-      <View style={s.ptHpRow}>
-        {Array.from({ length: SEG }, (_, i) => (
-          <View key={i} style={{ flex: 1, height: hpH(i), backgroundColor: i < hpLit ? hpColor : PROTOSS.empty }} />
-        ))}
-      </View>
+    <View style={s.ptBar}>
+      {Array.from({ length: SEG }, (_, i) => (
+        <View key={i} style={{ flex: 1, height: segH(i) }}>
+          <View style={{ height: segH(i) * 0.4, backgroundColor: i < shieldLit ? PROTOSS.shield : PROTOSS.empty }} />
+          <View style={{ flex: 1, backgroundColor: i < hpLit ? hpColor : PROTOSS.empty }} />
+        </View>
+      ))}
     </View>
   );
 }
@@ -361,12 +357,9 @@ const makeStyles = (c: Palette) =>
     mpFill: { height: '100%', backgroundColor: MP.blue, borderRadius: 9 },
     mpGloss: { height: '45%', backgroundColor: '#fff', opacity: 0.3, borderTopLeftRadius: 9, borderTopRightRadius: 9 },
     mpTick: { position: 'absolute', top: 0, bottom: 0, width: 1, backgroundColor: '#0a1830', opacity: 0.6 },
-    // 프로토스(스타1 라이프바) — 위 쉴드 / 아래 체력, 붙어있음(gap 0). 검은 칸선.
-    // 체력바는 왼쪽이 높고 비스듬히 내려가는 프로필(세그 높이를 다르게, 바닥 정렬).
-    ptWrap: { width: '100%', gap: 0, alignItems: 'stretch' },
-    ptShieldRow: { width: '100%', flexDirection: 'row', gap: 1, height: 8, backgroundColor: '#000', paddingHorizontal: 1, paddingTop: 1 },
-    ptHpRow: { width: '100%', flexDirection: 'row', gap: 1, height: 18, backgroundColor: '#000', paddingHorizontal: 1, paddingBottom: 1, alignItems: 'flex-end' },
-    ptSeg: { flex: 1, height: '100%' },
+    // 프로토스(스타1 라이프바) — 한 바. 각 칸 위=쉴드/아래=체력. 검은 칸선, 바닥 정렬,
+    // 왼쪽이 높고 오른쪽으로 비스듬히 내려가는 실루엣.
+    ptBar: { width: '100%', flexDirection: 'row', gap: 1, height: 22, backgroundColor: '#000', paddingHorizontal: 1, paddingVertical: 1, alignItems: 'flex-end' },
     // 타코미터 — 반원 다이얼 + 바늘
     tachoWrap: { width: '100%', alignItems: 'center', gap: 2 },
     tachoSpoke: { position: 'absolute', bottom: 0, width: 2, alignItems: 'center', transformOrigin: 'bottom' },
