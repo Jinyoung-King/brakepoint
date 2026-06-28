@@ -1,0 +1,6 @@
+// 독립 Wear OS 앱(메인 Expo 앱과 분리). 워치 APK를 따로 빌드해 워치에 설치한다.
+plugins {
+  id 'com.android.application' version '8.5.2' apply false
+  id 'org.jetbrains.kotlin.android' version '2.0.21' apply false
+  id 'org.jetbrains.kotlin.plugin.compose' version '2.0.21' apply false
+}
