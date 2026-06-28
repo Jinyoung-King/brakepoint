@@ -20,6 +20,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { useAppState } from '../state/AppStateContext';
 import type { Difficulty, DrinkUnit, ThemeMode, Sex, DrinkType, GaugeStyle } from '../storage';
 import { radius, type Palette } from '../theme';
+import { alcoholGrams } from '../bac';
 import { useColors } from '../useColors';
 import { importWeightFromHealthConnect, openHealthConnectSettings } from '../health';
 import { exportBackup, importBackup } from '../backupIO';
@@ -257,6 +258,15 @@ export default function SettingsScreen() {
   const [brake2Text, setBrake2Text] = useState(String(brake2));
   const [repeatText, setRepeatText] = useState(String(repeatEveryDrinks));
 
+  // 주량 계산기: "소주 2병" 같은 주량을 순알코올량으로 계산해 한계 잔수로 환산.
+  const [capAmount, setCapAmount] = useState('2');
+  const [capUnit, setCapUnit] = useState<DrinkUnit>('병');
+  const [capType, setCapType] = useState<DrinkType>(drinkType);
+  const capN = parseFloat(capAmount);
+  const capGrams = Number.isFinite(capN) && capN > 0 ? alcoholGrams(capN, capUnit, capType) : 0;
+  const perUnit = alcoholGrams(1, unit, drinkType); // 현재 추적 단위·주종 1잔당 알코올
+  const calcLimit = capGrams > 0 && perUnit > 0 ? Math.max(1, Math.round(capGrams / perUnit)) : 0;
+
   const onLimitChange = (t: string) => {
     setLimitText(t);
     const n = parseInt(t, 10);
@@ -303,6 +313,58 @@ export default function SettingsScreen() {
           placeholder="5"
         />
         <Text style={styles.help}>설정한 브레이크 %에서 인지 게이트가 발동합니다.</Text>
+
+        <Text style={styles.subTitle}>주량 계산기</Text>
+        <Text style={styles.help}>예: 소주 2병이 주량이면 → 순알코올로 계산해 한계 잔수로 등록해요.</Text>
+        <View style={styles.calcRow}>
+          <TextInput
+            style={[styles.input, styles.calcAmount]}
+            keyboardType="decimal-pad"
+            value={capAmount}
+            onChangeText={setCapAmount}
+            placeholder="2"
+            placeholderTextColor={c.textFaint}
+          />
+          <View style={styles.gaugeWrap}>
+            {UNITS.map((u) => (
+              <Pressable
+                key={u}
+                style={[styles.gaugeChip, capUnit === u && styles.segmentItemActive]}
+                onPress={() => setCapUnit(u)}
+              >
+                <Text style={[styles.segmentText, capUnit === u && styles.segmentTextActive]}>{u}</Text>
+              </Pressable>
+            ))}
+          </View>
+        </View>
+        <View style={styles.gaugeWrap}>
+          {DRINK_TYPES.map((t) => (
+            <Pressable
+              key={t}
+              style={[styles.gaugeChip, capType === t && styles.segmentItemActive]}
+              onPress={() => setCapType(t)}
+            >
+              <Text style={[styles.segmentText, capType === t && styles.segmentTextActive]}>{t}</Text>
+            </Pressable>
+          ))}
+        </View>
+        {calcLimit > 0 && (
+          <Text style={styles.help}>
+            {capType} {capAmount}
+            {capUnit} ≈ 순알코올 {Math.round(capGrams)}g ≈ {calcLimit}
+            {unit}
+          </Text>
+        )}
+        <Pressable
+          style={[styles.calcBtn, calcLimit <= 0 && styles.calcBtnOff]}
+          disabled={calcLimit <= 0}
+          onPress={() => {
+            setLimit(calcLimit);
+            setLimitText(String(calcLimit));
+          }}
+        >
+          <Text style={styles.calcBtnText}>이 주량을 한계로 등록{calcLimit > 0 ? ` (${calcLimit}${unit})` : ''}</Text>
+        </Pressable>
 
         <Text style={styles.subTitle}>단위</Text>
         <View style={styles.segment}>
@@ -715,6 +777,11 @@ const makeStyles = (c: Palette) => StyleSheet.create({
   segment: { flexDirection: 'row', gap: 8 },
   gaugeWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   gaugeChip: { paddingVertical: 10, paddingHorizontal: 16, borderRadius: radius.sm, borderWidth: 1, borderColor: c.border },
+  calcRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  calcAmount: { flex: 1 },
+  calcBtn: { backgroundColor: c.blue, paddingVertical: 12, borderRadius: radius.sm, alignItems: 'center', marginTop: 8 },
+  calcBtnOff: { backgroundColor: c.cardAlt },
+  calcBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
   segmentItem: {
     flex: 1,
     paddingVertical: 12,
