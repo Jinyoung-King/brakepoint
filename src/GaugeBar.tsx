@@ -244,16 +244,11 @@ function ProtossBar({ count, limit, c }: Props) {
   const SEG = Math.max(8, Math.round(limit * DOTS_PER_DRINK));
   const shieldLit = Math.round(shieldPct * SEG);
   const hpLit = Math.round(hpPct * SEG);
-  // 스타1 라이프바: 왼쪽이 높고 오른쪽으로 비스듬히 내려간다(세그 높이 프로필, 바닥 정렬).
-  const TALL = 22;
-  const SHORT = 13;
-  const segH = (i: number) => Math.max(SHORT, TALL - i * 4); // 22,18,14,13,13…
-
   return (
     <View style={s.ptBar}>
       {Array.from({ length: SEG }, (_, i) => (
-        <View key={i} style={{ flex: 1, height: segH(i) }}>
-          <View style={{ height: segH(i) * 0.4, backgroundColor: i < shieldLit ? PROTOSS.shield : PROTOSS.empty }} />
+        <View key={i} style={s.ptSeg}>
+          <View style={{ height: '40%', backgroundColor: i < shieldLit ? PROTOSS.shield : PROTOSS.empty }} />
           <View style={{ flex: 1, backgroundColor: i < hpLit ? hpColor : PROTOSS.empty }} />
         </View>
       ))}
@@ -357,9 +352,9 @@ const makeStyles = (c: Palette) =>
     mpFill: { height: '100%', backgroundColor: MP.blue, borderRadius: 9 },
     mpGloss: { height: '45%', backgroundColor: '#fff', opacity: 0.3, borderTopLeftRadius: 9, borderTopRightRadius: 9 },
     mpTick: { position: 'absolute', top: 0, bottom: 0, width: 1, backgroundColor: '#0a1830', opacity: 0.6 },
-    // 프로토스(스타1 라이프바) — 한 바. 각 칸 위=쉴드/아래=체력. 검은 칸선, 바닥 정렬,
-    // 왼쪽이 높고 오른쪽으로 비스듬히 내려가는 실루엣.
-    ptBar: { width: '100%', flexDirection: 'row', gap: 1, height: 22, backgroundColor: '#000', paddingHorizontal: 1, paddingVertical: 1, alignItems: 'flex-end' },
+    // 프로토스(스타1 라이프바) — 한 바, 평평. 각 칸 위=쉴드/아래=체력, 검은 칸선.
+    ptBar: { width: '100%', flexDirection: 'row', gap: 1, height: 18, backgroundColor: '#000', padding: 1 },
+    ptSeg: { flex: 1, height: '100%' },
     // 타코미터 — 반원 다이얼 + 바늘
     tachoWrap: { width: '100%', alignItems: 'center', gap: 2 },
     tachoSpoke: { position: 'absolute', bottom: 0, width: 2, alignItems: 'center', transformOrigin: 'bottom' },
