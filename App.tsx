@@ -13,6 +13,7 @@ import FakeCallController from './src/fakeCall/FakeCallController';
 import CheckinController from './src/CheckinController';
 import WeeklyReportController from './src/WeeklyReportController';
 import OngoingController from './src/OngoingController';
+import WearController from './src/WearController';
 import ErrorBoundary from './src/ErrorBoundary';
 import { lightColors } from './src/theme';
 import { useColors } from './src/useColors';
@@ -44,6 +45,7 @@ function Root() {
       <CheckinController />
       <WeeklyReportController />
       <OngoingController />
+      <WearController />
       <ErrorBoundary>
         <RootNavigator />
       </ErrorBoundary>
