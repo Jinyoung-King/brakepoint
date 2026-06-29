@@ -402,7 +402,7 @@ export default function SettingsScreen() {
           placeholder="7"
           placeholderTextColor={c.textFaint}
         />
-        <Text style={styles.help}>소주 1병 ≈ 7잔, 맥주 500 ≈ 2~3잔 정도예요.</Text>
+        <Text style={styles.help}>소주 1병 ≈ 7잔, 맥주 500 ≈ 2~3잔, 청하 1병 ≈ 6잔 정도예요.</Text>
 
         <Text style={styles.subTitle}>브레이크 지점</Text>
         <View style={styles.brakeRow}>
