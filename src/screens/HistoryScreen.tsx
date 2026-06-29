@@ -1,5 +1,6 @@
 import { useLayoutEffect, useMemo, useState } from 'react';
-import { Alert, FlatList, Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, FlatList, Modal, Pressable, Share, StyleSheet, Text, TextInput, View } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 
@@ -43,6 +44,7 @@ export default function HistoryScreen() {
   // 달력 날짜 탭 → 그 날 세션 목록
   const [dayOpen, setDayOpen] = useState(false);
   const [statKey, setStatKey] = useState<string | null>(null);
+  const [recapOpen, setRecapOpen] = useState(false);
   const [dayRecs, setDayRecs] = useState<SessionRecord[]>([]);
   const [dayLabel, setDayLabel] = useState('');
 
@@ -245,6 +247,41 @@ export default function HistoryScreen() {
   const report = monthlyReport(history, calYear, calMonth);
   const wdMax = Math.max(...report.weekdayCounts, 1);
 
+  // 음주 결산 (표시 중인 달 기준)
+  const recapRecs = history.filter((r) => {
+    const d = new Date(r.endedAt);
+    return d.getFullYear() === calYear && d.getMonth() === calMonth;
+  });
+  const recapDrinks = recapRecs.reduce((a, r) => a + r.count, 0);
+  const recapAvg = report.sessions ? recapDrinks / report.sessions : 0;
+  const recapTopType = typeTotals(recapRecs)[0];
+  const recapTopPlace = placeStats(recapRecs)[0];
+  const recapWeekday = report.topWeekday != null ? `${WEEKDAYS[report.topWeekday]}요일` : '-';
+  const recapTitle = `${calYear}.${String(calMonth + 1).padStart(2, '0')} 음주 결산`;
+  const recapText =
+    report.sessions === 0
+      ? `🍺 ${recapTitle}\n이번 달은 술자리 기록이 없어요. 👏\n- 브레이크포인트`
+      : [
+          `🍺 ${recapTitle}`,
+          `· 술자리 ${report.sessions}회${report.deltaPct != null ? ` (지난달 ${report.deltaPct >= 0 ? '+' : ''}${report.deltaPct}%)` : ''}`,
+          `· 총 ${recapDrinks}잔 · 평균 ${recapAvg.toFixed(1)}잔`,
+          `· 한도 지킴 ${report.withinLimit}/${report.sessions} (${Math.round(report.withinRate * 100)}%)`,
+          `· 최다 요일 ${recapWeekday}`,
+          recapTopType ? `· 주종 1위 ${recapTopType.type} ${recapTopType.count}잔` : null,
+          recapTopPlace ? `· 단골 ${recapTopPlace.place} ${recapTopPlace.sessions}회` : null,
+          report.spend > 0 ? `· 술값 ${report.spend.toLocaleString('ko-KR')}원` : null,
+          '- 브레이크포인트',
+        ]
+          .filter(Boolean)
+          .join('\n');
+  const shareRecap = async () => {
+    try {
+      await Share.share({ message: recapText });
+    } catch {
+      // 취소 등 무시
+    }
+  };
+
   // 수동 추가 모달에 보여줄 대상 날짜(며칠 전 → 실제 날짜)
   const manualDate = new Date();
   manualDate.setDate(manualDate.getDate() - (parseInt(mDaysAgo, 10) || 0));
@@ -427,6 +464,12 @@ export default function HistoryScreen() {
               ))}
             </View>
           </View>
+
+          {/* 결산 공유 */}
+          <Pressable style={styles.recapBtn} onPress={() => setRecapOpen(true)}>
+            <Ionicons name="sparkles" size={16} color="#fff" />
+            <Text style={styles.recapBtnText}>{calMonth + 1}월 결산 보기</Text>
+          </Pressable>
 
           {/* 이번 달 리포트 */}
           {report.sessions > 0 && (
@@ -682,6 +725,55 @@ export default function HistoryScreen() {
         </View>
       </Modal>
 
+      {/* 음주 결산 공유 카드 */}
+      <Modal visible={recapOpen} transparent animationType="fade" onRequestClose={() => setRecapOpen(false)}>
+        <Pressable style={styles.recapBg} onPress={() => setRecapOpen(false)}>
+          <Pressable onPress={(e) => e.stopPropagation()} style={{ width: '100%' }}>
+            <LinearGradient colors={['#3a7afe', '#7b2ff7']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.recapCard}>
+              <Text style={styles.recapCardTitle}>{recapTitle}</Text>
+              {report.sessions === 0 ? (
+                <Text style={styles.recapEmpty}>이번 달은 술자리 기록이 없어요 👏</Text>
+              ) : (
+                <>
+                  <View style={styles.recapHero}>
+                    <Text style={styles.recapHeroNum}>{report.sessions}</Text>
+                    <Text style={styles.recapHeroUnit}>회 술자리</Text>
+                    {report.deltaPct != null && (
+                      <Text style={styles.recapDelta}>
+                        지난달 {report.deltaPct >= 0 ? '+' : ''}
+                        {report.deltaPct}%
+                      </Text>
+                    )}
+                  </View>
+                  {[
+                    { l: '총 / 평균', v: `${recapDrinks}잔 · ${recapAvg.toFixed(1)}잔` },
+                    { l: '한도 지킴', v: `${report.withinLimit}/${report.sessions} (${Math.round(report.withinRate * 100)}%)` },
+                    { l: '최다 요일', v: recapWeekday },
+                    ...(recapTopType ? [{ l: '주종 1위', v: `${recapTopType.type} ${recapTopType.count}잔` }] : []),
+                    ...(recapTopPlace ? [{ l: '단골', v: `${recapTopPlace.place} ${recapTopPlace.sessions}회` }] : []),
+                    ...(report.spend > 0 ? [{ l: '술값', v: `${won(report.spend)}원` }] : []),
+                  ].map((r) => (
+                    <View key={r.l} style={styles.recapRow}>
+                      <Text style={styles.recapRowLabel}>{r.l}</Text>
+                      <Text style={styles.recapRowValue}>{r.v}</Text>
+                    </View>
+                  ))}
+                </>
+              )}
+            </LinearGradient>
+            <View style={styles.recapActions}>
+              <Pressable style={styles.recapCloseBtn} onPress={() => setRecapOpen(false)}>
+                <Text style={styles.detailCloseText}>닫기</Text>
+              </Pressable>
+              <Pressable style={styles.recapShareBtn} onPress={shareRecap}>
+                <Ionicons name="share-social" size={16} color="#fff" />
+                <Text style={styles.recapShareText}>공유</Text>
+              </Pressable>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
       {/* 요약 지표 상세 통계 */}
       <Modal visible={statKey != null} transparent animationType="slide" onRequestClose={() => setStatKey(null)}>
         <Pressable style={styles.detailBg} onPress={() => setStatKey(null)}>
@@ -866,6 +958,23 @@ const makeStyles = (c: Palette) => StyleSheet.create({
   reportRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   statRowValue: { fontSize: 16, fontWeight: '700', color: c.text },
   reportVal: { fontSize: 14, color: c.text, fontWeight: '600' },
+  recapBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: c.blue, paddingVertical: 13, borderRadius: radius.md },
+  recapBtnText: { fontSize: 15, color: '#fff', fontWeight: '700' },
+  recapBg: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', paddingHorizontal: 24 },
+  recapCard: { borderRadius: 20, padding: 22, gap: 6 },
+  recapCardTitle: { fontSize: 16, color: 'rgba(255,255,255,0.85)', fontWeight: '700' },
+  recapHero: { flexDirection: 'row', alignItems: 'baseline', gap: 6, marginBottom: 6 },
+  recapHeroNum: { fontSize: 48, fontWeight: '800', color: '#fff' },
+  recapHeroUnit: { fontSize: 18, fontWeight: '700', color: 'rgba(255,255,255,0.9)' },
+  recapDelta: { fontSize: 12, color: 'rgba(255,255,255,0.8)', marginLeft: 'auto' },
+  recapRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 3 },
+  recapRowLabel: { fontSize: 14, color: 'rgba(255,255,255,0.8)' },
+  recapRowValue: { fontSize: 15, color: '#fff', fontWeight: '700' },
+  recapEmpty: { fontSize: 15, color: '#fff', fontWeight: '600', paddingVertical: 8 },
+  recapActions: { flexDirection: 'row', gap: 10, marginTop: 12 },
+  recapCloseBtn: { flex: 1, backgroundColor: c.cardAlt, paddingVertical: 13, borderRadius: radius.md, alignItems: 'center' },
+  recapShareBtn: { flex: 1, flexDirection: 'row', gap: 6, backgroundColor: c.blue, paddingVertical: 13, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center' },
+  recapShareText: { fontSize: 15, color: '#fff', fontWeight: '700' },
   wdChart: { flexDirection: 'row', alignItems: 'flex-end', height: 64, gap: 6, marginTop: 4 },
   wdCol: { flex: 1, alignItems: 'center', justifyContent: 'flex-end', gap: 4 },
   wdTrack: { width: '100%', height: 44, justifyContent: 'flex-end', alignItems: 'center' },
