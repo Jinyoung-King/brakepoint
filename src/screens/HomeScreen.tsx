@@ -122,6 +122,7 @@ export default function HomeScreen({ navigation }: Props) {
   const [bacOpen, setBacOpen] = useState(false);
   const [safeOpen, setSafeOpen] = useState(false);
   const [styleOpen, setStyleOpen] = useState(false);
+  const [briefOpen, setBriefOpen] = useState(false);
 
   // 시간 기반 표시(BAC·잔 간격)를 1분마다 갱신
   const [, setTick] = useState(0);
@@ -148,6 +149,16 @@ export default function HomeScreen({ navigation }: Props) {
   const active = drinkingMode || count > 0; // 음주 중일 때만 보조 카드 노출
   const streak = limitStreak(history); // 시작 전 카드용
   const weekCount = sessionsThisWeek(history);
+  // 시작 전 브리핑용 지표
+  const lastEnd = history.length ? history[0].endedAt : null;
+  const daysSinceLast = lastEnd != null ? Math.floor((now - lastEnd) / 86400000) : null;
+  const daysSinceLabel =
+    daysSinceLast == null ? '기록 없음' : daysSinceLast === 0 ? '오늘' : daysSinceLast === 1 ? '어제' : `${daysSinceLast}일 전`;
+  const monthCount = history.filter((r) => {
+    const d = new Date(r.endedAt);
+    const t = new Date(now);
+    return d.getFullYear() === t.getFullYear() && d.getMonth() === t.getMonth();
+  }).length;
 
   // 음주모드 ON 시, 잠금화면 위 통화 권한(전체 화면 알림)이 막혀 있으면 안내
   const toggleDrinkingMode = (on: boolean) => {
@@ -479,8 +490,11 @@ export default function HomeScreen({ navigation }: Props) {
 
         {/* 시작 전(0잔·음주모드 off) 상태: 빈 화면 대신 지표 + 다음에 나타날 것 안내 */}
         {!active && (
-          <View style={styles.startCard}>
-            <Text style={styles.startTitle}>아직 시작 전이에요</Text>
+          <Pressable style={styles.startCard} onPress={() => { tapHaptic(); setBriefOpen(true); }}>
+            <View style={styles.startTitleRow}>
+              <Text style={styles.startTitle}>아직 시작 전이에요</Text>
+              <Ionicons name="chevron-forward" size={16} color={c.textFaint} />
+            </View>
             {(streak > 0 || weeklyGoalSessions > 0) && (
               <View style={styles.startStats}>
                 {streak > 0 && (
@@ -497,9 +511,9 @@ export default function HomeScreen({ navigation }: Props) {
               </View>
             )}
             <Text style={styles.startHint}>
-              첫 잔을 누르면 페이스 · 혈중알코올 · 안전 귀가가 여기 표시돼요.
+              탭하면 오늘의 브리핑 · 첫 잔을 누르면 페이스·혈중알코올·안전 귀가가 표시돼요.
             </Text>
-          </View>
+          </Pressable>
         )}
 
         {/* 방금 추가 취소 (잘못 누른 경우) */}
@@ -736,6 +750,38 @@ export default function HomeScreen({ navigation }: Props) {
         </Pressable>
       </Modal>
 
+      {/* 오늘의 브리핑 (시작 전 카드 탭) */}
+      <Modal visible={briefOpen} transparent animationType="fade" onRequestClose={() => setBriefOpen(false)}>
+        <Pressable style={styles.modalBg} onPress={() => setBriefOpen(false)}>
+          <Pressable style={styles.modalCard} onPress={(e) => e.stopPropagation()}>
+            <Text style={styles.modalTitle}>오늘의 브리핑</Text>
+            {[
+              { label: '마지막 음주', value: daysSinceLabel },
+              { label: '이번 주', value: `${weekCount}회${weeklyGoalSessions > 0 ? ` / 목표 ${weeklyGoalSessions}` : ''}` },
+              { label: '한도 지킴 연속', value: `${streak}회` },
+              { label: '이번 달', value: `${monthCount}회` },
+              { label: '내 한도', value: `소주 ${limit}잔` },
+              { label: '내일 오전 일정', value: morning ? `${fmtTime(morning.startMs)} ${morning.title}` : '없음' },
+            ].map((r) => (
+              <View key={r.label} style={styles.briefRow}>
+                <Text style={styles.muted}>{r.label}</Text>
+                <Text style={styles.briefValue}>{r.value}</Text>
+              </View>
+            ))}
+            <Text style={styles.briefTip}>
+              {morning
+                ? '내일 일정 있어요 — 오늘은 적당히! 🫡'
+                : streak >= 3
+                  ? `${streak}연속 한도 지킴 중 — 오늘도 가볍게! 🔥`
+                  : '오늘도 페이스 조절 화이팅! 💧'}
+            </Text>
+            <Pressable style={styles.briefClose} onPress={() => setBriefOpen(false)}>
+              <Text style={styles.saveBtnText}>닫기</Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
       {/* 게이지 스타일 선택 (미리보기) */}
       <Modal visible={styleOpen} transparent animationType="fade" onRequestClose={() => setStyleOpen(false)}>
         <Pressable style={styles.modalBg} onPress={() => setStyleOpen(false)}>
@@ -810,6 +856,11 @@ const makeStyles = (c: Palette) =>
     brakeText: { fontSize: 13, color: c.textMuted, textAlign: 'center' },
     startCard: { width: '100%', backgroundColor: c.card, borderRadius: radius.md, padding: 16, gap: 10, borderWidth: 1, borderColor: c.border },
     startTitle: { fontSize: 15, color: c.text, fontWeight: '700' },
+    startTitleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+    briefRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 2 },
+    briefValue: { fontSize: 15, fontWeight: '700', color: c.text },
+    briefTip: { fontSize: 13, color: c.amber, fontWeight: '600', marginTop: 6 },
+    briefClose: { backgroundColor: c.blue, paddingVertical: 12, borderRadius: radius.sm, alignItems: 'center', marginTop: 6 },
     startStats: { gap: 6 },
     startStat: { fontSize: 14, color: c.textMuted },
     startHint: { fontSize: 13, color: c.textFaint, lineHeight: 19 },
