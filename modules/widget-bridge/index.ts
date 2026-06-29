@@ -2,7 +2,7 @@ import { Platform } from 'react-native';
 import { requireOptionalNativeModule } from 'expo-modules-core';
 
 type WidgetBridgeModule = {
-  updateWidget(count: number, limit: number): void;
+  updateWidget(count: number, limit: number, theme: string): void;
   consumePendingAdd(): number;
 };
 
@@ -11,11 +11,11 @@ const mod =
 
 export const widgetAvailable = !!mod;
 
-// 홈 위젯에 현재 잔/한계 반영. 모듈 미탑재/iOS면 no-op.
-export function updateWidget(count: number, limit: number): void {
+// 홈 위젯에 현재 잔/한계/테마 반영. 모듈 미탑재/iOS면 no-op.
+export function updateWidget(count: number, limit: number, theme: string): void {
   if (!mod) return;
   try {
-    mod.updateWidget(count, limit);
+    mod.updateWidget(count, limit, theme);
   } catch {
     // 무시
   }

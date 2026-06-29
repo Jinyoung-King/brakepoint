@@ -18,7 +18,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 
 import { useAppState } from '../state/AppStateContext';
-import type { Difficulty, DrinkUnit, ThemeMode, Sex, DrinkType, GaugeStyle } from '../storage';
+import type { Difficulty, DrinkUnit, ThemeMode, Sex, DrinkType, GaugeStyle, WidgetTheme } from '../storage';
 import { radius, type Palette } from '../theme';
 import { alcoholGrams } from '../bac';
 import { useColors } from '../useColors';
@@ -55,6 +55,13 @@ const GAUGES: { key: GaugeStyle; label: string }[] = [
   { key: 'mp', label: 'MP' },
   { key: 'tacho', label: '타코미터' },
   { key: 'protoss', label: '프로토스' },
+];
+
+const WIDGET_THEMES: { key: WidgetTheme; label: string }[] = [
+  { key: 'dark', label: '다크' },
+  { key: 'light', label: '라이트' },
+  { key: 'blue', label: '블루' },
+  { key: 'pink', label: '핑크' },
 ];
 
 const SEXES: { key: Sex; label: string }[] = [
@@ -107,6 +114,7 @@ export default function SettingsScreen() {
     setCalendarSync,
     setTheme,
     setGaugeStyle,
+    setWidgetTheme,
     setSex,
     setWeightKg,
     setDrinkType,
@@ -122,7 +130,7 @@ export default function SettingsScreen() {
     setOngoingNotifEnabled,
     importState,
   } = useAppState();
-  const { limit, difficulty, fakeCall, brakePercents, repeatEveryDrinks, unit, calendarSync, theme, sex, weightKg, drinkType, homeAddress, bottleToGlasses, waterEvery, weeklyGoalSessions, checkinEnabled, checkinDelayMin, smokingEnabled, monthlyBudget, weeklyReportEnabled, ongoingNotifEnabled, gaugeStyle } =
+  const { limit, difficulty, fakeCall, brakePercents, repeatEveryDrinks, unit, calendarSync, theme, sex, weightKg, drinkType, homeAddress, bottleToGlasses, waterEvery, weeklyGoalSessions, checkinEnabled, checkinDelayMin, smokingEnabled, monthlyBudget, weeklyReportEnabled, ongoingNotifEnabled, gaugeStyle, widgetTheme } =
     state;
   const c = useColors();
   const styles = useMemo(() => makeStyles(c), [c]);
@@ -728,6 +736,23 @@ export default function SettingsScreen() {
           })}
         </View>
         <Text style={styles.help}>홈 화면 진행률 바 모양이에요. 취기가 차오를수록 색이 바뀌어요.</Text>
+
+        <Text style={styles.subTitle}>홈 위젯 색상</Text>
+        <View style={styles.gaugeWrap}>
+          {WIDGET_THEMES.map((w) => {
+            const active = w.key === widgetTheme;
+            return (
+              <Pressable
+                key={w.key}
+                style={[styles.gaugeChip, active && styles.segmentItemActive]}
+                onPress={() => setWidgetTheme(w.key)}
+              >
+                <Text style={[styles.segmentText, active && styles.segmentTextActive]}>{w.label}</Text>
+              </Pressable>
+            );
+          })}
+        </View>
+        <Text style={styles.help}>홈 화면에 추가한 위젯 색이에요. (위젯이 안 보이면 한 잔 추가하면 갱신돼요)</Text>
 
         <Text style={styles.subTitle}>다음날 일정 연동</Text>
         <View style={styles.toggleRow}>

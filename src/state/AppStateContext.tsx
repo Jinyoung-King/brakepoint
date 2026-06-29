@@ -7,6 +7,7 @@ import {
   type DrinkUnit,
   type FakeCallConfig,
   type GaugeStyle,
+  type WidgetTheme,
   type ThemeMode,
   type Sex,
   type DrinkType,
@@ -40,6 +41,7 @@ type AppStateContextValue = {
   setMonthlyBudget: (won: number) => void;
   setTheme: (theme: ThemeMode) => void;
   setGaugeStyle: (style: GaugeStyle) => void;
+  setWidgetTheme: (theme: WidgetTheme) => void;
   setSex: (sex: Sex) => void;
   setWeightKg: (kg: number) => void;
   setDrinkType: (type: DrinkType) => void;
@@ -119,6 +121,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     setMonthlyBudget: (monthlyBudget) => setState((s) => ({ ...s, monthlyBudget })),
     setTheme: (theme) => setState((s) => ({ ...s, theme })),
     setGaugeStyle: (gaugeStyle) => setState((s) => ({ ...s, gaugeStyle })),
+    setWidgetTheme: (widgetTheme) => setState((s) => ({ ...s, widgetTheme })),
     setSex: (sex) => setState((s) => ({ ...s, sex })),
     setWeightKg: (weightKg) => setState((s) => ({ ...s, weightKg })),
     setDrinkType: (drinkType) => setState((s) => ({ ...s, drinkType })),

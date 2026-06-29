@@ -14,13 +14,14 @@ class WidgetBridgeModule : Module() {
   override fun definition() = ModuleDefinition {
     Name("WidgetBridge")
 
-    Function("updateWidget") { count: Double, limit: Int ->
+    Function("updateWidget") { count: Double, limit: Int, theme: String ->
       val ctx = appContext.reactContext ?: return@Function
       ctx
         .getSharedPreferences(BrakepointWidgetProvider.PREFS, Context.MODE_PRIVATE)
         .edit()
         .putFloat("countF", count.toFloat())
         .putInt("limit", limit)
+        .putString("theme", theme)
         .apply()
       refresh(ctx)
     }
