@@ -72,7 +72,9 @@ function HpBar({ count, limit, brakeCounts, inBrake, overLimit, c }: Props) {
   let g = 0;
   const groups = [];
   for (let i = 1; i <= limit; i++) {
-    const isBrake = brakeCounts.includes(i);
+    // 감소형이라 임계 표시를 좌우 반전: 소비 B표준잔 → 남은 양이 (limit-B)까지 줄어드는
+    // 위치(왼쪽에서 limit+1-B번째 칸)에 마커를 둔다. (차오르는 바와 반대 방향)
+    const isBrake = brakeCounts.includes(limit + 1 - i);
     const dots = [];
     for (let d = 0; d < DOTS_PER_DRINK; d++) {
       const lit = g < litDots;
