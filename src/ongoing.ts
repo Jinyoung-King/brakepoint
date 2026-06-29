@@ -3,7 +3,7 @@ import notifee, { AndroidImportance, type Notification } from '@notifee/react-na
 import type { AppState } from './storage';
 import { loadState, saveState } from './storage';
 import { addDrink } from './state/reducers';
-import { alcoholGrams, estimateBac, hoursUntil, fmtHours, DRIVE_LIMIT } from './bac';
+import { alcoholGrams, stdDrinks, STD_GRAMS, estimateBac, hoursUntil, fmtHours, DRIVE_LIMIT } from './bac';
 import { brakeCountsFor, crossesBrake } from './brake';
 import { notifyWater } from './water';
 
@@ -128,11 +128,14 @@ export async function handleOngoingActionBg(actionId: string, now: number): Prom
   if (!s.drinkingMode) return;
   const prev = s.count;
   const next = prev + 1;
+  // 브레이크는 표준잔(순알코올) 기준 — 지금 주종 1잔의 알코올량만큼만 차오른다.
+  const prevStd = stdDrinks(s.drinkEvents, s.unit, s.drinkType);
+  const addedStd = alcoholGrams(1, s.unit, s.drinkType) / STD_GRAMS;
   let ns = addDrink(s, 1, now);
   const brakeCounts = brakeCountsFor(ns.limit, ns.brakePercents);
   const crossed = crossesBrake({
-    prev,
-    next,
+    prev: prevStd,
+    next: prevStd + addedStd,
     limit: ns.limit,
     brakeCounts,
     repeatEveryDrinks: ns.repeatEveryDrinks,

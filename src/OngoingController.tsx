@@ -11,6 +11,7 @@ import {
   displayOngoing,
 } from './ongoing';
 import { brakeCountsFor, crossesBrake } from './brake';
+import { alcoholGrams, stdDrinks, STD_GRAMS } from './bac';
 import { notifyWater } from './water';
 import { navigateToGate, navigateToHome } from './navigation/navigationRef';
 
@@ -49,9 +50,11 @@ export default function OngoingController() {
         const prev = s.count;
         const next = prev + 1;
         addDrink(1); // Context 경유 → 메모리 갱신 → 표시 effect가 알림 새로고침
-        // 화면 탭과 동일하게 브레이크 지점이면 인지게이트 (단, 화면 밖이라 morning tighten 미적용)
+        // 브레이크는 표준잔(순알코올) 기준 (단, 화면 밖이라 morning tighten 미적용)
+        const prevStd = stdDrinks(s.drinkEvents, s.unit, s.drinkType);
+        const addedStd = alcoholGrams(1, s.unit, s.drinkType) / STD_GRAMS;
         const brakeCounts = brakeCountsFor(s.limit, s.brakePercents);
-        if (crossesBrake({ prev, next, limit: s.limit, brakeCounts, repeatEveryDrinks: s.repeatEveryDrinks })) {
+        if (crossesBrake({ prev: prevStd, next: prevStd + addedStd, limit: s.limit, brakeCounts, repeatEveryDrinks: s.repeatEveryDrinks })) {
           navigateToGate();
         } else if (s.waterEvery > 0 && Math.floor(prev / s.waterEvery) < Math.floor(next / s.waterEvery)) {
           notifyWater();

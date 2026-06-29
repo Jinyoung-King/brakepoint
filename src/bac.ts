@@ -9,11 +9,24 @@ const GRAMS: Record<DrinkType, Record<DrinkUnit, number>> = {
   청하: { 잔: 5, 병: 31, 캔: 31 }, // 오리지널 청하 300ml 13% ≈ 31g, 잔(소주잔 50ml) ≈ 5g (별빛청하는 295ml·7%로 다름)
 };
 
+// 표준잔 1잔의 순알코올량(g). 소주 1잔 기준. 한도/브레이크를 잔수가 아닌 순알코올로
+// 환산할 때 쓴다 (청하·맥주 등 도수 다른 술이 한도에 정확히 반영되도록).
+export const STD_GRAMS = 8;
+
 const ELIMINATION_PER_HOUR = 0.015; // %/시간 (대사 속도)
 export const DRIVE_LIMIT = 0.03; // 한국 면허정지 기준 %
 
 export function alcoholGrams(count: number, unit: DrinkUnit, type: DrinkType): number {
   return count * (GRAMS[type]?.[unit] ?? 8);
+}
+
+// 누적 표준잔(순알코올/8g). 한도·브레이크 판정 단위. events의 주종/단위로 합산.
+export function stdDrinks(
+  events: { n: number; type?: DrinkType; unit?: DrinkUnit }[],
+  unit: DrinkUnit,
+  type: DrinkType
+): number {
+  return events.reduce((sum, e) => sum + eventGrams(e, unit, type), 0) / STD_GRAMS;
 }
 
 // 잔 이벤트의 순알코올량(g). 이벤트에 주종/단위가 있으면 그걸로, 없으면(구버전) 세션 기본값으로.

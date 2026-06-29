@@ -24,7 +24,7 @@ import { useAppState } from '../state/AppStateContext';
 import { useMorningSchedule } from '../calendar/useMorningSchedule';
 import { radius, type Palette } from '../theme';
 import { useColors } from '../useColors';
-import { alcoholGrams, eventGrams, estimateBac, hoursUntil, fmtHours, bacCurve, DRIVE_LIMIT } from '../bac';
+import { alcoholGrams, eventGrams, estimateBac, hoursUntil, fmtHours, bacCurve, DRIVE_LIMIT, STD_GRAMS } from '../bac';
 import { effectiveBrakePercents, brakeCountsFor, crossesBrake } from '../brake';
 import BacChart from '../BacChart';
 import GaugeBar from '../GaugeBar';
@@ -134,11 +134,17 @@ export default function HomeScreen({ navigation }: Props) {
   const morning = useMorningSchedule(calendarSync);
   const effPercents = effectiveBrakePercents(brakePercents, !!morning);
 
-  const pct = limit > 0 ? Math.min(count / limit, 1) : 0;
+  // 소비한 순알코올(g) → 표준잔(소주 1잔=8g) 환산. 한도/브레이크/게이지는 잔 개수가 아니라
+  // 이 표준잔으로 판정한다(청하 1잔=0.6표준잔처럼 도수 차이가 정확히 반영됨). limit은 표준잔 단위.
+  const consumedGrams = drinkEvents.length
+    ? drinkEvents.reduce((sum, e) => sum + eventGrams(e, unit, drinkType), 0)
+    : alcoholGrams(count, unit, drinkType);
+  const stdCount = consumedGrams / STD_GRAMS; // 표준잔 환산 누적
+  const pct = limit > 0 ? Math.min(stdCount / limit, 1) : 0;
   const brakeCounts = brakeCountsFor(limit, effPercents);
   const firstBrake = brakeCounts.length ? Math.min(...brakeCounts) : Infinity;
-  const overLimit = limit > 0 && count >= limit;
-  const inBrake = limit > 0 && count >= firstBrake;
+  const overLimit = limit > 0 && stdCount >= limit;
+  const inBrake = limit > 0 && stdCount >= firstBrake;
   const active = drinkingMode || count > 0; // 음주 중일 때만 보조 카드 노출
   const streak = limitStreak(history); // 시작 전 카드용
   const weekCount = sessionsThisWeek(history);
@@ -158,11 +164,9 @@ export default function HomeScreen({ navigation }: Props) {
     }
   };
 
-  // BAC 추정 — 잔마다 그때 주종/단위로 순알코올을 합산(섞어 마셔도 정확).
+  // BAC 추정 — 위에서 합산한 순알코올(consumedGrams) 사용(섞어 마셔도 정확).
   const hoursSince = sessionStartMs ? (now - sessionStartMs) / 3600000 : 0;
-  const grams = drinkEvents.length
-    ? drinkEvents.reduce((sum, e) => sum + eventGrams(e, unit, drinkType), 0)
-    : alcoholGrams(count, unit, drinkType);
+  const grams = consumedGrams;
   const bac = estimateBac({ grams, weightKg, sex, hoursSinceStart: hoursSince });
   const canDrive = bac < DRIVE_LIMIT;
   // BAC 시간곡선(잔별 순알코올 g 사용). now가 바뀔 때만 재계산.
@@ -195,7 +199,6 @@ export default function HomeScreen({ navigation }: Props) {
 
   // 페이스 코치: 한계까지 남은 양 + 다음 잔 권장 시점(권장 간격 30분)
   const REC_INTERVAL = 30;
-  const remaining = Math.max(0, limit - count);
   const nextDrinkMin = lastDrinkMs ? Math.max(0, REC_INTERVAL - (minsSinceLast ?? 0)) : 0;
 
   const fillPlace = async (alertOnFail: boolean) => {
@@ -224,7 +227,9 @@ export default function HomeScreen({ navigation }: Props) {
     const next = prev + n;
     const gap = lastDrinkMs ? now - lastDrinkMs : Infinity;
     addDrink(n);
-    if (crossesBrake({ prev, next, limit, brakeCounts, repeatEveryDrinks })) {
+    // 브레이크는 표준잔(순알코올) 기준 — 지금 마시는 주종의 알코올량만큼만 차오른다.
+    const addedStd = alcoholGrams(n, unit, drinkType) / STD_GRAMS;
+    if (crossesBrake({ prev: stdCount, next: stdCount + addedStd, limit, brakeCounts, repeatEveryDrinks })) {
       navigation.navigate('CognitiveGate');
       return;
     }
@@ -365,16 +370,16 @@ export default function HomeScreen({ navigation }: Props) {
     launchNaverTransit(r.lat, r.lng, q);
   };
 
-  // 진행률 바 아래 한 줄 상태: 음주 중이면 페이스, 아니면 브레이크 설정
+  // 취기 = 순알코올(표준잔) 기준 주량 대비 %. 잔 개수가 아니라 마신 알코올량 기준.
+  const tipsy = Math.round(pct * 100);
+  // 진행률 바 아래 한 줄 상태: 음주 중이면 취기%, 아니면 브레이크 설정
   const statusText = !active
-    ? `브레이크 ${effPercents.join('·')}% (${brakeCounts.join('·')}${unit})`
+    ? `브레이크 ${effPercents.join('·')}%`
     : overLimit
-      ? `한계 초과 — 이후 ${repeatEveryDrinks}${unit}마다 알람`
+      ? '한계 초과 — 천천히, 물 한 잔'
       : inBrake
-        ? `브레이크 구간 · 한계까지 ${remaining}${unit}`
-        : `한계까지 ${remaining}${unit}${
-            nextDrinkMin > 0 ? ` · 다음 잔 ${nextDrinkMin}분 뒤` : ' · 지금 마셔도 OK'
-          }`;
+        ? `브레이크 구간 · 취기 ${tipsy}%`
+        : `취기 ${tipsy}%${nextDrinkMin > 0 ? ` · 다음 잔 ${nextDrinkMin}분 뒤` : ' · 지금 마셔도 OK'}`;
 
   return (
     <View style={styles.root}>
@@ -402,8 +407,7 @@ export default function HomeScreen({ navigation }: Props) {
             </Text>
             <Text style={styles.countLimit}>
               {' '}
-              / {limit}
-              {unit}
+              {unit} · 취기 {tipsy}%
             </Text>
           </View>
         </View>
@@ -412,7 +416,7 @@ export default function HomeScreen({ navigation }: Props) {
         <Pressable style={styles.card} onPress={() => { tapHaptic(); setStyleOpen(true); }} hitSlop={6}>
           <GaugeBar
             style={gaugeStyle}
-            count={count}
+            count={stdCount}
             limit={limit}
             pct={pct}
             effPercents={effPercents}

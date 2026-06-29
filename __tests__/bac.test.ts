@@ -1,4 +1,4 @@
-import { alcoholGrams, estimateBac, hoursUntil, fmtHours, bacCurve, DRIVE_LIMIT } from '../src/bac';
+import { alcoholGrams, estimateBac, hoursUntil, fmtHours, bacCurve, DRIVE_LIMIT, stdDrinks } from '../src/bac';
 
 describe('alcoholGrams', () => {
   it('scales by count and uses type/unit table', () => {
@@ -125,5 +125,19 @@ describe('fmtHours', () => {
     expect(fmtHours(0.5)).toBe('30분');
     expect(fmtHours(1.5)).toBe('1시간 30분');
     expect(fmtHours(2)).toBe('2시간 0분');
+  });
+});
+
+describe('stdDrinks (순알코올 표준잔 환산)', () => {
+  it('소주 1잔 = 1표준잔, 청하 1잔 = 0.625표준잔 (도수 반영)', () => {
+    expect(stdDrinks([{ n: 1, type: '소주', unit: '잔' }], '잔', '소주')).toBe(1); // 8g/8
+    expect(stdDrinks([{ n: 1, type: '청하', unit: '잔' }], '잔', '소주')).toBeCloseTo(0.625); // 5g/8
+  });
+  it('섞어 마시면 주종별 알코올을 합산해 환산', () => {
+    const events = [
+      { n: 2, type: '소주' as const, unit: '잔' as const },
+      { n: 1, type: '청하' as const, unit: '잔' as const },
+    ];
+    expect(stdDrinks(events, '잔', '소주')).toBeCloseTo((16 + 5) / 8); // 2.625
   });
 });

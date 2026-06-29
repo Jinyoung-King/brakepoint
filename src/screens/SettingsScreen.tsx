@@ -20,7 +20,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { useAppState } from '../state/AppStateContext';
 import type { Difficulty, DrinkUnit, ThemeMode, Sex, DrinkType, GaugeStyle, WidgetTheme } from '../storage';
 import { radius, type Palette } from '../theme';
-import { alcoholGrams } from '../bac';
+import { alcoholGrams, STD_GRAMS } from '../bac';
 import { useColors } from '../useColors';
 import { importWeightFromHealthConnect, openHealthConnectSettings } from '../health';
 import { exportBackup, importBackup } from '../backupIO';
@@ -272,8 +272,8 @@ export default function SettingsScreen() {
   const [capType, setCapType] = useState<DrinkType>(drinkType);
   const capN = parseFloat(capAmount);
   const capGrams = Number.isFinite(capN) && capN > 0 ? alcoholGrams(capN, capUnit, capType) : 0;
-  const perUnit = alcoholGrams(1, unit, drinkType); // 현재 추적 단위·주종 1잔당 알코올
-  const calcLimit = capGrams > 0 && perUnit > 0 ? Math.max(1, Math.round(capGrams / perUnit)) : 0;
+  // 한도는 표준잔(소주 1잔=8g) 단위. 주종이 달라도 순알코올로 정확히 환산되도록.
+  const calcLimit = capGrams > 0 ? Math.max(1, Math.round(capGrams / STD_GRAMS)) : 0;
 
   const onLimitChange = (t: string) => {
     setLimitText(t);
@@ -312,7 +312,7 @@ export default function SettingsScreen() {
     <ScrollView contentContainerStyle={styles.container}>
       {/* 음주 기준 */}
       <Section title="음주 기준" open={!!open.drinking} onToggle={() => toggle('drinking')} c={c} styles={styles}>
-        <Text style={styles.subTitle}>주량 (한계 잔수)</Text>
+        <Text style={styles.subTitle}>주량 (소주 기준 잔)</Text>
         <TextInput
           style={styles.input}
           keyboardType="number-pad"
@@ -320,7 +320,10 @@ export default function SettingsScreen() {
           onChangeText={onLimitChange}
           placeholder="5"
         />
-        <Text style={styles.help}>설정한 브레이크 %에서 인지 게이트가 발동합니다.</Text>
+        <Text style={styles.help}>
+          소주 잔 기준 한도예요. 맥주·청하 등 도수 다른 술은 순알코올로 환산돼 취기%로 반영됩니다.
+          설정한 브레이크 %에서 인지 게이트가 발동해요.
+        </Text>
 
         <Text style={styles.subTitle}>주량 계산기</Text>
         <Text style={styles.help}>예: 소주 2병이 주량이면 → 순알코올로 계산해 한계 잔수로 등록해요.</Text>
@@ -359,8 +362,7 @@ export default function SettingsScreen() {
         {calcLimit > 0 && (
           <Text style={styles.help}>
             {capType} {capAmount}
-            {capUnit} ≈ 순알코올 {Math.round(capGrams)}g ≈ {calcLimit}
-            {unit}
+            {capUnit} ≈ 순알코올 {Math.round(capGrams)}g ≈ 소주 {calcLimit}잔
           </Text>
         )}
         <Pressable
@@ -371,7 +373,7 @@ export default function SettingsScreen() {
             setLimitText(String(calcLimit));
           }}
         >
-          <Text style={styles.calcBtnText}>이 주량을 한계로 등록{calcLimit > 0 ? ` (${calcLimit}${unit})` : ''}</Text>
+          <Text style={styles.calcBtnText}>이 주량을 한도로 등록{calcLimit > 0 ? ` (소주 ${calcLimit}잔)` : ''}</Text>
         </Pressable>
 
         <Text style={styles.subTitle}>단위</Text>
