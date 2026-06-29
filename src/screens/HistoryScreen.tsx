@@ -42,6 +42,7 @@ export default function HistoryScreen() {
   const [selected, setSelected] = useState<SessionRecord | null>(null);
   // 달력 날짜 탭 → 그 날 세션 목록
   const [dayOpen, setDayOpen] = useState(false);
+  const [statKey, setStatKey] = useState<string | null>(null);
   const [dayRecs, setDayRecs] = useState<SessionRecord[]>([]);
   const [dayLabel, setDayLabel] = useState('');
 
@@ -133,6 +134,70 @@ export default function HistoryScreen() {
   const exceeded = history.filter((r) => r.count >= r.limit).length;
   const recentAvg = mean(history.filter((r) => r.endedAt >= Date.now() - WEEK_MS));
   const chart = history.slice(0, 12).reverse(); // 오래된→최근
+
+  // 요약 지표 탭 시 상세 통계
+  const nowMs = Date.now();
+  const weekRecs = history.filter((r) => r.endedAt >= nowMs - WEEK_MS);
+  const prevWeekRecs = history.filter(
+    (r) => r.endedAt < nowMs - WEEK_MS && r.endedAt >= nowMs - 2 * WEEK_MS
+  );
+  const tNow = new Date();
+  const monthRecs = history.filter((r) => {
+    const d = new Date(r.endedAt);
+    return d.getFullYear() === tNow.getFullYear() && d.getMonth() === tNow.getMonth();
+  });
+  const maxInSession = total ? Math.max(...history.map((r) => r.count)) : 0;
+  const firstMs = total ? Math.min(...history.map((r) => r.endedAt)) : 0;
+  const lastMs = total ? Math.max(...history.map((r) => r.endedAt)) : 0;
+  const fmtYMD = (ms: number) => {
+    const d = new Date(ms);
+    return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`;
+  };
+  const pctStr = (n: number, d: number) => (d > 0 ? `${Math.round((n / d) * 100)}%` : '0%');
+  const STAT_TITLES: Record<string, string> = {
+    total: '총 기록 상세',
+    avg: '평균 잔수 상세',
+    exceeded: '한계 초과 상세',
+    recent: '최근 7일 상세',
+  };
+  const statRows = (key: string): { label: string; value: string; warn?: boolean }[] => {
+    if (key === 'total') {
+      return [
+        { label: '총 술자리', value: `${total}회` },
+        { label: '이번 달', value: `${monthRecs.length}회` },
+        { label: '최근 7일', value: `${weekRecs.length}회` },
+        { label: '첫 기록', value: total ? fmtYMD(firstMs) : '-' },
+        { label: '최근 기록', value: total ? fmtYMD(lastMs) : '-' },
+      ];
+    }
+    if (key === 'avg') {
+      return [
+        { label: '전체 평균', value: `${avg.toFixed(1)}잔` },
+        { label: '이번 달 평균', value: `${mean(monthRecs).toFixed(1)}잔` },
+        { label: '최근 7일 평균', value: `${recentAvg.toFixed(1)}잔` },
+        { label: '한 자리 최다', value: `${maxInSession}잔` },
+      ];
+    }
+    if (key === 'exceeded') {
+      const weekEx = weekRecs.filter((r) => r.count >= r.limit).length;
+      return [
+        { label: '총 초과', value: `${exceeded}회`, warn: exceeded > 0 },
+        { label: '초과율', value: pctStr(exceeded, total) },
+        { label: '한도 지킴 연속', value: `${streak}회` },
+        { label: '최근 7일 초과', value: `${weekEx}회`, warn: weekEx > 0 },
+      ];
+    }
+    // recent
+    const prevAvg = mean(prevWeekRecs);
+    const diff = recentAvg - prevAvg;
+    const diffStr = prevWeekRecs.length === 0 ? '-' : `${diff >= 0 ? '+' : ''}${diff.toFixed(1)}잔`;
+    return [
+      { label: '최근 7일 평균', value: `${recentAvg.toFixed(1)}잔` },
+      { label: '최근 7일 술자리', value: `${weekRecs.length}회` },
+      { label: '전체 평균 대비', value: `${(recentAvg - avg >= 0 ? '+' : '') + (recentAvg - avg).toFixed(1)}잔`, warn: recentAvg > avg },
+      { label: '지난주 대비', value: diffStr, warn: diff > 0 },
+    ];
+  };
   const maxCount = Math.max(1, ...chart.map((r) => r.count));
 
   // 달력(히트맵)
@@ -277,22 +342,22 @@ export default function HistoryScreen() {
             </View>
           )}
           <View style={styles.stats}>
-            <View style={styles.statBox}>
+            <Pressable style={styles.statBox} onPress={() => setStatKey('total')}>
               <Text style={styles.statNum}>{total}</Text>
               <Text style={styles.statLabel}>총 기록</Text>
-            </View>
-            <View style={styles.statBox}>
+            </Pressable>
+            <Pressable style={styles.statBox} onPress={() => setStatKey('avg')}>
               <Text style={styles.statNum}>{avg.toFixed(1)}</Text>
               <Text style={styles.statLabel}>평균 잔수</Text>
-            </View>
-            <View style={styles.statBox}>
+            </Pressable>
+            <Pressable style={styles.statBox} onPress={() => setStatKey('exceeded')}>
               <Text style={[styles.statNum, exceeded > 0 && styles.statNumWarn]}>{exceeded}</Text>
               <Text style={styles.statLabel}>한계 초과</Text>
-            </View>
-            <View style={styles.statBox}>
+            </Pressable>
+            <Pressable style={styles.statBox} onPress={() => setStatKey('recent')}>
               <Text style={styles.statNum}>{recentAvg.toFixed(1)}</Text>
               <Text style={styles.statLabel}>최근 7일 평균</Text>
-            </View>
+            </Pressable>
           </View>
           {chart.length >= 2 && (
             <View style={styles.chartCard}>
@@ -617,6 +682,26 @@ export default function HistoryScreen() {
         </View>
       </Modal>
 
+      {/* 요약 지표 상세 통계 */}
+      <Modal visible={statKey != null} transparent animationType="slide" onRequestClose={() => setStatKey(null)}>
+        <Pressable style={styles.detailBg} onPress={() => setStatKey(null)}>
+          <Pressable style={styles.detailCard} onPress={(e) => e.stopPropagation()}>
+            <Text style={styles.detailTitle}>{statKey ? STAT_TITLES[statKey] : ''}</Text>
+            {statKey &&
+              statRows(statKey).map((r) => (
+                <View key={r.label} style={styles.reportRow}>
+                  <Text style={styles.muted}>{r.label}</Text>
+                  <Text style={[styles.statRowValue, r.warn && styles.statNumWarn]}>{r.value}</Text>
+                </View>
+              ))}
+            {total === 0 && <Text style={styles.muted}>아직 기록이 없어요.</Text>}
+            <Pressable style={[styles.detailClose, { marginTop: 8 }]} onPress={() => setStatKey(null)}>
+              <Text style={styles.detailCloseText}>닫기</Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
       {/* 수동 기록 추가 */}
       <Modal visible={manualOpen} transparent animationType="slide" onRequestClose={() => setManualOpen(false)}>
         <View style={styles.detailBg}>
@@ -779,6 +864,7 @@ const makeStyles = (c: Palette) => StyleSheet.create({
   typeStatFill: { height: '100%', backgroundColor: c.blue, borderRadius: 5 },
   typeStatNum: { width: 52, textAlign: 'right', fontSize: 13, color: c.textMuted },
   reportRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  statRowValue: { fontSize: 16, fontWeight: '700', color: c.text },
   reportVal: { fontSize: 14, color: c.text, fontWeight: '600' },
   wdChart: { flexDirection: 'row', alignItems: 'flex-end', height: 64, gap: 6, marginTop: 4 },
   wdCol: { flex: 1, alignItems: 'center', justifyContent: 'flex-end', gap: 4 },
