@@ -1,6 +1,8 @@
-import { useLayoutEffect, useMemo, useState } from 'react';
+import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Alert, FlatList, Modal, Pressable, Share, StyleSheet, Text, TextInput, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { captureRef } from 'react-native-view-shot';
+import * as Sharing from 'expo-sharing';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 
@@ -274,11 +276,22 @@ export default function HistoryScreen() {
         ]
           .filter(Boolean)
           .join('\n');
+  const recapShotRef = useRef<View>(null);
+  // 결산 카드를 이미지로 캡처해 공유(카톡/인스타 등). 실패하면 텍스트 공유로 폴백.
   const shareRecap = async () => {
     try {
-      await Share.share({ message: recapText });
+      const uri = await captureRef(recapShotRef, { format: 'png', quality: 1 });
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(uri, { mimeType: 'image/png', dialogTitle: '음주 결산 공유' });
+        return;
+      }
+      throw new Error('sharing-unavailable');
     } catch {
-      // 취소 등 무시
+      try {
+        await Share.share({ message: recapText });
+      } catch {
+        // 취소 등 무시
+      }
     }
   };
 
@@ -729,6 +742,7 @@ export default function HistoryScreen() {
       <Modal visible={recapOpen} transparent animationType="fade" onRequestClose={() => setRecapOpen(false)}>
         <Pressable style={styles.recapBg} onPress={() => setRecapOpen(false)}>
           <Pressable onPress={(e) => e.stopPropagation()} style={{ width: '100%' }}>
+            <View ref={recapShotRef} collapsable={false} style={styles.recapShot}>
             <LinearGradient colors={['#3a7afe', '#7b2ff7']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.recapCard}>
               <Text style={styles.recapCardTitle}>{recapTitle}</Text>
               {report.sessions === 0 ? (
@@ -761,6 +775,7 @@ export default function HistoryScreen() {
                 </>
               )}
             </LinearGradient>
+            </View>
             <View style={styles.recapActions}>
               <Pressable style={styles.recapCloseBtn} onPress={() => setRecapOpen(false)}>
                 <Text style={styles.detailCloseText}>닫기</Text>
@@ -971,6 +986,7 @@ const makeStyles = (c: Palette) => StyleSheet.create({
   recapRowLabel: { fontSize: 14, color: 'rgba(255,255,255,0.8)' },
   recapRowValue: { fontSize: 15, color: '#fff', fontWeight: '700' },
   recapEmpty: { fontSize: 15, color: '#fff', fontWeight: '600', paddingVertical: 8 },
+  recapShot: { borderRadius: 20, overflow: 'hidden' },
   recapActions: { flexDirection: 'row', gap: 10, marginTop: 12 },
   recapCloseBtn: { flex: 1, backgroundColor: c.cardAlt, paddingVertical: 13, borderRadius: radius.md, alignItems: 'center' },
   recapShareBtn: { flex: 1, flexDirection: 'row', gap: 6, backgroundColor: c.blue, paddingVertical: 13, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center' },
