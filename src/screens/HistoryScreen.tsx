@@ -57,17 +57,26 @@ export default function HistoryScreen() {
   const [mCost, setMCost] = useState('');
   const [mType, setMType] = useState<DrinkType>(drinkType);
 
-  const openManual = () => {
+  const openManual = (daysAgo = 0) => {
     setEditingId(null);
     setMCount('');
     setMLimit(String(limit));
-    setMDaysAgo('0');
+    setMDaysAgo(String(daysAgo));
     setMTime('21:00');
     setMPlace('');
     setMMemo('');
     setMCost('');
     setMType(drinkType);
     setManualOpen(true);
+  };
+  // 캘린더 빈 날짜 탭 → 그 날짜로 수동 추가 (며칠 전으로 환산해 프리필)
+  const openManualForDate = (day: number) => {
+    const target = new Date(calYear, calMonth, day);
+    target.setHours(0, 0, 0, 0);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const daysAgo = Math.max(0, Math.round((today.getTime() - target.getTime()) / 86400000));
+    openManual(daysAgo);
   };
   const openEdit = (rec: SessionRecord) => {
     setEditingId(rec.id);
@@ -111,7 +120,7 @@ export default function HistoryScreen() {
   useLayoutEffect(() => {
     navigation.setOptions({
       headerRight: () => (
-        <Pressable onPress={openManual} hitSlop={10}>
+        <Pressable onPress={() => openManual()} hitSlop={10}>
           <Ionicons name="add" size={26} color={c.text} />
         </Pressable>
       ),
@@ -140,6 +149,9 @@ export default function HistoryScreen() {
     ...Array(firstDow).fill(null),
     ...Array.from({ length: daysInMonth }, (_, i) => i + 1),
   ];
+  const todayMid = new Date();
+  todayMid.setHours(0, 0, 0, 0);
+  const isFutureDay = (day: number) => new Date(calYear, calMonth, day).getTime() > todayMid.getTime();
   const cellBg = (t?: number) => {
     if (!t) return c.cardAlt;
     if (t <= 2) return c.blue + '55';
@@ -167,6 +179,11 @@ export default function HistoryScreen() {
   // 월간 리포트 (히트맵과 같은 달)
   const report = monthlyReport(history, calYear, calMonth);
   const wdMax = Math.max(...report.weekdayCounts, 1);
+
+  // 수동 추가 모달에 보여줄 대상 날짜(며칠 전 → 실제 날짜)
+  const manualDate = new Date();
+  manualDate.setDate(manualDate.getDate() - (parseInt(mDaysAgo, 10) || 0));
+  const manualDateLabel = `${manualDate.getMonth() + 1}월 ${manualDate.getDate()}일 (${WEEKDAYS[manualDate.getDay()]})`;
 
   // 비용/장소
   const spend = monthSpend(history, calYear, calMonth);
@@ -329,10 +346,17 @@ export default function HistoryScreen() {
                       >
                         <Text style={[styles.calDay, styles.calDayOn]}>{day}</Text>
                       </Pressable>
-                    ) : (
+                    ) : isFutureDay(day) ? (
                       <View style={[styles.calCell, { backgroundColor: cellBg(totals[day]) }]}>
                         <Text style={styles.calDay}>{day}</Text>
                       </View>
+                    ) : (
+                      <Pressable
+                        style={[styles.calCell, { backgroundColor: cellBg(totals[day]) }]}
+                        onPress={() => openManualForDate(day)}
+                      >
+                        <Text style={styles.calDay}>{day}</Text>
+                      </Pressable>
                     ))}
                 </View>
               ))}
@@ -599,7 +623,7 @@ export default function HistoryScreen() {
           <View style={styles.detailCard}>
             <Text style={styles.detailTitle}>{editingId ? '기록 수정' : '수동 기록 추가'}</Text>
             <Text style={styles.muted}>
-              {editingId ? '날짜는 그대로 두고 내용만 수정해요.' : '앱으로 못 센 지난 술자리를 직접 추가해요.'}
+              {editingId ? '날짜는 그대로 두고 내용만 수정해요.' : `${manualDateLabel} 기록을 추가해요.`}
             </Text>
             <View style={styles.mRow}>
               <View style={styles.mCol}>
