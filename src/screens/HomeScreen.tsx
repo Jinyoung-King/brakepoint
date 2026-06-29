@@ -297,6 +297,13 @@ export default function HomeScreen({ navigation }: Props) {
   const openTaxi = () => {
     openExternal('kakaot://', 'https://play.google.com/store/apps/details?id=com.kakao.taxi');
   };
+  // 주변 화장실: 네이버 지도에서 현재 위치 기준 "화장실" 검색 (앱→웹 폴백)
+  const openRestroom = () => {
+    openExternal(
+      'nmap://search?query=화장실&appname=kr.co.cruxdata.brakepoint',
+      'https://map.naver.com/p/search/화장실'
+    );
+  };
   // 안심 귀가 공유: 현위치 좌표 → 지도 링크 메시지 → 시스템 공유시트(연락처 권한 불필요)
   const shareSafeReturn = async () => {
     setShareLoading(true);
@@ -711,6 +718,10 @@ export default function HomeScreen({ navigation }: Props) {
                 <Text style={styles.safeBtnText}>택시</Text>
               </Pressable>
             </View>
+            <Pressable style={styles.shareBtn} onPress={openRestroom}>
+              <MaterialCommunityIcons name="toilet" size={16} color={c.text} />
+              <Text style={styles.shareBtnText}>주변 화장실 찾기</Text>
+            </Pressable>
             <Pressable style={styles.shareBtn} onPress={shareSafeReturn} disabled={shareLoading}>
               <Ionicons name="share-social" size={16} color={c.text} />
               <Text style={styles.shareBtnText}>
