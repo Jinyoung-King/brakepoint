@@ -770,10 +770,10 @@ export default function HomeScreen({ navigation }: Props) {
             ))}
             <Text style={styles.briefTip}>
               {morning
-                ? '내일 일정 있어요 — 오늘은 적당히! 🫡'
+                ? '내일 일정 있어요 — 오늘은 적당히.'
                 : streak >= 3
-                  ? `${streak}연속 한도 지킴 중 — 오늘도 가볍게! 🔥`
-                  : '오늘도 페이스 조절 화이팅! 💧'}
+                  ? `${streak}연속 한도 지킴 중 — 오늘도 가볍게.`
+                  : '오늘도 페이스 조절해서 가요.'}
             </Text>
             <Pressable style={styles.briefClose} onPress={() => setBriefOpen(false)}>
               <Text style={styles.saveBtnText}>닫기</Text>
