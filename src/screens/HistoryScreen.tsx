@@ -260,6 +260,15 @@ export default function HistoryScreen() {
   const recapTopPlace = placeStats(recapRecs)[0];
   const recapWeekday = report.topWeekday != null ? `${WEEKDAYS[report.topWeekday]}요일` : '-';
   const recapTitle = `${calYear}.${String(calMonth + 1).padStart(2, '0')} 음주 결산`;
+  // 이번 달 한줄평(등급) + 그에 맞는 카드 그라데이션 색
+  const recapVerdict: { emoji: string; title: string; colors: readonly [string, string] } =
+    report.sessions === 0
+      ? { emoji: '🧼', title: '클린한 한 달', colors: ['#22c1c3', '#3a7afe'] }
+      : report.withinRate >= 0.8
+        ? { emoji: '🧘', title: '절제의 달인', colors: ['#11998e', '#38ef7d'] }
+        : report.sessions >= 8
+          ? { emoji: '🔥', title: '이번 달 좀 달렸다', colors: ['#f7415f', '#7b2ff7'] }
+          : { emoji: '🍺', title: '적당주의자', colors: ['#3a7afe', '#7b2ff7'] };
   const recapText =
     report.sessions === 0
       ? `🍺 ${recapTitle}\n이번 달은 술자리 기록이 없어요. 👏\n- 브레이크포인트`
@@ -743,10 +752,17 @@ export default function HistoryScreen() {
         <Pressable style={styles.recapBg} onPress={() => setRecapOpen(false)}>
           <Pressable onPress={(e) => e.stopPropagation()} style={{ width: '100%' }}>
             <View ref={recapShotRef} collapsable={false} style={styles.recapShot}>
-            <LinearGradient colors={['#3a7afe', '#7b2ff7']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.recapCard}>
-              <Text style={styles.recapCardTitle}>{recapTitle}</Text>
+            <LinearGradient colors={recapVerdict.colors} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.recapCard}>
+              <View style={styles.recapBlob1} />
+              <View style={styles.recapBlob2} />
+              <View style={styles.recapHeader}>
+                <Text style={styles.recapBrand}>🍺 브레이크포인트</Text>
+                <Text style={styles.recapCardTitle}>{recapTitle}</Text>
+              </View>
+              <Text style={styles.recapVerdictEmoji}>{recapVerdict.emoji}</Text>
+              <Text style={styles.recapVerdictTitle}>{recapVerdict.title}</Text>
               {report.sessions === 0 ? (
-                <Text style={styles.recapEmpty}>이번 달은 술자리 기록이 없어요 👏</Text>
+                <Text style={styles.recapEmpty}>이번 달 술자리 0회 — 잘했어요 👏</Text>
               ) : (
                 <>
                   <View style={styles.recapHero}>
@@ -759,16 +775,19 @@ export default function HistoryScreen() {
                       </Text>
                     )}
                   </View>
+                  <View style={styles.recapDivider} />
                   {[
-                    { l: '총 / 평균', v: `${recapDrinks}잔 · ${recapAvg.toFixed(1)}잔` },
-                    { l: '한도 지킴', v: `${report.withinLimit}/${report.sessions} (${Math.round(report.withinRate * 100)}%)` },
-                    { l: '최다 요일', v: recapWeekday },
-                    ...(recapTopType ? [{ l: '주종 1위', v: `${recapTopType.type} ${recapTopType.count}잔` }] : []),
-                    ...(recapTopPlace ? [{ l: '단골', v: `${recapTopPlace.place} ${recapTopPlace.sessions}회` }] : []),
-                    ...(report.spend > 0 ? [{ l: '술값', v: `${won(report.spend)}원` }] : []),
+                    { icon: '🍶', l: '총 · 평균', v: `${recapDrinks}잔 · ${recapAvg.toFixed(1)}잔` },
+                    { icon: '🛑', l: '한도 지킴', v: `${report.withinLimit}/${report.sessions} · ${Math.round(report.withinRate * 100)}%` },
+                    { icon: '📅', l: '최다 요일', v: recapWeekday },
+                    ...(recapTopType ? [{ icon: '🥃', l: '주종 1위', v: `${recapTopType.type} ${recapTopType.count}잔` }] : []),
+                    ...(recapTopPlace ? [{ icon: '📍', l: '단골', v: `${recapTopPlace.place} ${recapTopPlace.sessions}회` }] : []),
+                    ...(report.spend > 0 ? [{ icon: '💰', l: '술값', v: `${won(report.spend)}원` }] : []),
                   ].map((r) => (
                     <View key={r.l} style={styles.recapRow}>
-                      <Text style={styles.recapRowLabel}>{r.l}</Text>
+                      <Text style={styles.recapRowLabel}>
+                        {r.icon}  {r.l}
+                      </Text>
                       <Text style={styles.recapRowValue}>{r.v}</Text>
                     </View>
                   ))}
@@ -976,9 +995,16 @@ const makeStyles = (c: Palette) => StyleSheet.create({
   recapBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: c.blue, paddingVertical: 13, borderRadius: radius.md },
   recapBtnText: { fontSize: 15, color: '#fff', fontWeight: '700' },
   recapBg: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', paddingHorizontal: 24 },
-  recapCard: { borderRadius: 20, padding: 22, gap: 6 },
-  recapCardTitle: { fontSize: 16, color: 'rgba(255,255,255,0.85)', fontWeight: '700' },
-  recapHero: { flexDirection: 'row', alignItems: 'baseline', gap: 6, marginBottom: 6 },
+  recapCard: { borderRadius: 20, padding: 22, gap: 4, overflow: 'hidden', position: 'relative' },
+  recapBlob1: { position: 'absolute', width: 160, height: 160, borderRadius: 80, backgroundColor: 'rgba(255,255,255,0.13)', top: -55, right: -40 },
+  recapBlob2: { position: 'absolute', width: 120, height: 120, borderRadius: 60, backgroundColor: 'rgba(255,255,255,0.10)', bottom: -45, left: -30 },
+  recapHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  recapBrand: { fontSize: 12, color: 'rgba(255,255,255,0.9)', fontWeight: '800', letterSpacing: 0.3 },
+  recapCardTitle: { fontSize: 13, color: 'rgba(255,255,255,0.8)', fontWeight: '700' },
+  recapVerdictEmoji: { fontSize: 40, marginTop: 10 },
+  recapVerdictTitle: { fontSize: 24, color: '#fff', fontWeight: '800', marginBottom: 2 },
+  recapDivider: { height: 1, backgroundColor: 'rgba(255,255,255,0.22)', marginVertical: 8 },
+  recapHero: { flexDirection: 'row', alignItems: 'baseline', gap: 6, marginBottom: 2 },
   recapHeroNum: { fontSize: 48, fontWeight: '800', color: '#fff' },
   recapHeroUnit: { fontSize: 18, fontWeight: '700', color: 'rgba(255,255,255,0.9)' },
   recapDelta: { fontSize: 12, color: 'rgba(255,255,255,0.8)', marginLeft: 'auto' },
