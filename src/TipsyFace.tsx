@@ -1,4 +1,5 @@
-import { View, Text, StyleSheet } from 'react-native';
+import { useEffect, useRef } from 'react';
+import { Animated, View, Text, StyleSheet } from 'react-native';
 
 import type { Palette } from './theme';
 
@@ -13,6 +14,16 @@ type Props = { pct: number; overLimit: boolean; c: Palette };
 
 export default function TipsyFace({ pct, overLimit, c }: Props) {
   const stage = overLimit ? 3 : pct >= 0.6 ? 2 : pct >= 0.25 ? 1 : 0;
+
+  // 등장 시 부드럽게 페이드 + 살짝 커지며(갑툭튀 방지)
+  const anim = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.timing(anim, { toValue: 1, duration: 280, useNativeDriver: true }).start();
+  }, [anim]);
+  const animStyle = {
+    opacity: anim,
+    transform: [{ scale: anim.interpolate({ inputRange: [0, 1], outputRange: [0.85, 1] }) }],
+  };
 
   const Eye = ({ left }: { left: number }) => {
     if (stage === 3) {
@@ -38,7 +49,7 @@ export default function TipsyFace({ pct, overLimit, c }: Props) {
     );
 
   return (
-    <View style={s.wrap}>
+    <Animated.View style={[s.wrap, animStyle]}>
       <View style={[s.head, { backgroundColor: HEAD_COLORS[stage] }]}>
         <View style={[s.blush, s.blushL, { opacity: BLUSH_OPACITY[stage] }]} />
         <View style={[s.blush, s.blushR, { opacity: BLUSH_OPACITY[stage] }]} />
@@ -48,7 +59,7 @@ export default function TipsyFace({ pct, overLimit, c }: Props) {
         {stage >= 2 && <View style={s.sweat} />}
       </View>
       <Text style={[s.label, { color: stage >= 3 ? c.red : c.textMuted }]}>취기 · {LABELS[stage]}</Text>
-    </View>
+    </Animated.View>
   );
 }
 
