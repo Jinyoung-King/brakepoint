@@ -28,6 +28,7 @@ import { alcoholGrams, eventGrams, estimateBac, hoursUntil, fmtHours, bacCurve, 
 import { effectiveBrakePercents, brakeCountsFor, crossesBrake } from '../brake';
 import BacChart from '../BacChart';
 import GaugeBar from '../GaugeBar';
+import TipsyFace from '../TipsyFace';
 import { isLoaded as isFontLoaded } from 'expo-font';
 import { PIXEL_FONT } from '../fonts';
 import type { GaugeStyle, DrinkType } from '../storage';
@@ -426,6 +427,13 @@ export default function HomeScreen({ navigation }: Props) {
             <Text style={styles.scheduleText}>
               내일 {fmtTime(morning.startMs)} {morning.title} — 오늘은 적당히! (브레이크 강화됨)
             </Text>
+          </View>
+        )}
+
+        {/* 취기 캐릭터 (음주 중) */}
+        {active && (
+          <View style={styles.faceWrap}>
+            <TipsyFace pct={pct} overLimit={overLimit} c={c} />
           </View>
         )}
 
@@ -870,6 +878,7 @@ const makeStyles = (c: Palette) =>
     scheduleText: { flex: 1, fontSize: 13, color: c.amber, fontWeight: '600' },
     brakeRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4 },
     inlineRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+    faceWrap: { alignItems: 'center', marginTop: 2 },
     counterBlock: { alignItems: 'center', gap: 2, marginTop: 4 },
     countRow: { flexDirection: 'row', alignItems: 'baseline' },
     countBig: { fontSize: 72, fontWeight: '800', color: c.text },
