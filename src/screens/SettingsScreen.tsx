@@ -114,6 +114,7 @@ export default function SettingsScreen() {
     setCalendarSync,
     setTheme,
     setGaugeStyle,
+    setTipsyFaceEnabled,
     setWidgetTheme,
     setSex,
     setWeightKg,
@@ -130,7 +131,7 @@ export default function SettingsScreen() {
     setOngoingNotifEnabled,
     importState,
   } = useAppState();
-  const { limit, difficulty, fakeCall, brakePercents, repeatEveryDrinks, unit, calendarSync, theme, sex, weightKg, drinkType, homeAddress, bottleToGlasses, waterEvery, weeklyGoalSessions, checkinEnabled, checkinDelayMin, smokingEnabled, monthlyBudget, weeklyReportEnabled, ongoingNotifEnabled, gaugeStyle, widgetTheme } =
+  const { limit, difficulty, fakeCall, brakePercents, repeatEveryDrinks, unit, calendarSync, theme, sex, weightKg, drinkType, homeAddress, bottleToGlasses, waterEvery, weeklyGoalSessions, checkinEnabled, checkinDelayMin, smokingEnabled, monthlyBudget, weeklyReportEnabled, ongoingNotifEnabled, gaugeStyle, widgetTheme, tipsyFaceEnabled } =
     state;
   const c = useColors();
   const styles = useMemo(() => makeStyles(c), [c]);
@@ -738,6 +739,12 @@ export default function SettingsScreen() {
           })}
         </View>
         <Text style={styles.help}>홈 화면 진행률 바 모양이에요. 취기가 차오를수록 색이 바뀌어요.</Text>
+
+        <View style={styles.toggleRow}>
+          <Text style={styles.label}>취기 캐릭터 표시</Text>
+          <Switch value={tipsyFaceEnabled} onValueChange={setTipsyFaceEnabled} />
+        </View>
+        <Text style={styles.help}>음주 중 홈에 취기 따라 표정이 바뀌는 얼굴을 보여줘요.</Text>
 
         <Text style={styles.subTitle}>홈 위젯 색상</Text>
         <View style={styles.gaugeWrap}>

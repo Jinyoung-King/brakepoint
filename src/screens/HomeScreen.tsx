@@ -117,6 +117,7 @@ export default function HomeScreen({ navigation }: Props) {
     smokingEnabled,
     gaugeStyle,
     water,
+    tipsyFaceEnabled,
   } = state;
   const [transitLoading, setTransitLoading] = useState(false);
   const [shareLoading, setShareLoading] = useState(false);
@@ -430,8 +431,8 @@ export default function HomeScreen({ navigation }: Props) {
           </View>
         )}
 
-        {/* 취기 캐릭터 (음주 중) */}
-        {active && (
+        {/* 취기 캐릭터 (음주 중, 설정 켰을 때) */}
+        {active && tipsyFaceEnabled && (
           <View style={styles.faceWrap}>
             <TipsyFace pct={pct} overLimit={overLimit} c={c} />
           </View>

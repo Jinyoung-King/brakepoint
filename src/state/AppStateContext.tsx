@@ -42,6 +42,7 @@ type AppStateContextValue = {
   setMonthlyBudget: (won: number) => void;
   setTheme: (theme: ThemeMode) => void;
   setGaugeStyle: (style: GaugeStyle) => void;
+  setTipsyFaceEnabled: (on: boolean) => void;
   setWidgetTheme: (theme: WidgetTheme) => void;
   setSex: (sex: Sex) => void;
   setWeightKg: (kg: number) => void;
@@ -123,6 +124,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     setMonthlyBudget: (monthlyBudget) => setState((s) => ({ ...s, monthlyBudget })),
     setTheme: (theme) => setState((s) => ({ ...s, theme })),
     setGaugeStyle: (gaugeStyle) => setState((s) => ({ ...s, gaugeStyle })),
+    setTipsyFaceEnabled: (tipsyFaceEnabled) => setState((s) => ({ ...s, tipsyFaceEnabled })),
     setWidgetTheme: (widgetTheme) => setState((s) => ({ ...s, widgetTheme })),
     setSex: (sex) => setState((s) => ({ ...s, sex })),
     setWeightKg: (weightKg) => setState((s) => ({ ...s, weightKg })),

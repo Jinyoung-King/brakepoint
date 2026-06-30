@@ -76,6 +76,7 @@ export type AppState = {
   monthlyBudget: number; // 월 술값 예산(원, 0=끔)
   weeklyReportEnabled: boolean; // 매주 월요일 아침 지난주 요약 알림
   gaugeStyle: GaugeStyle; // 홈 진행률 게이지 스타일
+  tipsyFaceEnabled: boolean; // 음주 중 취기 캐릭터(얼굴) 표시
   widgetTheme: WidgetTheme; // 홈 위젯 색상 테마
   ongoingNotifEnabled: boolean; // 음주 중 상시 알림(잔/BAC + 잔+1·종료 액션)
   pendingGate: boolean; // 백그라운드에서 알림으로 잔 추가 시 브레이크 도달 → 앱 복귀 후 게이트
@@ -120,6 +121,7 @@ export const DEFAULT_STATE: AppState = {
   monthlyBudget: 0,
   weeklyReportEnabled: true,
   gaugeStyle: 'classic',
+  tipsyFaceEnabled: true,
   widgetTheme: 'dark',
   ongoingNotifEnabled: true,
   pendingGate: false,
