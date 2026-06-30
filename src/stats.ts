@@ -175,6 +175,19 @@ export function peakHour(hours: number[]): number | null {
   return idx >= 0 ? idx : null;
 }
 
+// 특정 요일(0=일~6=토)의 평균 음주량이 전체 평균보다 높은지(=위험 요일).
+// 표본이 충분(해당 요일 3회+)하고 전체 평균 대비 1.2배 이상이면 risky.
+export function weekdayRisk(
+  history: SessionRecord[],
+  weekday: number
+): { risky: boolean; dowAvg: number; allAvg: number; ratio: number; sessions: number } {
+  const allAvg = history.length ? history.reduce((a, r) => a + r.count, 0) / history.length : 0;
+  const dow = history.filter((r) => new Date(r.endedAt).getDay() === weekday);
+  const dowAvg = dow.length ? dow.reduce((a, r) => a + r.count, 0) / dow.length : 0;
+  const ratio = allAvg > 0 ? dowAvg / allAvg : 0;
+  return { risky: dow.length >= 3 && allAvg > 0 && ratio >= 1.2, dowAvg, allAvg, ratio, sessions: dow.length };
+}
+
 // 주종별 총 섭취 잔수 (desc). 잔의 type(섞어 마시기 기록)을 사용하고,
 // type 없는 잔(구버전)이나 수동 기록(events 없음)은 '기타'로 합산.
 export function typeTotals(history: SessionRecord[]): { type: string; count: number }[] {

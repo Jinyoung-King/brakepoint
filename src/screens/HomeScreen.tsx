@@ -45,7 +45,9 @@ const GAUGE_LABEL: Record<GaugeStyle, string> = {
   tacho: '타코미터',
   protoss: '프로토스',
 };
-import { alcoholKcal, hangoverForecast, limitStreak, sessionsThisWeek } from '../stats';
+import { alcoholKcal, hangoverForecast, limitStreak, sessionsThisWeek, weekdayRisk } from '../stats';
+
+const DOW_NAMES = ['일', '월', '화', '수', '목', '금', '토'];
 import { cancelCheckin } from '../checkin';
 import { geocodeAddress } from '../geocode';
 import { getCurrentPlace, getCurrentCoords } from '../location';
@@ -150,6 +152,9 @@ export default function HomeScreen({ navigation }: Props) {
   const active = drinkingMode || count > 0; // 음주 중일 때만 보조 카드 노출
   const streak = limitStreak(history); // 시작 전 카드용
   const weekCount = sessionsThisWeek(history);
+  // 위험 요일: 평소 오늘 요일에 더 많이 마셨으면 경고 배너
+  const todayDow = new Date().getDay();
+  const dowRisk = weekdayRisk(history, todayDow);
   // 시작 전 브리핑용 지표
   const lastEnd = history.length ? history[0].endedAt : null;
   const daysSinceLast = lastEnd != null ? Math.floor((now - lastEnd) / 86400000) : null;
@@ -406,6 +411,15 @@ export default function HomeScreen({ navigation }: Props) {
   return (
     <View style={styles.root}>
       <ScrollView contentContainerStyle={[styles.container, { paddingBottom: insets.bottom + 96 }]}>
+        {dowRisk.risky && !active && (
+          <View style={styles.scheduleBanner}>
+            <Ionicons name="alert-circle-outline" size={16} color={c.amber} />
+            <Text style={styles.scheduleText}>
+              오늘 {DOW_NAMES[todayDow]}요일 — 평소 이 요일엔 평균 {dowRisk.dowAvg.toFixed(1)}{unit}(전체{' '}
+              {dowRisk.allAvg.toFixed(1)}{unit})으로 많이 마셔요. 천천히 가요.
+            </Text>
+          </View>
+        )}
         {morning && (
           <View style={styles.scheduleBanner}>
             <Ionicons name="calendar-outline" size={16} color={c.amber} />

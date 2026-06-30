@@ -13,6 +13,7 @@ import {
   peakHour,
   placeStats,
   typeTotals,
+  weekdayRisk,
 } from '../src/stats';
 import type { SessionRecord } from '../src/storage';
 
@@ -242,6 +243,26 @@ describe('placeStats', () => {
     expect(s[0].place).toBe('A');
     expect(s[0].sessions).toBe(2);
     expect(s[0].avg).toBe(3);
+  });
+});
+
+describe('weekdayRisk', () => {
+  // 같은 요일(7일 간격) 4회 많이 + 다른 요일 소량
+  const sameDow = [at(2026, 5, 5, 8), at(2026, 5, 12, 8), at(2026, 5, 19, 8), at(2026, 5, 26, 8)];
+  const others = [at(2026, 5, 6, 2), at(2026, 5, 7, 2)];
+  const h = [...sameDow, ...others];
+
+  it('표본 충분 + 전체 평균 1.2배↑면 risky', () => {
+    const r = weekdayRisk(h, new Date(2026, 5, 5).getDay());
+    expect(r.risky).toBe(true);
+    expect(r.sessions).toBe(4);
+    expect(r.ratio).toBeGreaterThanOrEqual(1.2);
+  });
+  it('표본 부족(3회 미만)이면 risky 아님', () => {
+    expect(weekdayRisk(h, new Date(2026, 5, 6).getDay()).risky).toBe(false);
+  });
+  it('기록 없으면 안전', () => {
+    expect(weekdayRisk([], 5).risky).toBe(false);
   });
 });
 
