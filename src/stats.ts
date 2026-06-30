@@ -9,10 +9,17 @@ export function alcoholKcal(grams: number): number {
 
 export type Hangover = { level: '낮음' | '보통' | '높음'; tip: string };
 
-export function hangoverForecast(bac: number): Hangover {
-  if (bac < 0.05) return { level: '낮음', tip: '물 한 잔이면 충분해요.' };
-  if (bac < 0.1) return { level: '보통', tip: '자기 전 물 + 전해질, 충분한 수면.' };
-  return { level: '높음', tip: '지금부터 물 자주, 안주 챙기고 일찍 마무리하세요.' };
+// hydrated=true(잔 사이 물을 충분히 마심)면 위험도를 한 단계 낮춘다.
+export function hangoverForecast(bac: number, hydrated = false): Hangover {
+  const base: Hangover =
+    bac < 0.05
+      ? { level: '낮음', tip: '물 한 잔이면 충분해요.' }
+      : bac < 0.1
+        ? { level: '보통', tip: '자기 전 물 + 전해질, 충분한 수면.' }
+        : { level: '높음', tip: '지금부터 물 자주, 안주 챙기고 일찍 마무리하세요.' };
+  if (hydrated && base.level === '높음') return { level: '보통', tip: '물 잘 마시는 중 — 자기 전 한 잔 더.' };
+  if (hydrated && base.level === '보통') return { level: '낮음', tip: '물 챙겨 마셔서 한결 나을 거예요.' };
+  return base;
 }
 
 // 한도(limit) 이내로 끝낸 술자리가 최근부터 몇 번 연속인지

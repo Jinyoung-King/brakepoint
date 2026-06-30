@@ -25,6 +25,7 @@ type AppStateContextValue = {
   addDrink: (n?: number) => void;
   undoDrink: () => void; // 직전 추가(+1잔/+1병) 되돌리기
   addCig: () => void;
+  addWater: () => void;
   endSession: (extra?: { place?: string; memo?: string; cost?: number }) => void; // 현재 술자리를 기록에 저장하고 초기화
   addManualRecord: (r: reducers.ManualRecordInput) => void; // 지난 술자리 수동 추가
   clearHistory: () => void;
@@ -105,6 +106,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     addDrink: (n = 1) => setState((s) => reducers.addDrink(s, n, Date.now())),
     undoDrink: () => setState((s) => reducers.undoDrink(s)),
     addCig: () => setState((s) => reducers.addCig(s)),
+    addWater: () => setState((s) => reducers.addWater(s)),
     endSession: (extra) => setState((s) => reducers.endSession(s, extra, Date.now())),
     addManualRecord: (r) => setState((s) => reducers.addManualRecord(s, r, Date.now())),
     clearHistory: () => setState((s) => ({ ...s, history: [] })),

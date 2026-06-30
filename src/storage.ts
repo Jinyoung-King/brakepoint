@@ -35,6 +35,7 @@ export type SessionRecord = {
   limit: number; // 그때 설정돼 있던 한계
   unit?: DrinkUnit; // 그때 단위
   cigs?: number; // 그 술자리 흡연 개비
+  water?: number; // 그 술자리 마신 물 잔수
   place?: string; // 장소
   memo?: string; // 한줄 메모
   round?: number; // 그날 N차
@@ -55,6 +56,7 @@ export type AppState = {
   unit: DrinkUnit; // 카운트 단위 (잔/병/캔)
   bottleToGlasses: number; // 1병 = N잔 환산 (잔 카운트 기준)
   cigs: number; // 현재 술자리 흡연 개비
+  water: number; // 현재 술자리 마신 물 잔수
   smokingEnabled: boolean; // 흡연 트래킹 표시 여부
   calendarSync: boolean; // 다음날 일정 연동(브레이크 강화)
   theme: ThemeMode; // 앱 테마 (다크/라이트/시스템)
@@ -98,6 +100,7 @@ export const DEFAULT_STATE: AppState = {
   unit: '잔',
   bottleToGlasses: 7,
   cigs: 0,
+  water: 0,
   smokingEnabled: true,
   calendarSync: true,
   theme: 'dark',

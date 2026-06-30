@@ -82,7 +82,7 @@ const geocodeTransientMsg = (reason: 'rate-limited' | 'network' | 'error' | stri
 };
 
 export default function HomeScreen({ navigation }: Props) {
-  const { state, addDrink, undoDrink, addCig, endSession, setDrinkingMode, setHomeCoords, setHomeAddress, setPendingEnd, setGaugeStyle, setDrinkType } =
+  const { state, addDrink, undoDrink, addCig, addWater, endSession, setDrinkingMode, setHomeCoords, setHomeAddress, setPendingEnd, setGaugeStyle, setDrinkType } =
     useAppState();
   const insets = useSafeAreaInsets();
   const c = useColors();
@@ -113,6 +113,7 @@ export default function HomeScreen({ navigation }: Props) {
     homeLng,
     smokingEnabled,
     gaugeStyle,
+    water,
   } = state;
   const [transitLoading, setTransitLoading] = useState(false);
   const [shareLoading, setShareLoading] = useState(false);
@@ -180,6 +181,9 @@ export default function HomeScreen({ navigation }: Props) {
   const grams = consumedGrams;
   const bac = estimateBac({ grams, weightKg, sex, hoursSinceStart: hoursSince });
   const canDrive = bac < DRIVE_LIMIT;
+  // 잔당 물 0.5잔 이상이면 "충분히 마심"으로 보고 숙취 위험 한 단계 완화
+  const hydrated = count > 0 && water >= count * 0.5;
+  const hangover = hangoverForecast(bac, hydrated);
   // BAC 시간곡선(잔별 순알코올 g 사용). now가 바뀔 때만 재계산.
   const bacPoints = useMemo(
     () =>
@@ -540,6 +544,22 @@ export default function HomeScreen({ navigation }: Props) {
           </View>
         )}
 
+        {/* 물 (음주 중) — 잔 사이 물 기록 → 숙취 완화 */}
+        {active && (
+          <View style={styles.rowCard}>
+            <View style={styles.inlineRow}>
+              <Ionicons name="water" size={18} color={c.blue} />
+              <Text style={styles.cigText}>
+                물 {water}잔
+                {count > 0 ? `  ·  잔당 ${(water / count).toFixed(1)}잔` : ''}
+              </Text>
+            </View>
+            <Pressable style={styles.smallBtn} onPress={() => { tapHaptic(); addWater(); }}>
+              <Text style={styles.smallBtnText}>+1</Text>
+            </Pressable>
+          </View>
+        )}
+
         {/* BAC 한 줄 요약 (탭하면 펼침) */}
         {count > 0 && (
           <Pressable style={styles.bacSummary} onPress={() => setBacOpen((o) => !o)}>
@@ -579,7 +599,7 @@ export default function HomeScreen({ navigation }: Props) {
             <View style={styles.inlineRow}>
               <Ionicons name="flame" size={14} color={c.textMuted} />
               <Text style={styles.muted}>
-                약 {alcoholKcal(grams)}kcal · 숙취 위험 {hangoverForecast(bac).level}
+                약 {alcoholKcal(grams)}kcal · 숙취 위험 {hangover.level}
               </Text>
             </View>
             {mixByType.length > 1 && (
@@ -589,7 +609,7 @@ export default function HomeScreen({ navigation }: Props) {
               </Text>
             )}
             <Text style={styles.disclaimer}>
-              {hangoverForecast(bac).tip} · 추정치이니 운전 판단 근거로 쓰지 마세요.
+              {hangover.tip} · 추정치이니 운전 판단 근거로 쓰지 마세요.
             </Text>
           </View>
         )}
@@ -625,7 +645,7 @@ export default function HomeScreen({ navigation }: Props) {
             <Text style={styles.modalTitle}>술자리 종료</Text>
             <Text style={styles.muted}>
               {count}
-              {unit} · 담배 {cigs}개비 · 기록에 저장해요
+              {unit} · 담배 {cigs}개비 · 물 {water}잔 · 기록에 저장해요
             </Text>
             <View style={styles.labelRow}>
               <Text style={styles.label}>장소 (선택)</Text>

@@ -58,6 +58,10 @@ export function addCig(s: AppState): AppState {
   return { ...s, cigs: s.cigs + 1 };
 }
 
+export function addWater(s: AppState): AppState {
+  return { ...s, water: s.water + 1 };
+}
+
 export function endSession(s: AppState, extra: EndSessionExtra | undefined, now: number): AppState {
   if (s.count <= 0 && s.cigs <= 0) return s;
   const rec: SessionRecord = {
@@ -67,6 +71,7 @@ export function endSession(s: AppState, extra: EndSessionExtra | undefined, now:
     limit: s.limit,
     unit: s.unit,
     cigs: s.cigs,
+    water: s.water || undefined,
     place: extra?.place?.trim() || undefined,
     memo: extra?.memo?.trim() || undefined,
     round: roundForDay(s.history, now),
@@ -77,6 +82,7 @@ export function endSession(s: AppState, extra: EndSessionExtra | undefined, now:
     ...s,
     count: 0,
     cigs: 0,
+    water: 0,
     sessionStartMs: null,
     lastDrinkMs: null,
     drinkEvents: [],

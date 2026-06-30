@@ -37,6 +37,11 @@ describe('hangoverForecast', () => {
     expect(hangoverForecast(0.07).level).toBe('보통');
     expect(hangoverForecast(0.15).level).toBe('높음');
   });
+  it('hydrated면 한 단계 완화', () => {
+    expect(hangoverForecast(0.15, true).level).toBe('보통');
+    expect(hangoverForecast(0.07, true).level).toBe('낮음');
+    expect(hangoverForecast(0.02, true).level).toBe('낮음'); // 더 안 내려감
+  });
 });
 
 describe('limitStreak', () => {
