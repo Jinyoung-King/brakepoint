@@ -14,6 +14,8 @@ import {
   placeStats,
   typeTotals,
   weekdayRisk,
+  dryStats,
+  monthDryDays,
 } from '../src/stats';
 import type { SessionRecord } from '../src/storage';
 
@@ -243,6 +245,28 @@ describe('placeStats', () => {
     expect(s[0].place).toBe('A');
     expect(s[0].sessions).toBe(2);
     expect(s[0].avg).toBe(3);
+  });
+});
+
+describe('dryStats', () => {
+  it('현재 연속 금주일 + 역대 최장 공백', () => {
+    const h = [at(2026, 5, 1, 3), at(2026, 5, 10, 3)];
+    const r = dryStats(h, new Date(2026, 5, 15, 21, 0, 0).getTime());
+    expect(r.current).toBe(5); // 6/10 → 6/15
+    expect(r.longest).toBe(8); // 6/1~6/10 사이 순수 금주 8일
+  });
+  it('기록 없으면 0', () => {
+    expect(dryStats([], Date.now())).toEqual({ current: 0, longest: 0 });
+  });
+});
+
+describe('monthDryDays', () => {
+  it('이번 달 음주일/금주일/경과', () => {
+    const h = [at(2026, 5, 1, 3), at(2026, 5, 10, 3), at(2026, 5, 10, 2)]; // 6/10 두 번 → 1일
+    const r = monthDryDays(h, new Date(2026, 5, 15).getTime());
+    expect(r.drinking).toBe(2); // 1일, 10일
+    expect(r.elapsed).toBe(15);
+    expect(r.dry).toBe(13);
   });
 });
 

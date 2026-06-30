@@ -17,7 +17,7 @@ const DAY_CHIPS = [
 ];
 import { radius, type Palette } from '../theme';
 import { useColors } from '../useColors';
-import { limitStreak, sessionsThisWeek, dailyTotals, monthSpend, monthlyReport, hourlyTotals, peakHour, placeStats, typeTotals } from '../stats';
+import { limitStreak, sessionsThisWeek, dailyTotals, monthSpend, monthlyReport, hourlyTotals, peakHour, placeStats, typeTotals, dryStats, monthDryDays } from '../stats';
 
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
@@ -314,6 +314,9 @@ export default function HistoryScreen() {
   const places = placeStats(history);
   const byType = typeTotals(history);
   const typeMax = Math.max(1, ...byType.map((t) => t.count));
+  // 금주 현황
+  const dry = dryStats(history, nowMs);
+  const monthDry = monthDryDays(history, nowMs);
 
   // 시간대별 음주 (전체 기록)
   const hourly = hourlyTotals(history);
@@ -486,6 +489,25 @@ export default function HistoryScreen() {
               ))}
             </View>
           </View>
+
+          {/* 금주 현황 */}
+          {total > 0 && (
+            <View style={styles.chartCard}>
+              <Text style={styles.chartTitle}>금주 현황</Text>
+              <View style={styles.dryHero}>
+                <Text style={styles.dryHeroNum}>{dry.current}</Text>
+                <Text style={styles.dryHeroUnit}>{dry.current === 0 ? '일 · 오늘 음주' : '일째 금주 중'}</Text>
+              </View>
+              <View style={styles.reportRow}>
+                <Text style={styles.muted}>최장 금주</Text>
+                <Text style={styles.reportVal}>{dry.longest}일</Text>
+              </View>
+              <View style={styles.reportRow}>
+                <Text style={styles.muted}>이번 달</Text>
+                <Text style={styles.reportVal}>음주 {monthDry.drinking}일 · 금주 {monthDry.dry}일</Text>
+              </View>
+            </View>
+          )}
 
           {/* 결산 공유 */}
           <Pressable style={styles.recapBtn} onPress={() => setRecapOpen(true)}>
@@ -990,6 +1012,9 @@ const makeStyles = (c: Palette) => StyleSheet.create({
   reportRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   statRowValue: { fontSize: 16, fontWeight: '700', color: c.text },
   reportVal: { fontSize: 14, color: c.text, fontWeight: '600' },
+  dryHero: { flexDirection: 'row', alignItems: 'baseline', gap: 6, marginVertical: 2 },
+  dryHeroNum: { fontSize: 36, fontWeight: '800', color: c.green },
+  dryHeroUnit: { fontSize: 15, fontWeight: '600', color: c.textMuted },
   recapBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: c.blue, paddingVertical: 13, borderRadius: radius.md },
   recapBtnText: { fontSize: 15, color: '#fff', fontWeight: '700' },
   recapBg: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', paddingHorizontal: 24 },

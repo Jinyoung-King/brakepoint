@@ -175,6 +175,45 @@ export function peakHour(hours: number[]): number | null {
   return idx >= 0 ? idx : null;
 }
 
+const DAY = 24 * 60 * 60 * 1000;
+const dayStart = (ms: number) => {
+  const d = new Date(ms);
+  d.setHours(0, 0, 0, 0);
+  return d.getTime();
+};
+
+// 금주(안 마신 날) 현황: 현재 연속 금주일 + 역대 최장 연속 금주일.
+// current = 마지막 음주일로부터 오늘까지의 일수(오늘 마셨으면 0). longest = 음주일 사이 최대 공백.
+export function dryStats(history: SessionRecord[], now: number): { current: number; longest: number } {
+  const days = Array.from(new Set(history.map((r) => dayStart(r.endedAt)))).sort((a, b) => a - b);
+  if (days.length === 0) return { current: 0, longest: 0 };
+  const current = Math.max(0, Math.round((dayStart(now) - days[days.length - 1]) / DAY));
+  let longest = current;
+  for (let i = 1; i < days.length; i++) {
+    const gap = Math.round((days[i] - days[i - 1]) / DAY) - 1; // 두 음주일 사이의 순수 금주일
+    if (gap > longest) longest = gap;
+  }
+  return { current, longest };
+}
+
+// 이번 달(now 기준) 음주일 / 금주일. elapsed = 이번 달 경과 일수.
+export function monthDryDays(
+  history: SessionRecord[],
+  now: number
+): { drinking: number; dry: number; elapsed: number } {
+  const t = new Date(now);
+  const drinking = new Set(
+    history
+      .filter((r) => {
+        const d = new Date(r.endedAt);
+        return d.getFullYear() === t.getFullYear() && d.getMonth() === t.getMonth();
+      })
+      .map((r) => new Date(r.endedAt).getDate())
+  ).size;
+  const elapsed = t.getDate();
+  return { drinking, dry: Math.max(0, elapsed - drinking), elapsed };
+}
+
 // 특정 요일(0=일~6=토)의 평균 음주량이 전체 평균보다 높은지(=위험 요일).
 // 표본이 충분(해당 요일 3회+)하고 전체 평균 대비 1.2배 이상이면 risky.
 export function weekdayRisk(
