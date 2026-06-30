@@ -3,8 +3,8 @@ import notifee, { AndroidImportance, type Notification } from '@notifee/react-na
 import type { AppState } from './storage';
 import { loadState, saveState } from './storage';
 import { addDrink } from './state/reducers';
-import { alcoholGrams, stdDrinks, STD_GRAMS, estimateBac, hoursUntil, fmtHours, DRIVE_LIMIT } from './bac';
-import { brakeCountsFor, crossesBrake } from './brake';
+import { alcoholGrams, estimateBac, hoursUntil, fmtHours, DRIVE_LIMIT } from './bac';
+import { crossesBrakeOnAdd } from './brake';
 import { notifyWater } from './water';
 
 // 음주 중 상태표시줄에 상주하는 알림. 앱을 안 열고도 잔을 더하고 BAC를 본다.
@@ -128,18 +128,17 @@ export async function handleOngoingActionBg(actionId: string, now: number): Prom
   if (!s.drinkingMode) return;
   const prev = s.count;
   const next = prev + 1;
-  // 브레이크는 표준잔(순알코올) 기준 — 지금 주종 1잔의 알코올량만큼만 차오른다.
-  const prevStd = stdDrinks(s.drinkEvents, s.unit, s.drinkType);
-  const addedStd = alcoholGrams(1, s.unit, s.drinkType) / STD_GRAMS;
-  let ns = addDrink(s, 1, now);
-  const brakeCounts = brakeCountsFor(ns.limit, ns.brakePercents);
-  const crossed = crossesBrake({
-    prev: prevStd,
-    next: prevStd + addedStd,
-    limit: ns.limit,
-    brakeCounts,
-    repeatEveryDrinks: ns.repeatEveryDrinks,
+  // 브레이크는 표준잔(순알코올) 기준 — 추가 전 이벤트로 판정.
+  const crossed = crossesBrakeOnAdd({
+    drinkEvents: s.drinkEvents,
+    unit: s.unit,
+    drinkType: s.drinkType,
+    addN: 1,
+    limit: s.limit,
+    brakePercents: s.brakePercents,
+    repeatEveryDrinks: s.repeatEveryDrinks,
   });
+  let ns = addDrink(s, 1, now);
   if (crossed) ns = { ...ns, pendingGate: true };
   await saveState(ns);
 

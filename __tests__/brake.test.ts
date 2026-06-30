@@ -3,6 +3,7 @@ import {
   brakeCountsFor,
   isBrakeAt,
   crossesBrake,
+  crossesBrakeOnAdd,
 } from '../src/brake';
 
 describe('effectiveBrakePercents', () => {
@@ -62,5 +63,17 @@ describe('crossesBrake', () => {
     expect(crossesBrake({ prev: 2, next: 2.5, ...base })).toBe(false); // 아직 3 안 됨
     expect(crossesBrake({ prev: 3.5, next: 4, ...base })).toBe(true); // 4를 밟음
     expect(crossesBrake({ prev: 4.5, next: 5, ...base })).toBe(true); // 한계 5 도달
+  });
+});
+
+describe('crossesBrakeOnAdd', () => {
+  const ev = [{ t: 1, n: 2, type: '소주' as const, unit: '잔' as const }]; // 표준잔 2
+  const base = { drinkEvents: ev, unit: '잔' as const, limit: 5, brakePercents: [60, 80], repeatEveryDrinks: 3 };
+
+  it('소주 1잔 추가는 3표준잔째를 밟아 발동', () => {
+    expect(crossesBrakeOnAdd({ ...base, drinkType: '소주', addN: 1 })).toBe(true); // 2 → 3
+  });
+  it('같은 상황에 청하 1잔은 알코올 적어 발동 안 함', () => {
+    expect(crossesBrakeOnAdd({ ...base, drinkType: '청하', addN: 1 })).toBe(false); // 2 → 2.625
   });
 });

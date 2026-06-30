@@ -3,8 +3,8 @@ import { useEffect, useRef } from 'react';
 import { useAppState } from './state/AppStateContext';
 import type { AppState } from './storage';
 import { onWatchAddDrink, sendStateToWatch, wearBridgeAvailable } from '../modules/wear-bridge';
-import { alcoholGrams, eventGrams, estimateBac, stdDrinks, STD_GRAMS } from './bac';
-import { brakeCountsFor, crossesBrake } from './brake';
+import { alcoholGrams, eventGrams, estimateBac } from './bac';
+import { crossesBrakeOnAdd } from './brake';
 import { navigateToGate } from './navigation/navigationRef';
 import { notifyWater } from './water';
 
@@ -24,10 +24,7 @@ export default function WearController() {
       const next = prev + n;
       addDrink(n);
       // 브레이크는 표준잔(순알코올) 기준
-      const prevStd = stdDrinks(s.drinkEvents, s.unit, s.drinkType);
-      const addedStd = alcoholGrams(n, s.unit, s.drinkType) / STD_GRAMS;
-      const brakeCounts = brakeCountsFor(s.limit, s.brakePercents);
-      if (crossesBrake({ prev: prevStd, next: prevStd + addedStd, limit: s.limit, brakeCounts, repeatEveryDrinks: s.repeatEveryDrinks })) {
+      if (crossesBrakeOnAdd({ drinkEvents: s.drinkEvents, unit: s.unit, drinkType: s.drinkType, addN: n, limit: s.limit, brakePercents: s.brakePercents, repeatEveryDrinks: s.repeatEveryDrinks })) {
         navigateToGate();
       } else if (s.waterEvery > 0 && Math.floor(prev / s.waterEvery) < Math.floor(next / s.waterEvery)) {
         notifyWater();

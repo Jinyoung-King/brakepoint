@@ -21,6 +21,7 @@ import { useAppState } from '../state/AppStateContext';
 import type { Difficulty, DrinkUnit, ThemeMode, Sex, DrinkType, GaugeStyle, WidgetTheme } from '../storage';
 import { radius, type Palette } from '../theme';
 import { alcoholGrams, STD_GRAMS } from '../bac';
+import { DRINK_TYPES } from '../constants';
 import { useColors } from '../useColors';
 import { importWeightFromHealthConnect, openHealthConnectSettings } from '../health';
 import { exportBackup, importBackup } from '../backupIO';
@@ -69,7 +70,6 @@ const SEXES: { key: Sex; label: string }[] = [
   { key: 'female', label: '여' },
 ];
 
-const DRINK_TYPES: DrinkType[] = ['소주', '맥주', '와인', '양주', '청하'];
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);

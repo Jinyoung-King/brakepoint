@@ -8,8 +8,8 @@ import { useNavigation } from '@react-navigation/native';
 
 import { useAppState } from '../state/AppStateContext';
 import type { SessionRecord, DrinkType } from '../storage';
+import { DRINK_TYPES, WEEKDAYS } from '../constants';
 
-const DRINK_TYPES: DrinkType[] = ['소주', '맥주', '와인', '양주', '청하'];
 const DAY_CHIPS = [
   { label: '오늘', v: 0 },
   { label: '어제', v: 1 },
@@ -20,7 +20,6 @@ import { useColors } from '../useColors';
 import { limitStreak, sessionsThisWeek, dailyTotals, monthSpend, monthlyReport, hourlyTotals, peakHour, placeStats, typeTotals, dryStats, monthDryDays } from '../stats';
 
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
-const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
 
 function fmtDate(ms: number): string {
   const d = new Date(ms);

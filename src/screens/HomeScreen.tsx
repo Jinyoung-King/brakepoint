@@ -25,15 +25,14 @@ import { useMorningSchedule } from '../calendar/useMorningSchedule';
 import { radius, type Palette } from '../theme';
 import { useColors } from '../useColors';
 import { alcoholGrams, eventGrams, estimateBac, hoursUntil, fmtHours, bacCurve, DRIVE_LIMIT, STD_GRAMS } from '../bac';
-import { effectiveBrakePercents, brakeCountsFor, crossesBrake } from '../brake';
+import { effectiveBrakePercents, brakeCountsFor, crossesBrakeOnAdd } from '../brake';
 import BacChart from '../BacChart';
 import GaugeBar from '../GaugeBar';
 import TipsyFace from '../TipsyFace';
 import { isLoaded as isFontLoaded } from 'expo-font';
 import { PIXEL_FONT } from '../fonts';
-import type { GaugeStyle, DrinkType } from '../storage';
-
-const DRINK_TYPES: DrinkType[] = ['소주', '맥주', '와인', '양주', '청하'];
+import type { GaugeStyle } from '../storage';
+import { DRINK_TYPES, WEEKDAYS } from '../constants';
 
 // 게이지 바 탭 시 순환 순서 + 표시 이름
 const GAUGE_CYCLE: GaugeStyle[] = ['classic', 'hp', 'hearts', 'boss', 'mp', 'tacho', 'protoss'];
@@ -47,8 +46,6 @@ const GAUGE_LABEL: Record<GaugeStyle, string> = {
   protoss: '프로토스',
 };
 import { alcoholKcal, hangoverForecast, limitStreak, sessionsThisWeek, weekdayRisk } from '../stats';
-
-const DOW_NAMES = ['일', '월', '화', '수', '목', '금', '토'];
 import { cancelCheckin } from '../checkin';
 import { geocodeAddress } from '../geocode';
 import { getCurrentPlace, getCurrentCoords } from '../location';
@@ -250,8 +247,7 @@ export default function HomeScreen({ navigation }: Props) {
     const gap = lastDrinkMs ? now - lastDrinkMs : Infinity;
     addDrink(n);
     // 브레이크는 표준잔(순알코올) 기준 — 지금 마시는 주종의 알코올량만큼만 차오른다.
-    const addedStd = alcoholGrams(n, unit, drinkType) / STD_GRAMS;
-    if (crossesBrake({ prev: stdCount, next: stdCount + addedStd, limit, brakeCounts, repeatEveryDrinks })) {
+    if (crossesBrakeOnAdd({ drinkEvents, unit, drinkType, addN: n, limit, brakePercents, repeatEveryDrinks, morningTighten: !!morning })) {
       navigation.navigate('CognitiveGate');
       return;
     }
@@ -417,7 +413,7 @@ export default function HomeScreen({ navigation }: Props) {
           <View style={styles.scheduleBanner}>
             <Ionicons name="alert-circle-outline" size={16} color={c.amber} />
             <Text style={styles.scheduleText}>
-              오늘 {DOW_NAMES[todayDow]}요일 — 평소 이 요일엔 평균 {dowRisk.dowAvg.toFixed(1)}{unit}(전체{' '}
+              오늘 {WEEKDAYS[todayDow]}요일 — 평소 이 요일엔 평균 {dowRisk.dowAvg.toFixed(1)}{unit}(전체{' '}
               {dowRisk.allAvg.toFixed(1)}{unit})으로 많이 마셔요. 천천히 가요.
             </Text>
           </View>
