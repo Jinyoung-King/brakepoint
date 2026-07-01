@@ -214,4 +214,62 @@ describe('addManualRecord', () => {
     const added = r.history.find((x) => x.count === 2)!;
     expect(added.round).toBe(2);
   });
+
+  // 범위 밖 시간이 그대로 setHours로 가면 Date가 다음날로 롤오버돼 날짜가 바뀐다.
+  it.each([
+    ['25:70', '시/분 모두 범위 밖'],
+    ['24:60', '24시·60분 모두 무효'],
+    ['abc', '숫자 아님'],
+    ['99:99', '둘 다 초과'],
+  ])('시/분 모두 무효인 "%s"(%s)은 21:00로 폴백하고 날짜는 유지한다', (time) => {
+    const r = addManualRecord(base(), { count: 1, limit: 5, daysAgo: 0, time }, T);
+    const d = new Date(r.history[0].endedAt);
+    expect(d.getFullYear()).toBe(2026);
+    expect(d.getMonth()).toBe(5);
+    expect(d.getDate()).toBe(24); // T와 같은 날 (롤오버 없음)
+    expect(d.getHours()).toBe(21);
+    expect(d.getMinutes()).toBe(0);
+  });
+
+  it('시/분 독립 검증: "14:99"는 시=14(유효)·분=99(무효) → 14:00', () => {
+    const r = addManualRecord(base(), { count: 1, limit: 5, daysAgo: 0, time: '14:99' }, T);
+    const d = new Date(r.history[0].endedAt);
+    expect(d.getHours()).toBe(14);
+    expect(d.getMinutes()).toBe(0);
+    expect(d.getDate()).toBe(24); // 롤오버 없음
+  });
+
+  it('시/분 독립 검증: "-1:30"은 시 무효→21·분 유효→30 → 21:30', () => {
+    const r = addManualRecord(base(), { count: 1, limit: 5, daysAgo: 0, time: '-1:30' }, T);
+    const d = new Date(r.history[0].endedAt);
+    expect(d.getHours()).toBe(21);
+    expect(d.getMinutes()).toBe(30);
+    expect(d.getDate()).toBe(24);
+  });
+});
+
+// 자정 경계에서 차수(round)가 달력일 기준으로 갈라지는지 검증.
+describe('endSession — 자정 경계 차수', () => {
+  const dayA_2359 = new Date(2026, 5, 24, 23, 59, 59, 999).getTime();
+  const dayB_0000 = new Date(2026, 5, 25, 0, 0, 0, 0).getTime();
+
+  it('23:59:59.999에 끝난 기록은 다음날 00:00 세션의 차수에 안 잡힌다(각각 1차)', () => {
+    const prior: SessionRecord = { id: 'a', endedAt: dayA_2359, count: 3, limit: 5 };
+    const r = endSession(base({ count: 1, history: [prior] }), undefined, dayB_0000);
+    expect(r.history[0].round).toBe(1); // 새 날의 1차
+  });
+
+  it('같은 날 23:00·23:59는 2차로 누적된다', () => {
+    const early: SessionRecord = { id: 'e', endedAt: new Date(2026, 5, 24, 23, 0, 0).getTime(), count: 2, limit: 5 };
+    const r = endSession(base({ count: 1, history: [early] }), undefined, dayA_2359);
+    expect(r.history[0].round).toBe(2);
+  });
+
+  it('자정을 넘겨 끝난 세션은 종료 시각(endedAt) 기준 날짜로 차수가 매겨진다', () => {
+    // 24일 23시에 시작해 25일 01시에 종료 → endedAt이 25일이므로 25일 1차
+    const sameNightBefore: SessionRecord = { id: 'n', endedAt: new Date(2026, 5, 24, 22, 0, 0).getTime(), count: 4, limit: 5 };
+    const endAfterMidnight = new Date(2026, 5, 25, 1, 0, 0).getTime();
+    const r = endSession(base({ count: 2, history: [sameNightBefore] }), undefined, endAfterMidnight);
+    expect(r.history[0].round).toBe(1); // 24일 기록은 안 잡힘 → 25일 1차
+  });
 });

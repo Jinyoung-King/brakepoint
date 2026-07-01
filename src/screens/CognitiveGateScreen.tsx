@@ -129,6 +129,7 @@ export default function CognitiveGateScreen({ navigation }: Props) {
             placeholderTextColor="#777"
             maxLength={4}
             autoFocus
+            accessibilityLabel="아까 본 4자리 숫자 입력"
           />
         </View>
         {wrong && <Text style={styles.wrong}>틀렸어요. 새 문제로 다시.</Text>}
@@ -153,10 +154,16 @@ export default function CognitiveGateScreen({ navigation }: Props) {
           autoFocus
           returnKeyType="done"
           onSubmitEditing={() => submitMath(mathInput)}
+          accessibilityLabel={`${math.text} 정답 입력`}
         />
       </View>
       {wrong && <Text style={styles.wrong}>틀렸어요. 새 문제로 다시.</Text>}
-      <Pressable style={styles.submitBtn} onPress={() => submitMath(mathInput)}>
+      <Pressable
+        style={styles.submitBtn}
+        onPress={() => submitMath(mathInput)}
+        accessibilityRole="button"
+        accessibilityLabel="잠금 해제"
+      >
         <Text style={styles.submitText}>해제</Text>
       </Pressable>
     </View>

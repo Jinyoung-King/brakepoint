@@ -494,7 +494,12 @@ export default function HomeScreen({ navigation }: Props) {
 
         {/* +1잔 / +1병 */}
         <View style={styles.addRow}>
-          <Pressable style={styles.addBtn} onPress={() => onAdd(1)}>
+          <Pressable
+            style={styles.addBtn}
+            onPress={() => onAdd(1)}
+            accessibilityRole="button"
+            accessibilityLabel={`한 ${unit} 추가`}
+          >
             <Text style={styles.addBtnText}>+1{unit}</Text>
           </Pressable>
         </View>
@@ -557,7 +562,12 @@ export default function HomeScreen({ navigation }: Props) {
                 {count > 0 && cigs > 0 ? `  ·  잔당 ${(cigs / count).toFixed(1)}개비` : ''}
               </Text>
             </View>
-            <Pressable style={styles.smallBtn} onPress={() => { tapHaptic(); addCig(); }}>
+            <Pressable
+              style={styles.smallBtn}
+              onPress={() => { tapHaptic(); addCig(); }}
+              accessibilityRole="button"
+              accessibilityLabel="담배 한 개비 추가"
+            >
               <Text style={styles.smallBtnText}>+1</Text>
             </Pressable>
           </View>
@@ -573,7 +583,12 @@ export default function HomeScreen({ navigation }: Props) {
                 {count > 0 ? `  ·  잔당 ${(water / count).toFixed(1)}잔` : ''}
               </Text>
             </View>
-            <Pressable style={styles.smallBtn} onPress={() => { tapHaptic(); addWater(); }}>
+            <Pressable
+              style={styles.smallBtn}
+              onPress={() => { tapHaptic(); addWater(); }}
+              accessibilityRole="button"
+              accessibilityLabel="물 한 잔 추가"
+            >
               <Text style={styles.smallBtnText}>+1</Text>
             </Pressable>
           </View>

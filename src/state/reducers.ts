@@ -132,8 +132,12 @@ export function updateRecord(s: AppState, id: string, patch: RecordPatch): AppSt
 export function addManualRecord(s: AppState, r: ManualRecordInput, now: number): AppState {
   const d = new Date(now);
   d.setDate(d.getDate() - Math.max(0, Math.floor(r.daysAgo)));
+  // 범위를 벗어난 시/분("25:70" 등)은 기본값으로 폴백. 그대로 setHours에 넣으면
+  // Date가 다음날로 롤오버돼 endedAt(날짜)이 조용히 바뀌는 걸 막는다.
   const [hh, mm] = (r.time || '').split(':').map((x) => parseInt(x, 10));
-  d.setHours(Number.isFinite(hh) ? hh : 21, Number.isFinite(mm) ? mm : 0, 0, 0);
+  const validH = Number.isFinite(hh) && hh >= 0 && hh <= 23;
+  const validM = Number.isFinite(mm) && mm >= 0 && mm <= 59;
+  d.setHours(validH ? hh : 21, validM ? mm : 0, 0, 0);
   const endedAt = d.getTime();
   const rec: SessionRecord = {
     id: `m-${endedAt}-${s.history.length}`,

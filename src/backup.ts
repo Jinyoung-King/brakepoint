@@ -21,18 +21,25 @@ export function serializeBackup(state: AppState, exportedAt: number): string {
 
 // 백업 텍스트 → 복원용 AppState. 형식이 아니면 throw. 누락 필드는 기본값으로 방어.
 export function parseBackup(text: string): AppState {
-  let obj: any;
+  let obj: unknown;
   try {
     obj = JSON.parse(text);
   } catch {
     throw new Error('JSON 형식이 아니에요.');
   }
-  if (!obj || obj.format !== BACKUP_FORMAT || typeof obj.state !== 'object' || !obj.state) {
+  const backup = obj as Partial<Backup> | null;
+  if (
+    !backup ||
+    backup.format !== BACKUP_FORMAT ||
+    typeof backup.state !== 'object' ||
+    !backup.state
+  ) {
     throw new Error('브레이크포인트 백업 파일이 아니에요.');
   }
+  const state = backup.state as Partial<AppState>;
   return {
     ...DEFAULT_STATE,
-    ...obj.state,
-    fakeCall: { ...DEFAULT_STATE.fakeCall, ...(obj.state.fakeCall ?? {}) },
+    ...state,
+    fakeCall: { ...DEFAULT_STATE.fakeCall, ...(state.fakeCall ?? {}) },
   };
 }

@@ -314,3 +314,52 @@ describe('typeTotals', () => {
     expect(typeTotals(h)).toEqual([{ type: '기타', count: 5 }]);
   });
 });
+
+// 주간 리포트가 반개구간 [지난주 월 00:00, 이번주 월 00:00)을 정확히 지키는지.
+describe('lastWeekReport — 주 경계 포함/배제', () => {
+  const DAY = 24 * 3600 * 1000;
+  const mondayOf = (ref: number): number => {
+    const m = new Date(ref);
+    m.setHours(0, 0, 0, 0);
+    m.setDate(m.getDate() - ((m.getDay() + 6) % 7));
+    return m.getTime();
+  };
+  const mk = (endedAt: number, count = 1, limit = 5): SessionRecord => ({ id: String(endedAt), endedAt, count, limit });
+
+  it('지난주 시작(월 00:00 정각)은 포함, 이번주 시작(월 00:00 정각)은 배제', () => {
+    const ref = new Date(2026, 5, 24, 12, 0, 0).getTime();
+    const thisMon = mondayOf(ref);
+    const lastMon = thisMon - 7 * DAY;
+    const r = lastWeekReport(
+      [
+        mk(lastMon), // 지난주 시작 정각 → 포함 (start inclusive)
+        mk(thisMon - 1), // 지난주 마지막 ms → 포함
+        mk(thisMon), // 이번주 시작 정각 → 배제 (end exclusive)
+        mk(lastMon - 1), // 2주 전 마지막 ms → 배제
+      ],
+      ref
+    );
+    expect(r.sessions).toBe(2);
+  });
+});
+
+describe('nextWeeklyReportAt — 요일/정각 경계', () => {
+  const DAY = 24 * 3600 * 1000;
+
+  it('일요일 오후면 바로 다음날(월) 09:00', () => {
+    const someMon9 = nextWeeklyReportAt(new Date(2026, 5, 24, 15, 0, 0).getTime());
+    const sun = new Date(someMon9 - DAY); // 월요일 전날 = 일요일
+    sun.setHours(15, 0, 0, 0);
+    expect(sun.getDay()).toBe(0); // 일요일 확인
+    const at = new Date(nextWeeklyReportAt(sun.getTime()));
+    expect(at.getDay()).toBe(1);
+    expect(at.getHours()).toBe(9);
+    expect(at.getTime()).toBeGreaterThan(sun.getTime());
+  });
+
+  it('정확히 월요일 09:00:00.000(now==발송시각)이면 다음 주로 넘긴다', () => {
+    const mon9 = nextWeeklyReportAt(new Date(2026, 5, 24, 15, 0, 0).getTime());
+    expect(new Date(mon9).getDay()).toBe(1);
+    expect(nextWeeklyReportAt(mon9)).toBe(mon9 + 7 * DAY); // <= now 경계
+  });
+});

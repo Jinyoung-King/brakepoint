@@ -108,6 +108,9 @@ export default function FakeCallScreen({ navigation }: Props) {
         style={[styles.ctrlBtn, opts?.active && styles.ctrlBtnActive]}
         onPress={opts?.onPress}
         disabled={!opts?.onPress}
+        accessibilityRole="button"
+        accessibilityLabel={label}
+        accessibilityState={{ selected: !!opts?.active, disabled: !opts?.onPress }}
       >
         <MaterialIcons name={icon} size={26} color={opts?.active ? '#1a1a1a' : '#fff'} />
       </Pressable>
@@ -149,10 +152,22 @@ export default function FakeCallScreen({ navigation }: Props) {
 
       {phase === 'ringing' ? (
         <View style={[styles.answerRow, { paddingBottom: insets.bottom + 56 }]}>
-          <Pressable style={[styles.answerBtn, styles.acceptBtn]} onPress={accept} hitSlop={12}>
+          <Pressable
+            style={[styles.answerBtn, styles.acceptBtn]}
+            onPress={accept}
+            hitSlop={12}
+            accessibilityRole="button"
+            accessibilityLabel="전화 받기"
+          >
             <MaterialIcons name="call" size={34} color="#fff" />
           </Pressable>
-          <Pressable style={[styles.answerBtn, styles.declineBtn]} onPress={decline} hitSlop={12}>
+          <Pressable
+            style={[styles.answerBtn, styles.declineBtn]}
+            onPress={decline}
+            hitSlop={12}
+            accessibilityRole="button"
+            accessibilityLabel="전화 거절"
+          >
             <MaterialIcons name="call-end" size={34} color="#fff" />
           </Pressable>
         </View>
@@ -173,7 +188,13 @@ export default function FakeCallScreen({ navigation }: Props) {
             {renderControl('more-horiz', '더 보기')}
           </View>
           <View style={styles.endWrap}>
-            <Pressable style={styles.endBtn} onPress={() => navigation.goBack()} hitSlop={12}>
+            <Pressable
+              style={styles.endBtn}
+              onPress={() => navigation.goBack()}
+              hitSlop={12}
+              accessibilityRole="button"
+              accessibilityLabel="통화 종료"
+            >
               <MaterialIcons name="call-end" size={32} color="#fff" />
             </Pressable>
           </View>
