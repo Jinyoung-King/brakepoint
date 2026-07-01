@@ -9,15 +9,15 @@ import { useNavigation } from '@react-navigation/native';
 import { useAppState } from '../state/AppStateContext';
 import type { SessionRecord, DrinkType } from '../storage';
 import { DRINK_TYPES, WEEKDAYS } from '../constants';
+import { radius, type Palette } from '../theme';
+import { useColors } from '../useColors';
+import { limitStreak, sessionsThisWeek, dailyTotals, monthSpend, monthlyReport, hourlyTotals, peakHour, placeStats, typeTotals, dryStats, monthDryDays } from '../stats';
 
 const DAY_CHIPS = [
   { label: '오늘', v: 0 },
   { label: '어제', v: 1 },
   { label: '그저께', v: 2 },
 ];
-import { radius, type Palette } from '../theme';
-import { useColors } from '../useColors';
-import { limitStreak, sessionsThisWeek, dailyTotals, monthSpend, monthlyReport, hourlyTotals, peakHour, placeStats, typeTotals, dryStats, monthDryDays } from '../stats';
 
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 

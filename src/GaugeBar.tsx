@@ -5,7 +5,7 @@ import { isLoaded as isFontLoaded } from 'expo-font';
 
 import type { GaugeStyle } from './storage';
 import { PIXEL_FONT } from './fonts';
-import { radius, type Palette } from './theme';
+import { type Palette } from './theme';
 
 // 숫자 표시에 픽셀 폰트(로드됐을 때만). Press Start 2P는 라틴/숫자 전용.
 const pixelText = () => (isFontLoaded(PIXEL_FONT) ? { fontFamily: PIXEL_FONT } : null);

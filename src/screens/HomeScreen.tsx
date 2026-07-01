@@ -33,6 +33,15 @@ import { isLoaded as isFontLoaded } from 'expo-font';
 import { PIXEL_FONT } from '../fonts';
 import type { GaugeStyle } from '../storage';
 import { DRINK_TYPES, WEEKDAYS } from '../constants';
+import { alcoholKcal, hangoverForecast, limitStreak, sessionsThisWeek, weekdayRisk } from '../stats';
+import { cancelCheckin } from '../checkin';
+import { geocodeAddress } from '../geocode';
+import { getCurrentPlace, getCurrentCoords } from '../location';
+import { buildSafeReturnMessage } from '../share';
+import { openFullScreenIntentSettings } from '../fakeCall/notifications';
+import { canUseFullScreenIntent } from '../../modules/fsi-permission';
+import { addHaptic, tapHaptic } from '../haptics';
+import { notifyWater } from '../water';
 
 // 게이지 바 탭 시 순환 순서 + 표시 이름
 const GAUGE_CYCLE: GaugeStyle[] = ['classic', 'hp', 'hearts', 'boss', 'mp', 'tacho', 'protoss'];
@@ -45,15 +54,6 @@ const GAUGE_LABEL: Record<GaugeStyle, string> = {
   tacho: '타코미터',
   protoss: '프로토스',
 };
-import { alcoholKcal, hangoverForecast, limitStreak, sessionsThisWeek, weekdayRisk } from '../stats';
-import { cancelCheckin } from '../checkin';
-import { geocodeAddress } from '../geocode';
-import { getCurrentPlace, getCurrentCoords } from '../location';
-import { buildSafeReturnMessage } from '../share';
-import { openFullScreenIntentSettings } from '../fakeCall/notifications';
-import { canUseFullScreenIntent } from '../../modules/fsi-permission';
-import { addHaptic, tapHaptic } from '../haptics';
-import { notifyWater } from '../water';
 
 type Props = CompositeScreenProps<
   BottomTabScreenProps<MainTabParamList, 'Home'>,

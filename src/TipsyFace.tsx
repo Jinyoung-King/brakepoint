@@ -12,6 +12,20 @@ const LABELS = ['멀쩡', '기분 좋음', '알딸딸', '위험'];
 
 type Props = { pct: number; overLimit: boolean; c: Palette };
 
+function Eye({ left, stage }: { left: number; stage: number }) {
+  if (stage === 3) {
+    // X 눈
+    return (
+      <View style={[s.eyeBox, { left }]}>
+        <View style={[s.xBar, { transform: [{ rotate: '45deg' }] }]} />
+        <View style={[s.xBar, { transform: [{ rotate: '-45deg' }] }]} />
+      </View>
+    );
+  }
+  if (stage === 2) return <View style={[s.eyeHalf, { left }]} />; // 반쯤 풀린 눈
+  return <View style={[s.eyeDot, { left }]} />;
+}
+
 export default function TipsyFace({ pct, overLimit, c }: Props) {
   const stage = overLimit ? 3 : pct >= 0.6 ? 2 : pct >= 0.25 ? 1 : 0;
 
@@ -23,20 +37,6 @@ export default function TipsyFace({ pct, overLimit, c }: Props) {
   const animStyle = {
     opacity: anim,
     transform: [{ scale: anim.interpolate({ inputRange: [0, 1], outputRange: [0.85, 1] }) }],
-  };
-
-  const Eye = ({ left }: { left: number }) => {
-    if (stage === 3) {
-      // X 눈
-      return (
-        <View style={[s.eyeBox, { left }]}>
-          <View style={[s.xBar, { transform: [{ rotate: '45deg' }] }]} />
-          <View style={[s.xBar, { transform: [{ rotate: '-45deg' }] }]} />
-        </View>
-      );
-    }
-    if (stage === 2) return <View style={[s.eyeHalf, { left }]} />; // 반쯤 풀린 눈
-    return <View style={[s.eyeDot, { left }]} />;
   };
 
   const mouth =
@@ -53,8 +53,8 @@ export default function TipsyFace({ pct, overLimit, c }: Props) {
       <View style={[s.head, { backgroundColor: HEAD_COLORS[stage] }]}>
         <View style={[s.blush, s.blushL, { opacity: BLUSH_OPACITY[stage] }]} />
         <View style={[s.blush, s.blushR, { opacity: BLUSH_OPACITY[stage] }]} />
-        <Eye left={24} />
-        <Eye left={HEAD - 24 - 14} />
+        <Eye left={24} stage={stage} />
+        <Eye left={HEAD - 24 - 14} stage={stage} />
         {mouth}
         {stage >= 2 && <View style={s.sweat} />}
       </View>
