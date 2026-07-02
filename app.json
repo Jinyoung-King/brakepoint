@@ -2,7 +2,7 @@
   "expo": {
     "name": "브레이크포인트",
     "slug": "brakepoint",
-    "version": "1.1.13",
+    "version": "1.1.14",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -11,7 +11,7 @@
     },
     "android": {
       "package": "kr.co.cruxdata.brakepoint",
-      "versionCode": 13,
+      "versionCode": 14,
       "adaptiveIcon": {
         "backgroundColor": "#16181d",
         "foregroundImage": "./assets/android-icon-foreground.png"
@@ -67,7 +67,7 @@
             ],
             "enableMinifyInReleaseBuilds": true,
             "enableShrinkResourcesInReleaseBuilds": true,
-            "extraProguardRules": "# R8이 리플렉션/JNI 기반 라이브러리를 털어내지 않도록 방어 (기기 테스트 필수)\n-keep class app.notifee.** { *; }\n-keep class io.invertase.notifee.** { *; }\n-keep class com.swmansion.reanimated.** { *; }\n-keep class com.swmansion.** { *; }\n-keep class dev.matinzd.healthconnect.** { *; }\n-keep class androidx.health.connect.** { *; }\n-keep class expo.modules.** { *; }\n-keepclassmembers class * { @expo.modules.core.interfaces.ExpoMethod <methods>; }"
+            "extraProguardRules": "# R8이 리플렉션/JNI 기반 라이브러리를 털어내지 않도록 방어 (기기 테스트 필수)\n-keep class app.notifee.** { *; }\n-keep class io.invertase.notifee.** { *; }\n-keep class com.swmansion.reanimated.** { *; }\n-keep class com.swmansion.** { *; }\n-keep class dev.matinzd.healthconnect.** { *; }\n-keep class androidx.health.connect.** { *; }\n-keep class com.reactcommunity.rndatetimepicker.** { *; }\n-keep class expo.modules.** { *; }\n-keepclassmembers class * { @expo.modules.core.interfaces.ExpoMethod <methods>; }"
           }
         }
       ],
