@@ -9,8 +9,9 @@ import android.content.Intent
 import android.graphics.Color
 import android.widget.RemoteViews
 
-// 홈 위젯: 둥근 배경 + 현재 잔/한계 + "한계까지" + "+1" 버튼. 색상 테마 선택 가능.
-// +1 탭 → pendingAdd 누적(낙관적). 실제 카운트는 앱이 다음에 열릴 때 흡수. 본문 탭 → 앱.
+// 홈 위젯: 둥근 배경 + 취기%(홈 게이지와 동일 기준) + "한계까지" + "+1" 버튼. 색상 테마 선택 가능.
+// 취기% = 누적 표준잔(stdF) / 한도. +1 탭 → pendingAdd 누적(낙관적, 한 잔당 perDrinkStdF 표준잔).
+// 실제 카운트는 앱이 다음에 열릴 때 흡수. 본문 탭 → 앱.
 class BrakepointWidgetProvider : AppWidgetProvider() {
   private data class Theme(val bg: Int, val btn: Int, val text: Int, val sub: Int)
 
@@ -23,13 +24,16 @@ class BrakepointWidgetProvider : AppWidgetProvider() {
 
   override fun onUpdate(context: Context, manager: AppWidgetManager, ids: IntArray) {
     val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-    val base = prefs.getFloat("countF", 0f)
+    val stdBase = prefs.getFloat("stdF", 0f)
     val pending = prefs.getInt("pendingAdd", 0)
+    val perDrinkStd = prefs.getFloat("perDrinkStdF", 1f) // 앱 갱신 전 기본값: 소주 1잔=1표준잔
     val limit = prefs.getInt("limit", 0)
     val theme = themeOf(prefs.getString("theme", "dark") ?: "dark")
-    val shown = base + pending
-    val over = shown - limit
-    val sub = if (over > 0) "한계 초과 +${trim(over)}" else "한계까지 ${trim(limit - shown)}잔"
+    val stdShown = stdBase + pending * perDrinkStd
+    val pct = if (limit > 0) minOf(stdShown / limit, 1f) else 0f
+    val tipsy = Math.round(pct * 100)
+    val over = stdShown - limit
+    val sub = if (over > 0) "한계 초과 +${trim(over)}잔" else "한계까지 ${trim(limit - stdShown)}잔"
 
     for (id in ids) {
       val views = RemoteViews(context.packageName, R.layout.brakepoint_widget)
@@ -38,7 +42,7 @@ class BrakepointWidgetProvider : AppWidgetProvider() {
       views.setTextColor(R.id.widget_count, theme.text)
       views.setTextColor(R.id.widget_label, theme.sub)
       views.setTextColor(R.id.widget_sub, theme.sub)
-      views.setTextViewText(R.id.widget_count, "${trim(shown)} / ${limit}잔")
+      views.setTextViewText(R.id.widget_count, "취기 ${tipsy}%")
       views.setTextViewText(R.id.widget_sub, sub)
 
       context.packageManager.getLaunchIntentForPackage(context.packageName)?.let { launch ->

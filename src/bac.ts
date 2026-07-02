@@ -29,6 +29,17 @@ export function stdDrinks(
   return events.reduce((sum, e) => sum + eventGrams(e, unit, type), 0) / STD_GRAMS;
 }
 
+// 세션 누적 표준잔(순알코올/8g). 잔 이벤트가 있으면 그걸로 합산, 없으면(구버전/이벤트 유실)
+// count×세션 기본 주종으로 폴백. 홈 게이지와 위젯이 공유하는 "취기" 단일 소스 → 서로 어긋나지 않음.
+export function sessionStdCount(
+  drinkEvents: { n: number; type?: DrinkType; unit?: DrinkUnit }[],
+  count: number,
+  unit: DrinkUnit,
+  type: DrinkType
+): number {
+  return drinkEvents.length ? stdDrinks(drinkEvents, unit, type) : alcoholGrams(count, unit, type) / STD_GRAMS;
+}
+
 // 잔 이벤트의 순알코올량(g). 이벤트에 주종/단위가 있으면 그걸로, 없으면(구버전) 세션 기본값으로.
 export function eventGrams(
   e: { n: number; type?: DrinkType; unit?: DrinkUnit },

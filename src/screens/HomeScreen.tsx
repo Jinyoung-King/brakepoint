@@ -24,7 +24,7 @@ import { useAppState } from '../state/AppStateContext';
 import { useMorningSchedule } from '../calendar/useMorningSchedule';
 import { radius, type Palette } from '../theme';
 import { useColors } from '../useColors';
-import { alcoholGrams, eventGrams, estimateBac, hoursUntil, fmtHours, bacCurve, DRIVE_LIMIT, STD_GRAMS } from '../bac';
+import { eventGrams, estimateBac, hoursUntil, fmtHours, bacCurve, DRIVE_LIMIT, STD_GRAMS, sessionStdCount } from '../bac';
 import { effectiveBrakePercents, brakeCountsFor, crossesBrakeOnAdd } from '../brake';
 import BacChart from '../BacChart';
 import GaugeBar from '../GaugeBar';
@@ -139,10 +139,8 @@ export default function HomeScreen({ navigation }: Props) {
 
   // 소비한 순알코올(g) → 표준잔(소주 1잔=8g) 환산. 한도/브레이크/게이지는 잔 개수가 아니라
   // 이 표준잔으로 판정한다(청하 1잔=0.6표준잔처럼 도수 차이가 정확히 반영됨). limit은 표준잔 단위.
-  const consumedGrams = drinkEvents.length
-    ? drinkEvents.reduce((sum, e) => sum + eventGrams(e, unit, drinkType), 0)
-    : alcoholGrams(count, unit, drinkType);
-  const stdCount = consumedGrams / STD_GRAMS; // 표준잔 환산 누적
+  const stdCount = sessionStdCount(drinkEvents, count, unit, drinkType); // 표준잔 환산 누적 (위젯과 공용)
+  const consumedGrams = stdCount * STD_GRAMS; // BAC 추정용 순알코올(g)
   const pct = limit > 0 ? Math.min(stdCount / limit, 1) : 0;
   const brakeCounts = brakeCountsFor(limit, effPercents);
   const firstBrake = brakeCounts.length ? Math.min(...brakeCounts) : Infinity;

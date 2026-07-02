@@ -8,19 +8,20 @@ import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
 
 // 폰 앱 ↔ 위젯 다리.
-// - updateWidget: 현재 잔/한계를 prefs에 저장하고 위젯 다시 그림.
+// - updateWidget: 현재 취기(누적 표준잔·한도·한 잔당 표준잔)를 prefs에 저장하고 위젯 다시 그림.
 // - consumePendingAdd: 위젯 "+1"로 쌓인 미반영 횟수를 읽고 0으로 리셋(앱이 흡수).
 class WidgetBridgeModule : Module() {
   override fun definition() = ModuleDefinition {
     Name("WidgetBridge")
 
-    Function("updateWidget") { count: Double, limit: Int, theme: String ->
+    Function("updateWidget") { std: Double, limit: Int, perDrinkStd: Double, theme: String ->
       val ctx = appContext.reactContext ?: return@Function
       ctx
         .getSharedPreferences(BrakepointWidgetProvider.PREFS, Context.MODE_PRIVATE)
         .edit()
-        .putFloat("countF", count.toFloat())
+        .putFloat("stdF", std.toFloat())
         .putInt("limit", limit)
+        .putFloat("perDrinkStdF", perDrinkStd.toFloat())
         .putString("theme", theme)
         .apply()
       refresh(ctx)

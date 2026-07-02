@@ -1,4 +1,4 @@
-import { alcoholGrams, estimateBac, hoursUntil, fmtHours, bacCurve, DRIVE_LIMIT, stdDrinks } from '../src/bac';
+import { alcoholGrams, estimateBac, hoursUntil, fmtHours, bacCurve, DRIVE_LIMIT, stdDrinks, sessionStdCount } from '../src/bac';
 
 describe('alcoholGrams', () => {
   it('scales by count and uses type/unit table', () => {
@@ -139,5 +139,24 @@ describe('stdDrinks (순알코올 표준잔 환산)', () => {
       { n: 1, type: '청하' as const, unit: '잔' as const },
     ];
     expect(stdDrinks(events, '잔', '소주')).toBeCloseTo((16 + 5) / 8); // 2.625
+  });
+});
+
+// 홈 게이지와 위젯이 공유하는 취기 단일 소스. 어긋나면 위젯 %가 앱과 달라진다.
+describe('sessionStdCount (홈·위젯 공용 취기 기준)', () => {
+  it('잔 이벤트가 있으면 stdDrinks와 동일하게 합산', () => {
+    const events = [{ n: 1, type: '청하' as const, unit: '잔' as const }];
+    expect(sessionStdCount(events, 1, '잔', '청하')).toBeCloseTo(0.625);
+  });
+  it('청하 3잔이면 취기 기준 1.875표준잔 (raw 3잔과 다름 → 위젯 어긋남 해소)', () => {
+    const events = [{ n: 3, type: '청하' as const, unit: '잔' as const }];
+    expect(sessionStdCount(events, 3, '잔', '청하')).toBeCloseTo(15 / 8); // 1.875, count 3과 대비
+  });
+  it('이벤트가 없으면 count×세션 기본 주종으로 폴백', () => {
+    expect(sessionStdCount([], 2, '잔', '소주')).toBe(2); // 16g/8
+    expect(sessionStdCount([], 2, '잔', '청하')).toBeCloseTo(10 / 8); // 1.25
+  });
+  it('이벤트 없고 count 0이면 0', () => {
+    expect(sessionStdCount([], 0, '잔', '소주')).toBe(0);
   });
 });
