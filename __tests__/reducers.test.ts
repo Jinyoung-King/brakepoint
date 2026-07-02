@@ -192,6 +192,12 @@ describe('addManualRecord', () => {
     expect(new Date(r.history[0].endedAt).getHours()).toBe(21);
   });
 
+  it('at(절대 시각)이 주어지면 daysAgo/time 대신 그대로 endedAt으로 쓴다(날짜/시간 피커)', () => {
+    const picked = new Date(2026, 2, 15, 18, 45, 0, 0).getTime();
+    const r = addManualRecord(base(), { count: 2, limit: 5, daysAgo: 99, time: '03:00', at: picked }, T);
+    expect(r.history[0].endedAt).toBe(picked); // daysAgo/time 무시
+  });
+
   it('주종을 주면 단일 이벤트로 기록(통계 집계용), 없으면 빈 events', () => {
     const withType = addManualRecord(base(), { count: 3, limit: 5, daysAgo: 0, type: '맥주' }, T);
     expect(withType.history[0].events).toEqual([{ t: withType.history[0].endedAt, n: 3, type: '맥주', unit: '잔' }]);

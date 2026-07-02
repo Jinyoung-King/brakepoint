@@ -9,6 +9,7 @@ export type ManualRecordInput = {
   limit: number;
   daysAgo: number;
   time?: string;
+  at?: number; // 절대 종료 시각(epoch ms). 주어지면 daysAgo/time 대신 이걸 그대로 쓴다(날짜/시간 피커용).
   place?: string;
   memo?: string;
   cost?: number;
@@ -130,15 +131,21 @@ export function updateRecord(s: AppState, id: string, patch: RecordPatch): AppSt
 }
 
 export function addManualRecord(s: AppState, r: ManualRecordInput, now: number): AppState {
-  const d = new Date(now);
-  d.setDate(d.getDate() - Math.max(0, Math.floor(r.daysAgo)));
-  // 범위를 벗어난 시/분("25:70" 등)은 기본값으로 폴백. 그대로 setHours에 넣으면
-  // Date가 다음날로 롤오버돼 endedAt(날짜)이 조용히 바뀌는 걸 막는다.
-  const [hh, mm] = (r.time || '').split(':').map((x) => parseInt(x, 10));
-  const validH = Number.isFinite(hh) && hh >= 0 && hh <= 23;
-  const validM = Number.isFinite(mm) && mm >= 0 && mm <= 59;
-  d.setHours(validH ? hh : 21, validM ? mm : 0, 0, 0);
-  const endedAt = d.getTime();
+  let endedAt: number;
+  if (r.at != null && Number.isFinite(r.at)) {
+    // 날짜/시간 피커가 준 절대 시각을 그대로 사용.
+    endedAt = r.at;
+  } else {
+    const d = new Date(now);
+    d.setDate(d.getDate() - Math.max(0, Math.floor(r.daysAgo)));
+    // 범위를 벗어난 시/분("25:70" 등)은 기본값으로 폴백. 그대로 setHours에 넣으면
+    // Date가 다음날로 롤오버돼 endedAt(날짜)이 조용히 바뀌는 걸 막는다.
+    const [hh, mm] = (r.time || '').split(':').map((x) => parseInt(x, 10));
+    const validH = Number.isFinite(hh) && hh >= 0 && hh <= 23;
+    const validM = Number.isFinite(mm) && mm >= 0 && mm <= 59;
+    d.setHours(validH ? hh : 21, validM ? mm : 0, 0, 0);
+    endedAt = d.getTime();
+  }
   const rec: SessionRecord = {
     id: `m-${endedAt}-${s.history.length}`,
     endedAt,

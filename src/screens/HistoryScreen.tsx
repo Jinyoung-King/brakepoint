@@ -1,5 +1,6 @@
 import { useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { Alert, FlatList, Modal, Pressable, Share, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, FlatList, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, Share, StyleSheet, Text, TextInput, View } from 'react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { captureRef } from 'react-native-view-shot';
 import * as Sharing from 'expo-sharing';
@@ -54,38 +55,41 @@ export default function HistoryScreen() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [mCount, setMCount] = useState('');
   const [mLimit, setMLimit] = useState(String(limit));
-  const [mDaysAgo, setMDaysAgo] = useState('0');
-  const [mTime, setMTime] = useState('21:00');
+  const [mWhen, setMWhen] = useState(() => new Date()); // 새 기록의 종료 일시(날짜+시각)
+  const [picker, setPicker] = useState<'date' | 'time' | null>(null);
   const [mPlace, setMPlace] = useState('');
   const [mMemo, setMMemo] = useState('');
   const [mCost, setMCost] = useState('');
   const [mType, setMType] = useState<DrinkType>(drinkType);
 
-  const openManual = (daysAgo = 0) => {
+  // 기본 종료 시각: 해당 날짜 21:00 (술자리 종료 시각 대략치)
+  const defaultWhen = (base?: Date) => {
+    const d = base ? new Date(base) : new Date();
+    d.setHours(21, 0, 0, 0);
+    return d;
+  };
+  const openManual = (when?: Date) => {
     setEditingId(null);
     setMCount('');
     setMLimit(String(limit));
-    setMDaysAgo(String(daysAgo));
-    setMTime('21:00');
+    setMWhen(defaultWhen(when));
+    setPicker(null);
     setMPlace('');
     setMMemo('');
     setMCost('');
     setMType(drinkType);
     setManualOpen(true);
   };
-  // 캘린더 빈 날짜 탭 → 그 날짜로 수동 추가 (며칠 전으로 환산해 프리필)
+  // 캘린더 빈 날짜 탭 → 그 날짜로 수동 추가 (해당 날짜 21:00으로 프리필)
   const openManualForDate = (day: number) => {
-    const target = new Date(calYear, calMonth, day);
-    target.setHours(0, 0, 0, 0);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const daysAgo = Math.max(0, Math.round((today.getTime() - target.getTime()) / 86400000));
-    openManual(daysAgo);
+    openManual(new Date(calYear, calMonth, day));
   };
   const openEdit = (rec: SessionRecord) => {
     setEditingId(rec.id);
     setMCount(String(rec.count));
     setMLimit(String(rec.limit));
+    setMWhen(new Date(rec.endedAt));
+    setPicker(null);
     setMPlace(rec.place ?? '');
     setMMemo(rec.memo ?? '');
     setMCost(rec.cost ? String(rec.cost) : '');
@@ -109,8 +113,8 @@ export default function HistoryScreen() {
       addManualRecord({
         count,
         limit: limitVal,
-        daysAgo: parseInt(mDaysAgo, 10) || 0,
-        time: mTime,
+        daysAgo: 0,
+        at: mWhen.getTime(),
         place: mPlace,
         memo: mMemo,
         cost,
@@ -303,10 +307,13 @@ export default function HistoryScreen() {
     }
   };
 
-  // 수동 추가 모달에 보여줄 대상 날짜(며칠 전 → 실제 날짜)
-  const manualDate = new Date();
-  manualDate.setDate(manualDate.getDate() - (parseInt(mDaysAgo, 10) || 0));
-  const manualDateLabel = `${manualDate.getMonth() + 1}월 ${manualDate.getDate()}일 (${WEEKDAYS[manualDate.getDay()]})`;
+  // 수동 추가 모달에 보여줄 대상 날짜/시각 라벨
+  const p2 = (n: number) => String(n).padStart(2, '0');
+  const manualDateLabel = `${mWhen.getMonth() + 1}월 ${mWhen.getDate()}일 (${WEEKDAYS[mWhen.getDay()]})`;
+  const manualTimeLabel = `${p2(mWhen.getHours())}:${p2(mWhen.getMinutes())}`;
+  // 날짜 빠른 선택 칩이 현재 mWhen과 일치하는지 (며칠 전 기준)
+  const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const whenDaysAgo = Math.round((startOfDay(new Date()) - startOfDay(mWhen)) / 86400000);
 
   // 비용/장소
   const spend = monthSpend(history, calYear, calMonth);
@@ -849,78 +856,112 @@ export default function HistoryScreen() {
 
       {/* 수동 기록 추가 */}
       <Modal visible={manualOpen} transparent animationType="slide" onRequestClose={() => setManualOpen(false)}>
-        <View style={styles.detailBg}>
+        <KeyboardAvoidingView
+          style={styles.detailBg}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        >
           <View style={styles.detailCard}>
             <Text style={styles.detailTitle}>{editingId ? '기록 수정' : '수동 기록 추가'}</Text>
             <Text style={styles.muted}>
-              {editingId ? '날짜는 그대로 두고 내용만 수정해요.' : `${manualDateLabel} 기록을 추가해요.`}
+              {editingId ? '날짜는 그대로 두고 내용만 수정해요.' : `${manualDateLabel} ${manualTimeLabel} 기록을 추가해요.`}
             </Text>
-            <View style={styles.mRow}>
-              <View style={styles.mCol}>
-                <Text style={styles.mLabel}>마신 {unit}</Text>
-                <TextInput style={styles.mInput} keyboardType="decimal-pad" value={mCount} onChangeText={setMCount} placeholder="0" placeholderTextColor={c.textFaint} />
+            <ScrollView style={styles.mScroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+              <View style={styles.mRow}>
+                <View style={styles.mCol}>
+                  <Text style={styles.mLabel}>마신 {unit}</Text>
+                  <TextInput style={styles.mInput} keyboardType="decimal-pad" value={mCount} onChangeText={setMCount} placeholder="0" placeholderTextColor={c.textFaint} />
+                </View>
+                <View style={styles.mCol}>
+                  <Text style={styles.mLabel}>한계</Text>
+                  <TextInput style={styles.mInput} keyboardType="number-pad" value={mLimit} onChangeText={setMLimit} placeholder={String(limit)} placeholderTextColor={c.textFaint} />
+                </View>
               </View>
-              <View style={styles.mCol}>
-                <Text style={styles.mLabel}>한계</Text>
-                <TextInput style={styles.mInput} keyboardType="number-pad" value={mLimit} onChangeText={setMLimit} placeholder={String(limit)} placeholderTextColor={c.textFaint} />
+              <Text style={styles.mLabel}>주종</Text>
+              <View style={styles.mChips}>
+                {DRINK_TYPES.map((t) => {
+                  const on = t === mType;
+                  return (
+                    <Pressable key={t} style={[styles.mChip, on && styles.mChipOn]} onPress={() => setMType(t)} accessibilityRole="button" accessibilityState={{ selected: on }} accessibilityLabel={`주종 ${t}`}>
+                      <Text style={[styles.mChipText, on && styles.mChipTextOn]}>{t}</Text>
+                    </Pressable>
+                  );
+                })}
               </View>
-            </View>
-            <Text style={styles.mLabel}>주종</Text>
-            <View style={styles.mChips}>
-              {DRINK_TYPES.map((t) => {
-                const on = t === mType;
-                return (
-                  <Pressable key={t} style={[styles.mChip, on && styles.mChipOn]} onPress={() => setMType(t)}>
-                    <Text style={[styles.mChipText, on && styles.mChipTextOn]}>{t}</Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-            {!editingId && (
-              <>
-                <Text style={styles.mLabel}>날짜</Text>
-                <View style={styles.mChips}>
-                  {DAY_CHIPS.map((d) => {
-                    const on = String(d.v) === mDaysAgo;
-                    return (
-                      <Pressable
-                        key={d.v}
-                        style={[styles.mChip, on && styles.mChipOn]}
-                        onPress={() => setMDaysAgo(String(d.v))}
-                      >
-                        <Text style={[styles.mChipText, on && styles.mChipTextOn]}>{d.label}</Text>
+              {!editingId && (
+                <>
+                  <Text style={styles.mLabel}>날짜 · 시각</Text>
+                  <View style={styles.mChips}>
+                    {DAY_CHIPS.map((d) => {
+                      const on = whenDaysAgo === d.v;
+                      return (
+                        <Pressable
+                          key={d.v}
+                          style={[styles.mChip, on && styles.mChipOn]}
+                          onPress={() => {
+                            const next = new Date();
+                            next.setDate(next.getDate() - d.v);
+                            next.setHours(mWhen.getHours(), mWhen.getMinutes(), 0, 0);
+                            setMWhen(next);
+                          }}
+                          accessibilityRole="button"
+                          accessibilityState={{ selected: on }}
+                          accessibilityLabel={`날짜 ${d.label}`}
+                        >
+                          <Text style={[styles.mChipText, on && styles.mChipTextOn]}>{d.label}</Text>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                  <View style={styles.mRow}>
+                    <View style={styles.mCol}>
+                      <Pressable style={styles.mInput} onPress={() => setPicker('date')} accessibilityRole="button" accessibilityLabel={`날짜 선택, 현재 ${manualDateLabel}`}>
+                        <Text style={styles.mPickText}>📅 {manualDateLabel}</Text>
                       </Pressable>
-                    );
-                  })}
-                </View>
-                <View style={styles.mRow}>
-                  <View style={styles.mCol}>
-                    <Text style={styles.mLabel}>며칠 전 (직접, 0=오늘)</Text>
-                    <TextInput style={styles.mInput} keyboardType="number-pad" value={mDaysAgo} onChangeText={setMDaysAgo} placeholder="0" placeholderTextColor={c.textFaint} />
+                    </View>
+                    <View style={styles.mCol}>
+                      <Pressable style={styles.mInput} onPress={() => setPicker('time')} accessibilityRole="button" accessibilityLabel={`시각 선택, 현재 ${manualTimeLabel}`}>
+                        <Text style={styles.mPickText}>🕘 {manualTimeLabel}</Text>
+                      </Pressable>
+                    </View>
                   </View>
-                  <View style={styles.mCol}>
-                    <Text style={styles.mLabel}>시각 (HH:MM)</Text>
-                    <TextInput style={styles.mInput} value={mTime} onChangeText={setMTime} placeholder="21:00" placeholderTextColor={c.textFaint} />
-                  </View>
-                </View>
-              </>
-            )}
-            <Text style={styles.mLabel}>장소 (선택)</Text>
-            <TextInput style={styles.mInput} value={mPlace} onChangeText={setMPlace} placeholder="예: 연신내 ○○" placeholderTextColor={c.textFaint} />
-            <Text style={styles.mLabel}>메모 (선택)</Text>
-            <TextInput style={styles.mInput} value={mMemo} onChangeText={setMMemo} placeholder="한줄 메모" placeholderTextColor={c.textFaint} />
-            <Text style={styles.mLabel}>술값 (선택, 원)</Text>
-            <TextInput style={styles.mInput} keyboardType="number-pad" value={mCost} onChangeText={setMCost} placeholder="예: 35000" placeholderTextColor={c.textFaint} />
+                </>
+              )}
+              <Text style={styles.mLabel}>장소 (선택)</Text>
+              <TextInput style={styles.mInput} value={mPlace} onChangeText={setMPlace} placeholder="예: 연신내 ○○" placeholderTextColor={c.textFaint} />
+              <Text style={styles.mLabel}>메모 (선택)</Text>
+              <TextInput style={styles.mInput} value={mMemo} onChangeText={setMMemo} placeholder="한줄 메모" placeholderTextColor={c.textFaint} />
+              <Text style={styles.mLabel}>술값 (선택, 원)</Text>
+              <TextInput style={styles.mInput} keyboardType="number-pad" value={mCost} onChangeText={setMCost} placeholder="예: 35000" placeholderTextColor={c.textFaint} />
+            </ScrollView>
             <View style={styles.mBtns}>
-              <Pressable onPress={() => { setManualOpen(false); setEditingId(null); }} hitSlop={8}>
+              <Pressable onPress={() => { setManualOpen(false); setEditingId(null); }} hitSlop={8} accessibilityRole="button" accessibilityLabel="취소">
                 <Text style={styles.clearText}>취소</Text>
               </Pressable>
-              <Pressable style={styles.mSave} onPress={saveManual}>
+              <Pressable style={styles.mSave} onPress={saveManual} accessibilityRole="button" accessibilityLabel={editingId ? '수정 저장' : '기록 추가'}>
                 <Text style={styles.mSaveText}>{editingId ? '수정 저장' : '기록 추가'}</Text>
               </Pressable>
             </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
+        {picker && (
+          <DateTimePicker
+            value={mWhen}
+            mode={picker}
+            is24Hour
+            maximumDate={new Date()}
+            onChange={(event, selected) => {
+              setPicker(null);
+              if (event.type === 'dismissed' || !selected) return;
+              const next = new Date(mWhen);
+              if (picker === 'date') {
+                next.setFullYear(selected.getFullYear(), selected.getMonth(), selected.getDate());
+              } else {
+                next.setHours(selected.getHours(), selected.getMinutes(), 0, 0);
+              }
+              setMWhen(next);
+            }}
+          />
+        )}
       </Modal>
     </View>
   );
@@ -966,6 +1007,8 @@ const makeStyles = (c: Palette) => StyleSheet.create({
   mChipText: { fontSize: 14, color: c.textMuted, fontWeight: '600' },
   mChipTextOn: { color: '#fff' },
   mInput: { borderWidth: 1, borderColor: c.border, backgroundColor: c.cardAlt, color: c.text, borderRadius: radius.sm, paddingHorizontal: 12, paddingVertical: 10, fontSize: 16 },
+  mPickText: { color: c.text, fontSize: 16, lineHeight: 20 },
+  mScroll: { flexShrink: 1 },
   mBtns: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 20, marginTop: 16 },
   mSave: { backgroundColor: c.blue, paddingVertical: 12, paddingHorizontal: 20, borderRadius: radius.sm },
   mSaveText: { color: '#fff', fontSize: 16, fontWeight: '700' },
