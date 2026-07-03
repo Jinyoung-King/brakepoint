@@ -1,15 +1,16 @@
 // AppState 전이(transition) 순수 함수. Provider는 이걸 호출만 한다.
 // `now`(epoch ms)를 인자로 받아 테스트가 결정적이도록 한다.
-import type { AppState, DrinkType, SessionRecord } from '../storage';
+import type { AppState, DrinkType, DrinkUnit, SessionRecord } from '../storage';
 
 export type EndSessionExtra = { place?: string; memo?: string; cost?: number };
 
 export type ManualRecordInput = {
   count: number;
   limit: number;
-  daysAgo: number;
+  daysAgo?: number; // at이 없을 때만 사용(며칠 전). 기본 0.
   time?: string;
   at?: number; // 절대 종료 시각(epoch ms). 주어지면 daysAgo/time 대신 이걸 그대로 쓴다(날짜/시간 피커용).
+  unit?: DrinkUnit; // 단위(잔/병/캔). 없으면 세션 기본값.
   place?: string;
   memo?: string;
   cost?: number;
@@ -104,29 +105,32 @@ export type RecordPatch = {
   memo?: string;
   cost?: number;
   type?: DrinkType;
+  unit?: DrinkUnit;
 };
 
-// 기록 1건의 잔수·한계·장소·메모·술값·주종을 수정. 날짜(endedAt)·차수는 유지. 없는 id면 그대로.
-// 주종(type)이 주어지면 타임라인을 그 주종 단일 이벤트로 재구성(통계 주종별 집계 반영).
+// 기록 1건의 잔수·한계·장소·메모·술값·주종·단위를 수정. 날짜(endedAt)·차수는 유지. 없는 id면 그대로.
+// 주종/단위가 바뀌면 타임라인을 단일 이벤트로 재구성(통계·취기 환산에 반영).
 export function updateRecord(s: AppState, id: string, patch: RecordPatch): AppState {
   if (!s.history.some((r) => r.id === id)) return s;
   return {
     ...s,
-    history: s.history.map((r) =>
-      r.id === id
-        ? {
-            ...r,
-            count: patch.count,
-            limit: patch.limit,
-            place: patch.place?.trim() || undefined,
-            memo: patch.memo?.trim() || undefined,
-            cost: patch.cost && patch.cost > 0 ? patch.cost : undefined,
-            events: patch.type
-              ? [{ t: r.endedAt, n: patch.count, type: patch.type, unit: r.unit }]
-              : r.events,
-          }
-        : r
-    ),
+    history: s.history.map((r) => {
+      if (r.id !== id) return r;
+      const nextUnit = patch.unit ?? r.unit;
+      return {
+        ...r,
+        count: patch.count,
+        limit: patch.limit,
+        unit: nextUnit,
+        place: patch.place?.trim() || undefined,
+        memo: patch.memo?.trim() || undefined,
+        cost: patch.cost && patch.cost > 0 ? patch.cost : undefined,
+        events:
+          patch.type || patch.unit
+            ? [{ t: r.endedAt, n: patch.count, type: patch.type ?? r.events?.[0]?.type, unit: nextUnit }]
+            : r.events,
+      };
+    }),
   };
 }
 
@@ -137,7 +141,7 @@ export function addManualRecord(s: AppState, r: ManualRecordInput, now: number):
     endedAt = r.at;
   } else {
     const d = new Date(now);
-    d.setDate(d.getDate() - Math.max(0, Math.floor(r.daysAgo)));
+    d.setDate(d.getDate() - Math.max(0, Math.floor(r.daysAgo ?? 0)));
     // 범위를 벗어난 시/분("25:70" 등)은 기본값으로 폴백. 그대로 setHours에 넣으면
     // Date가 다음날로 롤오버돼 endedAt(날짜)이 조용히 바뀌는 걸 막는다.
     const [hh, mm] = (r.time || '').split(':').map((x) => parseInt(x, 10));
@@ -146,17 +150,18 @@ export function addManualRecord(s: AppState, r: ManualRecordInput, now: number):
     d.setHours(validH ? hh : 21, validM ? mm : 0, 0, 0);
     endedAt = d.getTime();
   }
+  const recUnit = r.unit ?? s.unit;
   const rec: SessionRecord = {
     id: `m-${endedAt}-${s.history.length}`,
     endedAt,
     count: r.count,
     limit: r.limit,
-    unit: s.unit,
+    unit: recUnit,
     place: r.place?.trim() || undefined,
     memo: r.memo?.trim() || undefined,
     round: roundForDay(s.history, endedAt),
-    // 주종이 있으면 단일 이벤트로 기록 → 주종별 통계에 잡힘.
-    events: r.type ? [{ t: endedAt, n: r.count, type: r.type, unit: s.unit }] : [],
+    // 주종이 있으면 단일 이벤트로 기록 → 주종/단위별 통계·취기 환산에 잡힘.
+    events: r.type ? [{ t: endedAt, n: r.count, type: r.type, unit: recUnit }] : [],
     cost: r.cost && r.cost > 0 ? r.cost : undefined,
   };
   return { ...s, history: [rec, ...s.history].sort((a, b) => b.endedAt - a.endedAt) };

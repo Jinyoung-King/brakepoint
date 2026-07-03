@@ -173,6 +173,15 @@ describe('updateRecord', () => {
     expect(rec.events).toEqual([{ t: T, n: 3 }]); // 타임라인 유지
   });
 
+  it('단위(unit)를 바꾸면 rec.unit과 타임라인 이벤트 단위를 재구성한다', () => {
+    const src: SessionRecord[] = [
+      { id: 'b', endedAt: T, count: 2, limit: 5, unit: '잔', round: 1, events: [{ t: T, n: 2, type: '소주', unit: '잔' }] },
+    ];
+    const r = updateRecord(base({ history: src }), 'b', { count: 2, limit: 5, unit: '병' });
+    expect(r.history[0].unit).toBe('병');
+    expect(r.history[0].events).toEqual([{ t: T, n: 2, type: '소주', unit: '병' }]);
+  });
+
   it('없는 id면 그대로 반환(no-op)', () => {
     const s = base({ history: h });
     expect(updateRecord(s, 'zzz', { count: 1, limit: 5 })).toBe(s);
@@ -203,6 +212,14 @@ describe('addManualRecord', () => {
     expect(withType.history[0].events).toEqual([{ t: withType.history[0].endedAt, n: 3, type: '맥주', unit: '잔' }]);
     const without = addManualRecord(base(), { count: 3, limit: 5, daysAgo: 0 }, T);
     expect(without.history[0].events).toEqual([]);
+  });
+
+  it('unit(병 등)을 주면 그 단위로 기록·이벤트를 만든다(없으면 세션 단위)', () => {
+    const bottle = addManualRecord(base({ unit: '잔' }), { count: 2, limit: 5, daysAgo: 0, type: '소주', unit: '병' }, T);
+    expect(bottle.history[0].unit).toBe('병');
+    expect(bottle.history[0].events).toEqual([{ t: bottle.history[0].endedAt, n: 2, type: '소주', unit: '병' }]);
+    const fallback = addManualRecord(base({ unit: '캔' }), { count: 1, limit: 5, daysAgo: 0 }, T);
+    expect(fallback.history[0].unit).toBe('캔'); // 세션 단위로 폴백
   });
 
   it('history를 endedAt 내림차순으로 정렬해 끼워넣는다', () => {
