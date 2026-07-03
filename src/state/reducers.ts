@@ -106,32 +106,43 @@ export type RecordPatch = {
   cost?: number;
   type?: DrinkType;
   unit?: DrinkUnit;
+  at?: number; // 종료 시각(epoch ms) 변경. 주어지면 날짜/시각을 옮기고 차수·정렬을 다시 맞춘다.
 };
 
-// 기록 1건의 잔수·한계·장소·메모·술값·주종·단위를 수정. 날짜(endedAt)·차수는 유지. 없는 id면 그대로.
+// 기록 1건 수정. at을 주면 날짜/시각까지 바꾼다(차수 재계산·이벤트 시각 이동·재정렬).
 // 주종/단위가 바뀌면 타임라인을 단일 이벤트로 재구성(통계·취기 환산에 반영).
 export function updateRecord(s: AppState, id: string, patch: RecordPatch): AppState {
-  if (!s.history.some((r) => r.id === id)) return s;
-  return {
-    ...s,
-    history: s.history.map((r) => {
-      if (r.id !== id) return r;
-      const nextUnit = patch.unit ?? r.unit;
-      return {
-        ...r,
-        count: patch.count,
-        limit: patch.limit,
-        unit: nextUnit,
-        place: patch.place?.trim() || undefined,
-        memo: patch.memo?.trim() || undefined,
-        cost: patch.cost && patch.cost > 0 ? patch.cost : undefined,
-        events:
-          patch.type || patch.unit
-            ? [{ t: r.endedAt, n: patch.count, type: patch.type ?? r.events?.[0]?.type, unit: nextUnit }]
+  const target = s.history.find((r) => r.id === id);
+  if (!target) return s;
+  const newEndedAt = patch.at ?? target.endedAt;
+  const moved = newEndedAt !== target.endedAt;
+  const delta = newEndedAt - target.endedAt;
+  const nextUnit = patch.unit ?? target.unit;
+  // 날짜가 바뀌면 새 날 기준 차수(자기 제외 같은 날 기록 수 + 1) 재계산.
+  const round = moved
+    ? s.history.filter((r) => r.id !== id && sameDay(r.endedAt, newEndedAt)).length + 1
+    : target.round;
+  const mapped = s.history.map((r) => {
+    if (r.id !== id) return r;
+    return {
+      ...r,
+      endedAt: newEndedAt,
+      round,
+      count: patch.count,
+      limit: patch.limit,
+      unit: nextUnit,
+      place: patch.place?.trim() || undefined,
+      memo: patch.memo?.trim() || undefined,
+      cost: patch.cost && patch.cost > 0 ? patch.cost : undefined,
+      events:
+        patch.type || patch.unit
+          ? [{ t: newEndedAt, n: patch.count, type: patch.type ?? r.events?.[0]?.type, unit: nextUnit }]
+          : moved
+            ? (r.events ?? []).map((e) => ({ ...e, t: e.t + delta })) // 세션 내부 간격 유지하며 통째로 이동
             : r.events,
-      };
-    }),
-  };
+    };
+  });
+  return { ...s, history: moved ? mapped.sort((a, b) => b.endedAt - a.endedAt) : mapped };
 }
 
 export function addManualRecord(s: AppState, r: ManualRecordInput, now: number): AppState {

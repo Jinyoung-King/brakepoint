@@ -1,5 +1,6 @@
 import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Alert, FlatList, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, Share, StyleSheet, Text, TextInput, View } from 'react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { captureRef } from 'react-native-view-shot';
 import * as Sharing from 'expo-sharing';
@@ -55,6 +56,8 @@ export default function HistoryScreen() {
   const [mCost, setMCost] = useState('');
   const [mType, setMType] = useState<DrinkType>(drinkType);
   const [mUnit, setMUnit] = useState<DrinkUnit>(unit);
+  const [mWhen, setMWhen] = useState(() => new Date()); // 수정 중인 기록의 날짜·시각
+  const [editPicker, setEditPicker] = useState<'date' | 'time' | null>(null);
 
   const openManual = (when?: Date | null) => {
     setEditingId(null);
@@ -74,6 +77,8 @@ export default function HistoryScreen() {
     setMCost(rec.cost ? String(rec.cost) : '');
     setMType(rec.events?.[0]?.type ?? drinkType);
     setMUnit(rec.unit ?? unit);
+    setMWhen(new Date(rec.endedAt));
+    setEditPicker(null);
     setSelected(null);
   };
   // 카톡형 대화 완료 → 기록 추가
@@ -93,7 +98,7 @@ export default function HistoryScreen() {
     const limitVal = Number.isFinite(lim) && lim >= 1 ? lim : limit;
     const won = parseInt(mCost.replace(/[^0-9]/g, ''), 10);
     const cost = Number.isFinite(won) ? won : undefined;
-    updateRecord(editingId, { count, limit: limitVal, place: mPlace, memo: mMemo, cost, type: mType, unit: mUnit });
+    updateRecord(editingId, { count, limit: limitVal, place: mPlace, memo: mMemo, cost, type: mType, unit: mUnit, at: mWhen.getTime() });
     setEditingId(null);
   };
 
@@ -843,8 +848,17 @@ export default function HistoryScreen() {
         >
           <View style={styles.detailCard}>
             <Text style={styles.detailTitle}>기록 수정</Text>
-            <Text style={styles.muted}>날짜는 그대로 두고 내용만 수정해요.</Text>
+            <Text style={styles.muted}>날짜·시각과 내용을 바꿀 수 있어요.</Text>
             <ScrollView style={styles.mScroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+              <Text style={styles.mLabel}>날짜 · 시각</Text>
+              <View style={styles.mChips}>
+                <Pressable style={styles.mChip} onPress={() => setEditPicker('date')} accessibilityRole="button" accessibilityLabel="날짜 바꾸기">
+                  <Text style={styles.mChipText}>📅 {mWhen.getMonth() + 1}월 {mWhen.getDate()}일 ({WEEKDAYS[mWhen.getDay()]})</Text>
+                </Pressable>
+                <Pressable style={styles.mChip} onPress={() => setEditPicker('time')} accessibilityRole="button" accessibilityLabel="시각 바꾸기">
+                  <Text style={styles.mChipText}>🕘 {fmtClock(mWhen.getTime())}</Text>
+                </Pressable>
+              </View>
               <Text style={styles.mLabel}>주종</Text>
               <View style={styles.mChips}>
                 {DRINK_TYPES.map((t) => {
@@ -906,6 +920,23 @@ export default function HistoryScreen() {
             </View>
           </View>
         </KeyboardAvoidingView>
+        {editPicker && (
+          <DateTimePicker
+            value={mWhen}
+            mode={editPicker}
+            is24Hour
+            maximumDate={new Date()}
+            onChange={(event, selected) => {
+              const which = editPicker;
+              setEditPicker(null);
+              if (event.type === 'dismissed' || !selected) return;
+              const next = new Date(mWhen);
+              if (which === 'date') next.setFullYear(selected.getFullYear(), selected.getMonth(), selected.getDate());
+              else next.setHours(selected.getHours(), selected.getMinutes(), 0, 0);
+              setMWhen(next);
+            }}
+          />
+        )}
       </Modal>
     </View>
   );

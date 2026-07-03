@@ -182,6 +182,30 @@ describe('updateRecord', () => {
     expect(r.history[0].events).toEqual([{ t: T, n: 2, type: '소주', unit: '병' }]);
   });
 
+  it('at을 주면 날짜/시각을 옮기고 이벤트 시각을 같은 간격만큼 이동, 재정렬한다', () => {
+    const older: SessionRecord = { id: 'x', endedAt: T - 3 * DAY, count: 1, limit: 5 };
+    const edited: SessionRecord = {
+      id: 'e', endedAt: T, count: 2, limit: 5, round: 1,
+      events: [{ t: T - HOUR, n: 1 }, { t: T, n: 1 }],
+    };
+    const newAt = T - 2 * DAY; // 'x'보다 뒤, 다른 날로 이동
+    const r = updateRecord(base({ history: [edited, older] }), 'e', { count: 2, limit: 5, at: newAt });
+    const rec = r.history.find((x) => x.id === 'e')!;
+    expect(rec.endedAt).toBe(newAt);
+    expect(rec.events).toEqual([{ t: newAt - HOUR, n: 1 }, { t: newAt, n: 1 }]); // 간격 유지 이동
+    // 재정렬: newAt(T-2DAY) > older(T-3DAY)라 'e'가 앞
+    expect(r.history[0].id).toBe('e');
+    expect(r.history[1].id).toBe('x');
+  });
+
+  it('at으로 다른 날 이동 시 그 날 기준으로 차수를 다시 매긴다', () => {
+    const sameDayRec: SessionRecord = { id: 's', endedAt: new Date(2026, 5, 20, 19, 0, 0).getTime(), count: 1, limit: 5 };
+    const target: SessionRecord = { id: 't', endedAt: T, count: 2, limit: 5, round: 1 };
+    const moveTo = new Date(2026, 5, 20, 22, 0, 0).getTime(); // sameDayRec와 같은 날
+    const r = updateRecord(base({ history: [target, sameDayRec] }), 't', { count: 2, limit: 5, at: moveTo });
+    expect(r.history.find((x) => x.id === 't')!.round).toBe(2); // 그 날 2차
+  });
+
   it('없는 id면 그대로 반환(no-op)', () => {
     const s = base({ history: h });
     expect(updateRecord(s, 'zzz', { count: 1, limit: 5 })).toBe(s);
