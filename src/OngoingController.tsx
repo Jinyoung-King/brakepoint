@@ -12,6 +12,7 @@ import {
 } from './ongoing';
 import { crossesBrakeOnAdd } from './brake';
 import { notifyWater } from './water';
+import { crossesWaterMark } from './waterMark';
 import { navigateToGate, navigateToHome } from './navigation/navigationRef';
 
 // 화면을 그리지 않고: 음주모드 동안 상시 알림을 띄우고, 알림 액션(잔 +1 / 종료)을
@@ -52,7 +53,7 @@ export default function OngoingController() {
         // 브레이크는 표준잔(순알코올) 기준 (단, 화면 밖이라 morning tighten 미적용)
         if (crossesBrakeOnAdd({ drinkEvents: s.drinkEvents, unit: s.unit, drinkType: s.drinkType, addN: 1, limit: s.limit, brakePercents: s.brakePercents, repeatEveryDrinks: s.repeatEveryDrinks })) {
           navigateToGate();
-        } else if (s.waterEvery > 0 && Math.floor(prev / s.waterEvery) < Math.floor(next / s.waterEvery)) {
+        } else if (crossesWaterMark(prev, next, s.waterEvery, s.waterStartAt)) {
           notifyWater();
         }
       } else if (id === ACT_END) {

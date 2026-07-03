@@ -7,6 +7,7 @@ import { alcoholGrams, eventGrams, estimateBac } from './bac';
 import { crossesBrakeOnAdd } from './brake';
 import { navigateToGate } from './navigation/navigationRef';
 import { notifyWater } from './water';
+import { crossesWaterMark } from './waterMark';
 
 // 화면을 그리지 않고: 워치의 "+1잔"을 받아 잔을 추가(브레이크/물 규칙 동일 적용)하고,
 // 현재 잔/한계/BAC를 워치로 전송한다. 네이티브 모듈(wear-bridge) 없으면 전부 no-op.
@@ -26,7 +27,7 @@ export default function WearController() {
       // 브레이크는 표준잔(순알코올) 기준
       if (crossesBrakeOnAdd({ drinkEvents: s.drinkEvents, unit: s.unit, drinkType: s.drinkType, addN: n, limit: s.limit, brakePercents: s.brakePercents, repeatEveryDrinks: s.repeatEveryDrinks })) {
         navigateToGate();
-      } else if (s.waterEvery > 0 && Math.floor(prev / s.waterEvery) < Math.floor(next / s.waterEvery)) {
+      } else if (crossesWaterMark(prev, next, s.waterEvery, s.waterStartAt)) {
         notifyWater();
       }
     });

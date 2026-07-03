@@ -51,6 +51,7 @@ type AppStateContextValue = {
   setHomeAddress: (addr: string) => void;
   setHomeCoords: (lat: number, lng: number) => void;
   setWaterEvery: (n: number) => void;
+  setWaterStartAt: (n: number) => void;
   setWeeklyGoalSessions: (n: number) => void;
   setCheckinEnabled: (on: boolean) => void;
   setCheckinDelayMin: (min: number) => void;
@@ -135,6 +136,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     setHomeAddress: (homeAddress) => setState((s) => ({ ...s, homeAddress, homeLat: null, homeLng: null })),
     setHomeCoords: (homeLat, homeLng) => setState((s) => ({ ...s, homeLat, homeLng })),
     setWaterEvery: (waterEvery) => setState((s) => ({ ...s, waterEvery })),
+    setWaterStartAt: (waterStartAt) => setState((s) => ({ ...s, waterStartAt })),
     setWeeklyGoalSessions: (weeklyGoalSessions) => setState((s) => ({ ...s, weeklyGoalSessions })),
     setCheckinEnabled: (checkinEnabled) => setState((s) => ({ ...s, checkinEnabled })),
     setCheckinDelayMin: (checkinDelayMin) => setState((s) => ({ ...s, checkinDelayMin })),

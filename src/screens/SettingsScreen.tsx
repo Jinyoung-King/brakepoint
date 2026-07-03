@@ -122,6 +122,7 @@ export default function SettingsScreen() {
     setHomeAddress,
     setBottleToGlasses,
     setWaterEvery,
+    setWaterStartAt,
     setWeeklyGoalSessions,
     setCheckinEnabled,
     setCheckinDelayMin,
@@ -132,7 +133,7 @@ export default function SettingsScreen() {
     importState,
     resetAll,
   } = useAppState();
-  const { limit, difficulty, fakeCall, brakePercents, repeatEveryDrinks, unit, calendarSync, theme, sex, weightKg, drinkType, homeAddress, bottleToGlasses, waterEvery, weeklyGoalSessions, checkinEnabled, checkinDelayMin, smokingEnabled, monthlyBudget, weeklyReportEnabled, ongoingNotifEnabled, gaugeStyle, widgetTheme, tipsyFaceEnabled } =
+  const { limit, difficulty, fakeCall, brakePercents, repeatEveryDrinks, unit, calendarSync, theme, sex, weightKg, drinkType, homeAddress, bottleToGlasses, waterEvery, waterStartAt, weeklyGoalSessions, checkinEnabled, checkinDelayMin, smokingEnabled, monthlyBudget, weeklyReportEnabled, ongoingNotifEnabled, gaugeStyle, widgetTheme, tipsyFaceEnabled } =
     state;
   const c = useColors();
   const styles = useMemo(() => makeStyles(c), [c]);
@@ -145,6 +146,7 @@ export default function SettingsScreen() {
   const [weightText, setWeightText] = useState(String(weightKg));
   const [bottleText, setBottleText] = useState(String(bottleToGlasses));
   const [waterText, setWaterText] = useState(String(waterEvery));
+  const [waterStartText, setWaterStartText] = useState(String(waterStartAt));
   const [goalText, setGoalText] = useState(String(weeklyGoalSessions));
   const [checkinText, setCheckinText] = useState(String(checkinDelayMin));
   const [budgetText, setBudgetText] = useState(monthlyBudget ? String(monthlyBudget) : '');
@@ -611,6 +613,19 @@ export default function SettingsScreen() {
           placeholder="3"
           placeholderTextColor={c.textFaint}
         />
+        <Text style={styles.label}>물 알림 시작 잔수 (이 잔수까진 안 뜸, 0=처음부터)</Text>
+        <TextInput
+          style={styles.input}
+          keyboardType="number-pad"
+          value={waterStartText}
+          onChangeText={(t) => {
+            setWaterStartText(t);
+            commitNum(t, setWaterStartAt, 0, 20);
+          }}
+          placeholder="0"
+          placeholderTextColor={c.textFaint}
+        />
+        <Text style={styles.help}>초반에 빨리 마시는 편이면 여기를 올려두면 그 전엔 물 알림이 안 떠요.</Text>
         <Text style={styles.label}>주간 목표 (술자리 횟수, 0=끔)</Text>
         <TextInput
           style={styles.input}

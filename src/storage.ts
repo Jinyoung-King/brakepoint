@@ -70,6 +70,7 @@ export type AppState = {
   lastDrinkMs: number | null; // 마지막 잔 시각 (잔 간격)
   drinkEvents: DrinkEvent[]; // 이번 술자리 시점별 음주 기록
   waterEvery: number; // 몇 잔마다 물 알림 (0=끔)
+  waterStartAt: number; // 이 잔수 이하에선 물 알림 안 뜸(초반 스킵, 0=처음부터)
   weeklyGoalSessions: number; // 주간 목표 술자리 횟수 (0=끔)
   checkinEnabled: boolean; // 귀가 체크인 알림
   checkinDelayMin: number; // 음주모드 종료 후 체크인까지(분)
@@ -115,6 +116,7 @@ export const DEFAULT_STATE: AppState = {
   lastDrinkMs: null,
   drinkEvents: [],
   waterEvery: 3,
+  waterStartAt: 0,
   weeklyGoalSessions: 2,
   checkinEnabled: true,
   checkinDelayMin: 60,

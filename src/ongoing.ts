@@ -6,6 +6,7 @@ import { addDrink } from './state/reducers';
 import { alcoholGrams, estimateBac, hoursUntil, fmtHours, DRIVE_LIMIT } from './bac';
 import { crossesBrakeOnAdd } from './brake';
 import { notifyWater } from './water';
+import { crossesWaterMark } from './waterMark';
 
 // 음주 중 상태표시줄에 상주하는 알림. 앱을 안 열고도 잔을 더하고 BAC를 본다.
 // 워치(Wear OS)에도 자동 미러링돼 워치에서 바로 잔 추가가 된다.
@@ -142,8 +143,8 @@ export async function handleOngoingActionBg(actionId: string, now: number): Prom
   if (crossed) ns = { ...ns, pendingGate: true };
   await saveState(ns);
 
-  // 물 알림: waterEvery 배수를 넘으면 헤드업 (화면 탭과 동일 규칙)
-  if (ns.waterEvery > 0 && Math.floor(prev / ns.waterEvery) < Math.floor(next / ns.waterEvery)) {
+  // 물 알림: waterEvery 배수를 넘으면 헤드업 (초반 waterStartAt까지 스킵, 화면 탭과 동일 규칙)
+  if (crossesWaterMark(prev, next, ns.waterEvery, ns.waterStartAt)) {
     await notifyWater();
   }
 

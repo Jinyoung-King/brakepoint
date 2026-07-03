@@ -42,6 +42,7 @@ import { openFullScreenIntentSettings } from '../fakeCall/notifications';
 import { canUseFullScreenIntent } from '../../modules/fsi-permission';
 import { addHaptic, tapHaptic } from '../haptics';
 import { notifyWater } from '../water';
+import { crossesWaterMark } from '../waterMark';
 
 // 게이지 바 탭 시 순환 순서 + 표시 이름
 const GAUGE_CYCLE: GaugeStyle[] = ['classic', 'hp', 'hearts', 'boss', 'mp', 'tacho', 'protoss'];
@@ -109,6 +110,7 @@ export default function HomeScreen({ navigation }: Props) {
     history,
     weeklyGoalSessions,
     waterEvery,
+    waterStartAt,
     homeLat,
     homeLng,
     smokingEnabled,
@@ -249,8 +251,8 @@ export default function HomeScreen({ navigation }: Props) {
       navigation.navigate('CognitiveGate');
       return;
     }
-    // 물 알림: waterEvery 배수를 넘으면 헤드업 알림 (비블로킹)
-    if (waterEvery > 0 && Math.floor(prev / waterEvery) < Math.floor(next / waterEvery)) {
+    // 물 알림: waterEvery 배수를 넘으면 헤드업 알림 (초반 waterStartAt까지는 스킵, 비블로킹)
+    if (crossesWaterMark(prev, next, waterEvery, waterStartAt)) {
       notifyWater();
       return;
     }
