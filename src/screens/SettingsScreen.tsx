@@ -130,6 +130,7 @@ export default function SettingsScreen() {
     setWeeklyReportEnabled,
     setOngoingNotifEnabled,
     importState,
+    resetAll,
   } = useAppState();
   const { limit, difficulty, fakeCall, brakePercents, repeatEveryDrinks, unit, calendarSync, theme, sex, weightKg, drinkType, homeAddress, bottleToGlasses, waterEvery, weeklyGoalSessions, checkinEnabled, checkinDelayMin, smokingEnabled, monthlyBudget, weeklyReportEnabled, ongoingNotifEnabled, gaugeStyle, widgetTheme, tipsyFaceEnabled } =
     state;
@@ -205,7 +206,7 @@ export default function SettingsScreen() {
     Alert.alert('가져오기 실패', msg);
   };
 
-  const onExport = async () => {
+  const doExport = async () => {
     const d = new Date();
     const p = (n: number) => String(n).padStart(2, '0');
     const tag = `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}`;
@@ -216,6 +217,43 @@ export default function SettingsScreen() {
         r.reason === 'unavailable' ? '이 기기에서 공유를 쓸 수 없어요.' : '백업 파일을 만들지 못했어요.'
       );
     }
+  };
+  const onExport = () => {
+    // 백업 파일은 암호화되지 않은 평문 JSON — 음주 기록·집 주소/좌표·체중 등 민감정보가 그대로 담김.
+    Alert.alert(
+      '백업 파일에 민감정보가 담겨요',
+      '음주 기록, 집 주소·좌표, 체중 등이 암호화 없이 그대로 저장돼요. 믿을 수 있는 곳(본인 클라우드 등)에만 저장하세요.',
+      [
+        { text: '취소', style: 'cancel' },
+        { text: '계속', onPress: doExport },
+      ]
+    );
+  };
+  const onResetAll = () => {
+    Alert.alert(
+      '모든 데이터 삭제',
+      '기록·설정·집 주소·체중까지 전부 지우고 처음 상태로 되돌려요. 되돌릴 수 없어요.',
+      [
+        { text: '취소', style: 'cancel' },
+        {
+          text: '전부 삭제',
+          style: 'destructive',
+          onPress: () =>
+            // 실수 방지 2차 확인
+            Alert.alert('정말 삭제할까요?', '이 작업은 되돌릴 수 없어요.', [
+              { text: '취소', style: 'cancel' },
+              {
+                text: '삭제',
+                style: 'destructive',
+                onPress: () => {
+                  resetAll();
+                  Alert.alert('삭제 완료', '모든 데이터를 지웠어요.');
+                },
+              },
+            ]),
+        },
+      ]
+    );
   };
   const onImport = () => {
     Alert.alert('백업 불러오기', '지금 데이터를 백업 파일 내용으로 덮어써요. 되돌릴 수 없어요.', [
@@ -701,6 +739,11 @@ export default function SettingsScreen() {
           <Text style={styles.permBtnText}>불러오기 (백업 파일 선택)</Text>
         </Pressable>
         <Text style={styles.help}>불러오면 현재 데이터를 덮어써요(되돌릴 수 없음).</Text>
+        <Pressable style={styles.dangerBtn} onPress={onResetAll} accessibilityRole="button" accessibilityLabel="모든 데이터 삭제">
+          <Ionicons name="trash-outline" size={16} color={c.red} />
+          <Text style={styles.dangerText}>모든 데이터 삭제</Text>
+        </Pressable>
+        <Text style={styles.help}>기록·설정·집 주소·체중까지 전부 지우고 처음 상태로 되돌려요.</Text>
       </Section>
 
       {/* 일반 */}
@@ -853,4 +896,16 @@ const makeStyles = (c: Palette) => StyleSheet.create({
     alignItems: 'center',
   },
   permBtnText: { color: c.blue, fontSize: 15, fontWeight: '600' },
+  dangerBtn: {
+    marginTop: 16,
+    paddingVertical: 12,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: c.red,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  dangerText: { color: c.red, fontSize: 15, fontWeight: '700' },
 });

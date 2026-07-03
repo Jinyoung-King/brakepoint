@@ -29,6 +29,7 @@ type AppStateContextValue = {
   endSession: (extra?: { place?: string; memo?: string; cost?: number }) => void; // 현재 술자리를 기록에 저장하고 초기화
   addManualRecord: (r: reducers.ManualRecordInput) => void; // 지난 술자리 수동 추가
   clearHistory: () => void;
+  resetAll: () => void; // 모든 데이터 초기화 (기록·설정·개인정보 전부 기본값으로)
   importState: (next: AppState) => void; // 백업 복원 (전체 교체)
   deleteRecord: (id: string) => void;
   updateRecord: (id: string, patch: reducers.RecordPatch) => void;
@@ -111,6 +112,8 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     endSession: (extra) => setState((s) => reducers.endSession(s, extra, Date.now())),
     addManualRecord: (r) => setState((s) => reducers.addManualRecord(s, r, Date.now())),
     clearHistory: () => setState((s) => ({ ...s, history: [] })),
+    // 전부 기본값으로 (기록·설정·개인정보). saveState effect가 디스크에도 반영.
+    resetAll: () => setState(() => ({ ...DEFAULT_STATE, fakeCall: { ...DEFAULT_STATE.fakeCall } })),
     importState: (next) => setState(() => next),
     deleteRecord: (id) => setState((s) => reducers.deleteRecord(s, id)),
     updateRecord: (id, patch) => setState((s) => reducers.updateRecord(s, id, patch)),
