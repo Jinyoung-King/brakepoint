@@ -307,13 +307,22 @@ export default function HistoryScreen() {
     }
   };
 
-  // 수동 추가 모달에 보여줄 대상 날짜/시각 라벨
-  const p2 = (n: number) => String(n).padStart(2, '0');
-  const manualDateLabel = `${mWhen.getMonth() + 1}월 ${mWhen.getDate()}일 (${WEEKDAYS[mWhen.getDay()]})`;
-  const manualTimeLabel = `${p2(mWhen.getHours())}:${p2(mWhen.getMinutes())}`;
   // 날짜 빠른 선택 칩이 현재 mWhen과 일치하는지 (며칠 전 기준)
   const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
   const whenDaysAgo = Math.round((startOfDay(new Date()) - startOfDay(mWhen)) / 86400000);
+  // 문장형 UI용 친근 라벨: "오늘 / 어제 / 그저께 / M월 D일", "저녁 9시" 등
+  const relDayLabel =
+    whenDaysAgo === 0 ? '오늘' : whenDaysAgo === 1 ? '어제' : whenDaysAgo === 2 ? '그저께' : `${mWhen.getMonth() + 1}월 ${mWhen.getDate()}일`;
+  const h = mWhen.getHours();
+  const period = h < 6 ? '새벽' : h < 12 ? '오전' : h < 18 ? '오후' : h < 21 ? '저녁' : '밤';
+  const h12 = h % 12 === 0 ? 12 : h % 12;
+  const friendlyTimeLabel = mWhen.getMinutes() === 0 ? `${period} ${h12}시` : `${period} ${h12}시 ${mWhen.getMinutes()}분`;
+  // 잔수 스테퍼: 0 아래로는 안 내려감. 소수(0.5잔 등)도 유지.
+  const bumpCount = (delta: number) => {
+    const cur = parseFloat(mCount) || 0;
+    const next = Math.max(0, Math.round((cur + delta) * 100) / 100);
+    setMCount(next % 1 === 0 ? String(next) : String(next));
+  };
 
   // 비용/장소
   const spend = monthSpend(history, calYear, calMonth);
@@ -863,33 +872,12 @@ export default function HistoryScreen() {
           <View style={styles.detailCard}>
             <Text style={styles.detailTitle}>{editingId ? '기록 수정' : '수동 기록 추가'}</Text>
             <Text style={styles.muted}>
-              {editingId ? '날짜는 그대로 두고 내용만 수정해요.' : `${manualDateLabel} ${manualTimeLabel} 기록을 추가해요.`}
+              {editingId ? '날짜는 그대로 두고 내용만 수정해요.' : '탭해서 문장을 채우면 돼요.'}
             </Text>
             <ScrollView style={styles.mScroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-              <View style={styles.mRow}>
-                <View style={styles.mCol}>
-                  <Text style={styles.mLabel}>마신 {unit}</Text>
-                  <TextInput style={styles.mInput} keyboardType="decimal-pad" value={mCount} onChangeText={setMCount} placeholder="0" placeholderTextColor={c.textFaint} />
-                </View>
-                <View style={styles.mCol}>
-                  <Text style={styles.mLabel}>한계</Text>
-                  <TextInput style={styles.mInput} keyboardType="number-pad" value={mLimit} onChangeText={setMLimit} placeholder={String(limit)} placeholderTextColor={c.textFaint} />
-                </View>
-              </View>
-              <Text style={styles.mLabel}>주종</Text>
-              <View style={styles.mChips}>
-                {DRINK_TYPES.map((t) => {
-                  const on = t === mType;
-                  return (
-                    <Pressable key={t} style={[styles.mChip, on && styles.mChipOn]} onPress={() => setMType(t)} accessibilityRole="button" accessibilityState={{ selected: on }} accessibilityLabel={`주종 ${t}`}>
-                      <Text style={[styles.mChipText, on && styles.mChipTextOn]}>{t}</Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
+              {/* 시점 문장: [날짜] [시각]에 (편집 시엔 날짜 고정이라 숨김) */}
               {!editingId && (
-                <>
-                  <Text style={styles.mLabel}>날짜 · 시각</Text>
+                <View style={styles.mBlock}>
                   <View style={styles.mChips}>
                     {DAY_CHIPS.map((d) => {
                       const on = whenDaysAgo === d.v;
@@ -912,26 +900,60 @@ export default function HistoryScreen() {
                       );
                     })}
                   </View>
-                  <View style={styles.mRow}>
-                    <View style={styles.mCol}>
-                      <Pressable style={styles.mInput} onPress={() => setPicker('date')} accessibilityRole="button" accessibilityLabel={`날짜 선택, 현재 ${manualDateLabel}`}>
-                        <Text style={styles.mPickText}>📅 {manualDateLabel}</Text>
-                      </Pressable>
-                    </View>
-                    <View style={styles.mCol}>
-                      <Pressable style={styles.mInput} onPress={() => setPicker('time')} accessibilityRole="button" accessibilityLabel={`시각 선택, 현재 ${manualTimeLabel}`}>
-                        <Text style={styles.mPickText}>🕘 {manualTimeLabel}</Text>
-                      </Pressable>
-                    </View>
+                  <View style={styles.mSentence}>
+                    <Pressable style={styles.mToken} onPress={() => setPicker('date')} accessibilityRole="button" accessibilityLabel={`날짜 선택, 현재 ${relDayLabel}`}>
+                      <Text style={styles.mTokenText}>📅 {relDayLabel}</Text>
+                    </Pressable>
+                    <Pressable style={styles.mToken} onPress={() => setPicker('time')} accessibilityRole="button" accessibilityLabel={`시각 선택, 현재 ${friendlyTimeLabel}`}>
+                      <Text style={styles.mTokenText}>🕘 {friendlyTimeLabel}</Text>
+                    </Pressable>
+                    <Text style={styles.mSentenceText}>에</Text>
                   </View>
-                </>
+                </View>
               )}
-              <Text style={styles.mLabel}>장소 (선택)</Text>
+
+              {/* 무엇 문장: 🍺 [주종]  [− N +]{단위} 마셨어요 */}
+              <View style={styles.mBlock}>
+                <View style={styles.mChips}>
+                  {DRINK_TYPES.map((t) => {
+                    const on = t === mType;
+                    return (
+                      <Pressable key={t} style={[styles.mChip, on && styles.mChipOn]} onPress={() => setMType(t)} accessibilityRole="button" accessibilityState={{ selected: on }} accessibilityLabel={`주종 ${t}`}>
+                        <Text style={[styles.mChipText, on && styles.mChipTextOn]}>{t}</Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+                <View style={styles.mSentence}>
+                  <View style={styles.mStepper}>
+                    <Pressable style={styles.mStepBtn} onPress={() => bumpCount(-1)} accessibilityRole="button" accessibilityLabel={`${unit} 한 잔 빼기`}>
+                      <Text style={styles.mStepBtnText}>−</Text>
+                    </Pressable>
+                    <TextInput style={styles.mCountInput} keyboardType="decimal-pad" value={mCount} onChangeText={setMCount} placeholder="0" placeholderTextColor={c.textFaint} textAlign="center" accessibilityLabel={`마신 ${unit}`} />
+                    <Pressable style={styles.mStepBtn} onPress={() => bumpCount(1)} accessibilityRole="button" accessibilityLabel={`${unit} 한 잔 더하기`}>
+                      <Text style={styles.mStepBtnText}>＋</Text>
+                    </Pressable>
+                  </View>
+                  <Text style={styles.mSentenceText}>{unit} 마셨어요</Text>
+                </View>
+              </View>
+
+              {/* 선택 항목 */}
+              <Text style={styles.mLabel}>선택 항목</Text>
+              <View style={styles.mRow}>
+                <View style={styles.mCol}>
+                  <Text style={styles.mSubLabel}>한도 ({unit})</Text>
+                  <TextInput style={styles.mInput} keyboardType="number-pad" value={mLimit} onChangeText={setMLimit} placeholder={String(limit)} placeholderTextColor={c.textFaint} />
+                </View>
+                <View style={styles.mCol}>
+                  <Text style={styles.mSubLabel}>술값 (원)</Text>
+                  <TextInput style={styles.mInput} keyboardType="number-pad" value={mCost} onChangeText={setMCost} placeholder="예: 35000" placeholderTextColor={c.textFaint} />
+                </View>
+              </View>
+              <Text style={styles.mSubLabel}>장소</Text>
               <TextInput style={styles.mInput} value={mPlace} onChangeText={setMPlace} placeholder="예: 연신내 ○○" placeholderTextColor={c.textFaint} />
-              <Text style={styles.mLabel}>메모 (선택)</Text>
+              <Text style={styles.mSubLabel}>메모</Text>
               <TextInput style={styles.mInput} value={mMemo} onChangeText={setMMemo} placeholder="한줄 메모" placeholderTextColor={c.textFaint} />
-              <Text style={styles.mLabel}>술값 (선택, 원)</Text>
-              <TextInput style={styles.mInput} keyboardType="number-pad" value={mCost} onChangeText={setMCost} placeholder="예: 35000" placeholderTextColor={c.textFaint} />
             </ScrollView>
             <View style={styles.mBtns}>
               <Pressable onPress={() => { setManualOpen(false); setEditingId(null); }} hitSlop={8} accessibilityRole="button" accessibilityLabel="취소">
@@ -1007,8 +1029,18 @@ const makeStyles = (c: Palette) => StyleSheet.create({
   mChipText: { fontSize: 14, color: c.textMuted, fontWeight: '600' },
   mChipTextOn: { color: '#fff' },
   mInput: { borderWidth: 1, borderColor: c.border, backgroundColor: c.cardAlt, color: c.text, borderRadius: radius.sm, paddingHorizontal: 12, paddingVertical: 10, fontSize: 16 },
-  mPickText: { color: c.text, fontSize: 16, lineHeight: 20 },
   mScroll: { flexShrink: 1 },
+  mSubLabel: { fontSize: 12, color: c.textFaint, marginTop: 8, marginBottom: 2 },
+  // 문장형 입력
+  mBlock: { marginTop: 12 },
+  mSentence: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8, marginTop: 8 },
+  mSentenceText: { fontSize: 18, color: c.text, fontWeight: '600' },
+  mToken: { backgroundColor: c.cardAlt, borderWidth: 1, borderColor: c.blue, borderRadius: radius.sm, paddingHorizontal: 12, paddingVertical: 8 },
+  mTokenText: { fontSize: 17, color: c.text, fontWeight: '700' },
+  mStepper: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: c.border, borderRadius: radius.sm, overflow: 'hidden' },
+  mStepBtn: { paddingHorizontal: 16, paddingVertical: 8, backgroundColor: c.cardAlt },
+  mStepBtnText: { fontSize: 22, color: c.blue, fontWeight: '800' },
+  mCountInput: { minWidth: 56, color: c.text, fontSize: 22, fontWeight: '800', paddingVertical: 6, paddingHorizontal: 4 },
   mBtns: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 20, marginTop: 16 },
   mSave: { backgroundColor: c.blue, paddingVertical: 12, paddingHorizontal: 20, borderRadius: radius.sm },
   mSaveText: { color: '#fff', fontSize: 16, fontWeight: '700' },
