@@ -16,6 +16,7 @@ import {
   weekdayRisk,
   dryStats,
   monthDryDays,
+  computeGoals,
 } from '../src/stats';
 import type { SessionRecord } from '../src/storage';
 
@@ -135,6 +136,24 @@ describe('monthlyReport', () => {
     expect(r.withinRate).toBe(0);
     expect(r.topWeekday).toBeNull();
     expect(r.deltaPct).toBeNull();
+  });
+});
+
+describe('computeGoals (목표·챌린지)', () => {
+  const base = { weekSessions: 1, weekGoal: 0, dryDays: 0, dryGoal: 0, streak: 3 };
+  it('goal 0이면 해당 항목은 null(끔)', () => {
+    const g = computeGoals(base);
+    expect(g.week).toBeNull();
+    expect(g.dry).toBeNull();
+    expect(g.streak).toBe(3);
+  });
+  it('주간은 상한(<=)으로 달성 판정', () => {
+    expect(computeGoals({ ...base, weekSessions: 2, weekGoal: 2 }).week).toEqual({ count: 2, goal: 2, met: true });
+    expect(computeGoals({ ...base, weekSessions: 3, weekGoal: 2 }).week).toEqual({ count: 3, goal: 2, met: false }); // 초과
+  });
+  it('월 금주일은 하한(>=)으로 달성 판정', () => {
+    expect(computeGoals({ ...base, dryDays: 12, dryGoal: 10 }).dry).toEqual({ days: 12, goal: 10, met: true });
+    expect(computeGoals({ ...base, dryDays: 7, dryGoal: 10 }).dry).toEqual({ days: 7, goal: 10, met: false });
   });
 });
 

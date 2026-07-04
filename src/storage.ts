@@ -77,7 +77,8 @@ export type AppState = {
   drinkEvents: DrinkEvent[]; // 이번 술자리 시점별 음주 기록
   waterEvery: number; // 몇 잔마다 물 알림 (0=끔)
   waterStartAt: number; // 이 잔수 이하에선 물 알림 안 뜸(초반 스킵, 0=처음부터)
-  weeklyGoalSessions: number; // 주간 목표 술자리 횟수 (0=끔)
+  weeklyGoalSessions: number; // 주간 목표 술자리 횟수 상한 (0=끔)
+  monthlyDryGoal: number; // 월 금주일 목표 (이 일수 이상 안 마시기, 0=끔)
   checkinEnabled: boolean; // 귀가 체크인 알림
   checkinDelayMin: number; // 음주모드 종료 후 체크인까지(분)
   monthlyBudget: number; // 월 술값 예산(원, 0=끔)
@@ -130,6 +131,7 @@ export const DEFAULT_STATE: AppState = {
   waterEvery: 3,
   waterStartAt: 0,
   weeklyGoalSessions: 2,
+  monthlyDryGoal: 0,
   checkinEnabled: true,
   checkinDelayMin: 60,
   monthlyBudget: 0,

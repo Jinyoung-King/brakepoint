@@ -124,6 +124,7 @@ export default function SettingsScreen() {
     setWaterEvery,
     setWaterStartAt,
     setWeeklyGoalSessions,
+    setMonthlyDryGoal,
     setCheckinEnabled,
     setCheckinDelayMin,
     setSmokingEnabled,
@@ -135,7 +136,7 @@ export default function SettingsScreen() {
     addCustomDrink,
     removeCustomDrink,
   } = useAppState();
-  const { limit, difficulty, fakeCall, brakePercents, repeatEveryDrinks, unit, calendarSync, theme, sex, weightKg, drinkType, homeAddress, bottleToGlasses, waterEvery, waterStartAt, weeklyGoalSessions, customDrinks, checkinEnabled, checkinDelayMin, smokingEnabled, monthlyBudget, weeklyReportEnabled, ongoingNotifEnabled, gaugeStyle, widgetTheme, tipsyFaceEnabled } =
+  const { limit, difficulty, fakeCall, brakePercents, repeatEveryDrinks, unit, calendarSync, theme, sex, weightKg, drinkType, homeAddress, bottleToGlasses, waterEvery, waterStartAt, weeklyGoalSessions, monthlyDryGoal, customDrinks, checkinEnabled, checkinDelayMin, smokingEnabled, monthlyBudget, weeklyReportEnabled, ongoingNotifEnabled, gaugeStyle, widgetTheme, tipsyFaceEnabled } =
     state;
   const c = useColors();
   const styles = useMemo(() => makeStyles(c), [c]);
@@ -150,6 +151,7 @@ export default function SettingsScreen() {
   const [waterText, setWaterText] = useState(String(waterEvery));
   const [waterStartText, setWaterStartText] = useState(String(waterStartAt));
   const [goalText, setGoalText] = useState(String(weeklyGoalSessions));
+  const [dryGoalText, setDryGoalText] = useState(String(monthlyDryGoal));
   const [checkinText, setCheckinText] = useState(String(checkinDelayMin));
   // 커스텀 주종 추가 폼
   const [ndName, setNdName] = useState('');
@@ -669,7 +671,7 @@ export default function SettingsScreen() {
           placeholderTextColor={c.textFaint}
         />
         <Text style={styles.help}>초반에 빨리 마시는 편이면 여기를 올려두면 그 전엔 물 알림이 안 떠요.</Text>
-        <Text style={styles.label}>주간 목표 (술자리 횟수, 0=끔)</Text>
+        <Text style={styles.label}>주간 목표 (술자리 횟수 상한, 0=끔)</Text>
         <TextInput
           style={styles.input}
           keyboardType="number-pad"
@@ -681,6 +683,19 @@ export default function SettingsScreen() {
           placeholder="2"
           placeholderTextColor={c.textFaint}
         />
+        <Text style={styles.label}>월 금주일 목표 (며칠 이상 안 마시기, 0=끔)</Text>
+        <TextInput
+          style={styles.input}
+          keyboardType="number-pad"
+          value={dryGoalText}
+          onChangeText={(t) => {
+            setDryGoalText(t);
+            commitNum(t, setMonthlyDryGoal, 0, 31);
+          }}
+          placeholder="10"
+          placeholderTextColor={c.textFaint}
+        />
+        <Text style={styles.help}>목표는 기록 탭 상단 "목표" 카드에 진행률로 표시돼요.</Text>
         <View style={styles.toggleRow}>
           <Text style={styles.label}>흡연 트래킹 (음주 중 잔당 흡연)</Text>
           <Switch value={smokingEnabled} onValueChange={setSmokingEnabled} />

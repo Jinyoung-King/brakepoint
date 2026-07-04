@@ -56,6 +56,7 @@ type AppStateContextValue = {
   setWaterEvery: (n: number) => void;
   setWaterStartAt: (n: number) => void;
   setWeeklyGoalSessions: (n: number) => void;
+  setMonthlyDryGoal: (n: number) => void;
   setCheckinEnabled: (on: boolean) => void;
   setCheckinDelayMin: (min: number) => void;
   setWeeklyReportEnabled: (on: boolean) => void;
@@ -156,6 +157,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     setWaterEvery: (waterEvery) => setState((s) => ({ ...s, waterEvery })),
     setWaterStartAt: (waterStartAt) => setState((s) => ({ ...s, waterStartAt })),
     setWeeklyGoalSessions: (weeklyGoalSessions) => setState((s) => ({ ...s, weeklyGoalSessions })),
+    setMonthlyDryGoal: (monthlyDryGoal) => setState((s) => ({ ...s, monthlyDryGoal })),
     setCheckinEnabled: (checkinEnabled) => setState((s) => ({ ...s, checkinEnabled })),
     setCheckinDelayMin: (checkinDelayMin) => setState((s) => ({ ...s, checkinDelayMin })),
     setWeeklyReportEnabled: (weeklyReportEnabled) => setState((s) => ({ ...s, weeklyReportEnabled })),

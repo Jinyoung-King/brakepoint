@@ -13,7 +13,7 @@ import { DRINK_TYPES, DRINK_UNITS, WEEKDAYS } from '../constants';
 import ManualAddChat from './ManualAddChat';
 import { radius, type Palette } from '../theme';
 import { useColors } from '../useColors';
-import { limitStreak, sessionsThisWeek, dailyTotals, monthSpend, monthlyReport, hourlyTotals, peakHour, placeStats, typeTotals, dryStats, monthDryDays } from '../stats';
+import { limitStreak, sessionsThisWeek, dailyTotals, monthSpend, monthlyReport, hourlyTotals, peakHour, placeStats, typeTotals, dryStats, monthDryDays, computeGoals } from '../stats';
 
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -30,7 +30,7 @@ const mean = (rs: SessionRecord[]) =>
 
 export default function HistoryScreen() {
   const { state, clearHistory, addManualRecord, deleteRecord, updateRecord } = useAppState();
-  const { history, weeklyGoalSessions, limit, unit, monthlyBudget, drinkType, customDrinks } = state;
+  const { history, weeklyGoalSessions, monthlyDryGoal, limit, unit, monthlyBudget, drinkType, customDrinks } = state;
   const [monthOffset, setMonthOffset] = useState(0);
   const streak = limitStreak(history);
   const weekCount = sessionsThisWeek(history);
@@ -298,6 +298,13 @@ export default function HistoryScreen() {
   // 금주 현황
   const dry = dryStats(history, nowMs);
   const monthDry = monthDryDays(history, nowMs);
+  const goals = computeGoals({
+    weekSessions: weekCount,
+    weekGoal: weeklyGoalSessions,
+    dryDays: monthDry.dry,
+    dryGoal: monthlyDryGoal,
+    streak,
+  });
 
   // 시간대별 음주 (전체 기록)
   const hourly = hourlyTotals(history);
@@ -371,16 +378,38 @@ export default function HistoryScreen() {
       renderItem={renderItem}
       ListHeaderComponent={
         <View style={{ gap: 12 }}>
-          {(streak > 0 || weeklyGoalSessions > 0) && (
+          {(goals.streak > 0 || goals.week || goals.dry) && (
             <View style={styles.goalCard}>
-              <View style={styles.goalStreak}>
-                <Ionicons name="flame" size={16} color={c.amber} />
-                <Text style={styles.goalText}>한도 지킴 {streak}연속</Text>
+              <View style={styles.goalHeaderRow}>
+                <Text style={styles.goalTitle}>목표</Text>
+                <View style={styles.goalStreak}>
+                  <Ionicons name="flame" size={15} color={goals.streak > 0 ? c.amber : c.textFaint} />
+                  <Text style={styles.goalStreakText}>한도 지킴 {goals.streak}연속</Text>
+                </View>
               </View>
-              {weeklyGoalSessions > 0 && (
-                <Text style={[styles.goalText, weekCount > weeklyGoalSessions && styles.statNumWarn]}>
-                  이번 주 {weekCount} / 목표 {weeklyGoalSessions}회
-                </Text>
+              {goals.week && (
+                <GoalRow
+                  label="이번 주 술자리"
+                  value={`${goals.week.count} / ${goals.week.goal}회`}
+                  ratio={goals.week.goal > 0 ? goals.week.count / goals.week.goal : 0}
+                  met={goals.week.met}
+                  overColor={c.red}
+                  styles={styles}
+                  c={c}
+                />
+              )}
+              {goals.dry && (
+                <GoalRow
+                  label="이번 달 금주일"
+                  value={`${goals.dry.days} / ${goals.dry.goal}일`}
+                  ratio={goals.dry.goal > 0 ? goals.dry.days / goals.dry.goal : 0}
+                  met={goals.dry.met}
+                  styles={styles}
+                  c={c}
+                />
+              )}
+              {!goals.week && !goals.dry && (
+                <Text style={styles.goalHint}>설정 &gt; 건강·목표에서 주간/금주일 목표를 정하면 여기 진행률이 떠요.</Text>
               )}
             </View>
           )}
@@ -949,6 +978,35 @@ function fmtClock(ms: number): string {
   return `${p(d.getHours())}:${p(d.getMinutes())}`;
 }
 
+// 목표 진행률 한 줄 (라벨 + 값 + 진행 바). 달성 시 초록·체크, 상한 초과 시 overColor.
+function GoalRow({ label, value, ratio, met, overColor, styles, c }: {
+  label: string;
+  value: string;
+  ratio: number;
+  met: boolean;
+  overColor?: string;
+  styles: ReturnType<typeof makeStyles>;
+  c: Palette;
+}) {
+  const pct = Math.max(0, Math.min(1, ratio)) * 100;
+  const over = ratio > 1;
+  const fill = met ? c.green : over && overColor ? overColor : c.blue;
+  return (
+    <View style={styles.goalRow}>
+      <View style={styles.goalRowTop}>
+        <Text style={styles.goalRowLabel}>{label}</Text>
+        <View style={styles.goalRowRight}>
+          <Text style={[styles.goalRowValue, met && { color: c.green }, over && !!overColor && { color: overColor }]}>{value}</Text>
+          {met && <Ionicons name="checkmark-circle" size={16} color={c.green} />}
+        </View>
+      </View>
+      <View style={styles.goalTrack}>
+        <View style={[styles.goalFill, { width: `${pct}%`, backgroundColor: fill }]} />
+      </View>
+    </View>
+  );
+}
+
 const makeStyles = (c: Palette) => StyleSheet.create({
   root: { flex: 1, backgroundColor: c.bg },
   container: { padding: 20, paddingBottom: 110, gap: 12, backgroundColor: c.bg, flexGrow: 1 },
@@ -1008,9 +1066,19 @@ const makeStyles = (c: Palette) => StyleSheet.create({
   statNum: { fontSize: 24, fontWeight: '800', color: c.text },
   statNumWarn: { color: c.red },
   statLabel: { fontSize: 12, color: c.textMuted },
-  goalCard: { backgroundColor: c.card, borderRadius: radius.md, padding: 14, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderWidth: 1, borderColor: c.border },
+  goalCard: { backgroundColor: c.card, borderRadius: radius.md, padding: 14, gap: 12, borderWidth: 1, borderColor: c.border },
+  goalHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  goalTitle: { fontSize: 15, fontWeight: '800', color: c.text },
   goalStreak: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  goalText: { fontSize: 14, color: c.text, fontWeight: '600' },
+  goalStreakText: { fontSize: 13, color: c.textMuted, fontWeight: '600' },
+  goalHint: { fontSize: 13, color: c.textMuted },
+  goalRow: { gap: 6 },
+  goalRowTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  goalRowLabel: { fontSize: 14, color: c.text, fontWeight: '600' },
+  goalRowRight: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  goalRowValue: { fontSize: 14, color: c.textMuted, fontWeight: '700' },
+  goalTrack: { height: 8, borderRadius: 4, backgroundColor: c.cardAlt, overflow: 'hidden' },
+  goalFill: { height: '100%', borderRadius: 4 },
   chartCard: { backgroundColor: c.card, borderRadius: radius.md, padding: 14, gap: 10, borderWidth: 1, borderColor: c.border },
   calHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   calTitle: { fontSize: 14, fontWeight: '700', color: c.text },

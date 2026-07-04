@@ -38,6 +38,27 @@ export function sessionsThisWeek(history: SessionRecord[]): number {
   return history.filter((r) => r.endedAt >= since).length;
 }
 
+// 목표·챌린지 요약(순수). 주간 술자리는 상한(<=), 월 금주일은 하한(>=) 달성.
+export type GoalSummary = {
+  week: { count: number; goal: number; met: boolean } | null; // goal 0이면 null(끔)
+  dry: { days: number; goal: number; met: boolean } | null;
+  streak: number; // 한도 지킴 연속
+};
+export function computeGoals(opts: {
+  weekSessions: number;
+  weekGoal: number;
+  dryDays: number;
+  dryGoal: number;
+  streak: number;
+}): GoalSummary {
+  const { weekSessions, weekGoal, dryDays, dryGoal, streak } = opts;
+  return {
+    week: weekGoal > 0 ? { count: weekSessions, goal: weekGoal, met: weekSessions <= weekGoal } : null,
+    dry: dryGoal > 0 ? { days: dryDays, goal: dryGoal, met: dryDays >= dryGoal } : null,
+    streak,
+  };
+}
+
 const sameYM = (ms: number, year: number, month: number) => {
   const d = new Date(ms);
   return d.getFullYear() === year && d.getMonth() === month;
