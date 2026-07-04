@@ -150,6 +150,11 @@ export default function HomeScreen({ navigation }: Props) {
   const overLimit = limit > 0 && stdCount >= limit;
   const inBrake = limit > 0 && stdCount >= firstBrake;
   const active = drinkingMode || count > 0; // 음주 중일 때만 보조 카드 노출
+  // 브레이크 예고: 한 잔 더 마시면 브레이크(게이트)가 걸리는지 미리 판정 → 코칭 힌트.
+  const nextBrakeSoon =
+    active &&
+    !overLimit &&
+    crossesBrakeOnAdd({ drinkEvents, unit, drinkType, addN: 1, limit, brakePercents, repeatEveryDrinks, morningTighten: !!morning, customDrinks });
   const streak = limitStreak(history); // 시작 전 카드용
   const weekCount = sessionsThisWeek(history);
   // 위험 요일: 평소 오늘 요일에 더 많이 마셨으면 경고 배너
@@ -403,9 +408,11 @@ export default function HomeScreen({ navigation }: Props) {
     ? `브레이크 ${effPercents.join('·')}%`
     : overLimit
       ? '한계 초과 — 천천히, 물 한 잔'
-      : inBrake
-        ? `브레이크 구간 · 취기 ${tipsy}%`
-        : `취기 ${tipsy}%${nextDrinkMin > 0 ? ` · 다음 잔 ${nextDrinkMin}분 뒤` : ' · 지금 마셔도 OK'}`;
+      : nextBrakeSoon
+        ? `취기 ${tipsy}% · 한 잔 더면 브레이크`
+        : inBrake
+          ? `브레이크 구간 · 취기 ${tipsy}%`
+          : `취기 ${tipsy}%${nextDrinkMin > 0 ? ` · 다음 잔 ${nextDrinkMin}분 뒤` : ' · 지금 마셔도 OK'}`;
 
   return (
     <View style={styles.root}>
@@ -493,6 +500,13 @@ export default function HomeScreen({ navigation }: Props) {
           })}
         </View>
 
+        {/* 브레이크 예고 코칭 (다음 잔이 게이트일 때) */}
+        {nextBrakeSoon && (
+          <View style={styles.brakeHint}>
+            <Ionicons name="water-outline" size={16} color={c.blue} />
+            <Text style={styles.brakeHintText}>한 잔 더 마시면 브레이크가 걸려요. 물 한 잔 먼저 어때요?</Text>
+          </View>
+        )}
         {/* +1잔 / +1병 */}
         <View style={styles.addRow}>
           <Pressable
@@ -930,6 +944,8 @@ const makeStyles = (c: Palette) =>
     typeChipActive: { backgroundColor: c.blue, borderColor: c.blue },
     typeChipText: { fontSize: 13, fontWeight: '600', color: c.textMuted },
     typeChipTextActive: { color: '#fff' },
+    brakeHint: { width: '100%', flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: c.cardAlt, borderWidth: 1, borderColor: c.blue, borderRadius: radius.md, paddingVertical: 10, paddingHorizontal: 12 },
+    brakeHintText: { flex: 1, fontSize: 13, color: c.text, fontWeight: '600' },
     addRow: { width: '100%', flexDirection: 'row', gap: 10 },
     addBtn: { flex: 2, backgroundColor: c.blue, paddingVertical: 18, borderRadius: radius.lg, alignItems: 'center' },
     addBtnText: { color: '#fff', fontSize: 24, fontWeight: '800' },
