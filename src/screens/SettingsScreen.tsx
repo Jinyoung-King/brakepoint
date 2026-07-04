@@ -132,8 +132,10 @@ export default function SettingsScreen() {
     setOngoingNotifEnabled,
     importState,
     resetAll,
+    addCustomDrink,
+    removeCustomDrink,
   } = useAppState();
-  const { limit, difficulty, fakeCall, brakePercents, repeatEveryDrinks, unit, calendarSync, theme, sex, weightKg, drinkType, homeAddress, bottleToGlasses, waterEvery, waterStartAt, weeklyGoalSessions, checkinEnabled, checkinDelayMin, smokingEnabled, monthlyBudget, weeklyReportEnabled, ongoingNotifEnabled, gaugeStyle, widgetTheme, tipsyFaceEnabled } =
+  const { limit, difficulty, fakeCall, brakePercents, repeatEveryDrinks, unit, calendarSync, theme, sex, weightKg, drinkType, homeAddress, bottleToGlasses, waterEvery, waterStartAt, weeklyGoalSessions, customDrinks, checkinEnabled, checkinDelayMin, smokingEnabled, monthlyBudget, weeklyReportEnabled, ongoingNotifEnabled, gaugeStyle, widgetTheme, tipsyFaceEnabled } =
     state;
   const c = useColors();
   const styles = useMemo(() => makeStyles(c), [c]);
@@ -149,6 +151,10 @@ export default function SettingsScreen() {
   const [waterStartText, setWaterStartText] = useState(String(waterStartAt));
   const [goalText, setGoalText] = useState(String(weeklyGoalSessions));
   const [checkinText, setCheckinText] = useState(String(checkinDelayMin));
+  // 커스텀 주종 추가 폼
+  const [ndName, setNdName] = useState('');
+  const [ndAbv, setNdAbv] = useState('');
+  const [ndMl, setNdMl] = useState('');
   const [budgetText, setBudgetText] = useState(monthlyBudget ? String(monthlyBudget) : '');
 
   // 잠금화면 위 통화(풀스크린 인텐트) 권한 상태. 설정에서 돌아올 때마다 다시 확인.
@@ -312,9 +318,25 @@ export default function SettingsScreen() {
   const [capUnit, setCapUnit] = useState<DrinkUnit>('병');
   const [capType, setCapType] = useState<DrinkType>(drinkType);
   const capN = parseFloat(capAmount);
-  const capGrams = Number.isFinite(capN) && capN > 0 ? alcoholGrams(capN, capUnit, capType) : 0;
+  const capGrams = Number.isFinite(capN) && capN > 0 ? alcoholGrams(capN, capUnit, capType, customDrinks) : 0;
   // 한도는 표준잔(소주 1잔=8g) 단위. 주종이 달라도 순알코올로 정확히 환산되도록.
   const calcLimit = capGrams > 0 ? Math.max(1, Math.round(capGrams / STD_GRAMS)) : 0;
+
+  // 기본 5종 + 커스텀 주종 이름 (주종 선택 UI 공용)
+  const allDrinkTypes = [...DRINK_TYPES, ...customDrinks.map((cd) => cd.name)];
+  const onAddCustomDrink = () => {
+    const name = ndName.trim();
+    const abv = parseFloat(ndAbv);
+    const ml = parseFloat(ndMl);
+    if (!name) return Alert.alert('이름을 입력해주세요');
+    if (allDrinkTypes.includes(name)) return Alert.alert('이미 있는 이름이에요');
+    if (!Number.isFinite(abv) || abv <= 0 || abv > 100) return Alert.alert('도수를 0~100 사이로 입력해주세요');
+    if (!Number.isFinite(ml) || ml <= 0) return Alert.alert('한 잔 용량(ml)을 입력해주세요');
+    addCustomDrink(name, abv, ml);
+    setNdName('');
+    setNdAbv('');
+    setNdMl('');
+  };
 
   const onLimitChange = (t: string) => {
     setLimitText(t);
@@ -390,7 +412,7 @@ export default function SettingsScreen() {
           </View>
         </View>
         <View style={styles.gaugeWrap}>
-          {DRINK_TYPES.map((t) => (
+          {allDrinkTypes.map((t) => (
             <Pressable
               key={t}
               style={[styles.gaugeChip, capType === t && styles.segmentItemActive]}
@@ -536,7 +558,7 @@ export default function SettingsScreen() {
         />
         <Text style={styles.label}>주로 마시는 술</Text>
         <View style={styles.segment}>
-          {DRINK_TYPES.map((d) => {
+          {allDrinkTypes.map((d) => {
             const active = d === drinkType;
             return (
               <Pressable
@@ -550,6 +572,27 @@ export default function SettingsScreen() {
           })}
         </View>
         <Text style={styles.help}>혈중알코올농도·칼로리 추정에 쓰여요(기기에만 저장).</Text>
+
+        {/* 커스텀 주종 */}
+        <Text style={[styles.label, { marginTop: 14 }]}>내 술 추가 (막걸리·하이볼 등)</Text>
+        {customDrinks.map((cd) => (
+          <View key={cd.id} style={styles.customRow}>
+            <Text style={styles.customName}>{cd.name}</Text>
+            <Text style={styles.customMeta}>{cd.abv}% · {cd.ml}ml · 잔당 {cd.grams}g</Text>
+            <Pressable onPress={() => removeCustomDrink(cd.id)} hitSlop={8} accessibilityRole="button" accessibilityLabel={`${cd.name} 삭제`}>
+              <Ionicons name="trash-outline" size={18} color={c.red} />
+            </Pressable>
+          </View>
+        ))}
+        <View style={styles.customForm}>
+          <TextInput style={[styles.input, styles.customInputName]} value={ndName} onChangeText={setNdName} placeholder="이름 (예: 하이볼)" placeholderTextColor={c.textFaint} />
+          <TextInput style={[styles.input, styles.customInputNum]} keyboardType="decimal-pad" value={ndAbv} onChangeText={setNdAbv} placeholder="도수%" placeholderTextColor={c.textFaint} />
+          <TextInput style={[styles.input, styles.customInputNum]} keyboardType="number-pad" value={ndMl} onChangeText={setNdMl} placeholder="ml" placeholderTextColor={c.textFaint} />
+        </View>
+        <Pressable style={styles.permBtn} onPress={onAddCustomDrink} accessibilityRole="button" accessibilityLabel="주종 추가">
+          <Text style={styles.permBtnText}>+ 주종 추가</Text>
+        </Pressable>
+        <Text style={styles.help}>도수·용량으로 한 잔당 순알코올을 계산해요. 추가하면 홈·기록의 주종 선택에 나타나요.</Text>
         <Pressable style={styles.permBtn} onPress={onImportWeight}>
           <Text style={styles.permBtnText}>삼성헬스에서 몸무게 가져오기</Text>
         </Pressable>
@@ -866,7 +909,7 @@ const makeStyles = (c: Palette) => StyleSheet.create({
   toggleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   brakeRow: { flexDirection: 'row', gap: 12 },
   brakeCol: { flex: 1, gap: 6 },
-  segment: { flexDirection: 'row', gap: 8 },
+  segment: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   gaugeWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   gaugeChip: { paddingVertical: 10, paddingHorizontal: 16, borderRadius: radius.sm, borderWidth: 1, borderColor: c.border },
   calcRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
@@ -923,4 +966,10 @@ const makeStyles = (c: Palette) => StyleSheet.create({
     gap: 6,
   },
   dangerText: { color: c.red, fontSize: 15, fontWeight: '700' },
+  customRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: c.border },
+  customName: { fontSize: 15, fontWeight: '700', color: c.text },
+  customMeta: { flex: 1, fontSize: 12, color: c.textMuted },
+  customForm: { flexDirection: 'row', gap: 8, marginTop: 8 },
+  customInputName: { flex: 1, marginTop: 0 },
+  customInputNum: { width: 76, marginTop: 0 },
 });

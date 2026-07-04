@@ -51,7 +51,7 @@ export default function OngoingController() {
         const next = prev + 1;
         addDrink(1); // Context 경유 → 메모리 갱신 → 표시 effect가 알림 새로고침
         // 브레이크는 표준잔(순알코올) 기준 (단, 화면 밖이라 morning tighten 미적용)
-        if (crossesBrakeOnAdd({ drinkEvents: s.drinkEvents, unit: s.unit, drinkType: s.drinkType, addN: 1, limit: s.limit, brakePercents: s.brakePercents, repeatEveryDrinks: s.repeatEveryDrinks })) {
+        if (crossesBrakeOnAdd({ drinkEvents: s.drinkEvents, unit: s.unit, drinkType: s.drinkType, addN: 1, limit: s.limit, brakePercents: s.brakePercents, repeatEveryDrinks: s.repeatEveryDrinks, customDrinks: s.customDrinks })) {
           navigateToGate();
         } else if (crossesWaterMark(prev, next, s.waterEvery, s.waterStartAt)) {
           notifyWater();

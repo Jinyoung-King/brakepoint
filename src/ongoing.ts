@@ -21,9 +21,9 @@ export const GATE_ALERT_ID = 'ongoing-gate';
 
 // 알림 제목/본문 — 잔/한도 + 혈중알코올(+운전 가능까지).
 export function ongoingContent(s: AppState, now: number): { title: string; body: string } {
-  const { count, limit, unit, drinkType, weightKg, sex, sessionStartMs } = s;
+  const { count, limit, unit, drinkType, customDrinks, weightKg, sex, sessionStartMs } = s;
   const hoursSince = sessionStartMs ? (now - sessionStartMs) / 3600000 : 0;
-  const grams = alcoholGrams(count, unit, drinkType);
+  const grams = alcoholGrams(count, unit, drinkType, customDrinks);
   const bac = estimateBac({ grams, weightKg, sex, hoursSinceStart: hoursSince });
   const title = `🍺 ${count} / ${limit}${unit}`;
   let body: string;

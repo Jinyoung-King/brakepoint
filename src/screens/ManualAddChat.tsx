@@ -3,7 +3,7 @@ import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleShee
 import DateTimePicker from '@react-native-community/datetimepicker';
 
 import type { DrinkType, DrinkUnit } from '../storage';
-import { DRINK_TYPES, DRINK_UNITS, WEEKDAYS } from '../constants';
+import { DRINK_UNITS, WEEKDAYS } from '../constants';
 import { radius, type Palette } from '../theme';
 import { useColors } from '../useColors';
 
@@ -24,6 +24,7 @@ type Props = {
   limit: number;
   defaultType: DrinkType;
   defaultUnit: DrinkUnit;
+  drinkTypes: string[]; // 기본 5종 + 커스텀 주종
   onCancel: () => void;
   onSubmit: (input: ManualChatInput) => void;
 };
@@ -63,7 +64,7 @@ function defaultWhen(base?: Date | null): Date {
   return d;
 }
 
-export default function ManualAddChat({ visible, initialWhen, limit, defaultType, defaultUnit, onCancel, onSubmit }: Props) {
+export default function ManualAddChat({ visible, initialWhen, limit, defaultType, defaultUnit, drinkTypes, onCancel, onSubmit }: Props) {
   const c = useColors();
   const styles = useMemo(() => makeStyles(c), [c]);
 
@@ -203,7 +204,7 @@ export default function ManualAddChat({ visible, initialWhen, limit, defaultType
 
             {step === TYPE && (
               <View style={styles.chips}>
-                {DRINK_TYPES.map((t) => {
+                {drinkTypes.map((t) => {
                   const on = t === type;
                   return (
                     <Pressable key={t} style={[styles.chip, on && styles.chipOn]} onPress={() => { setType(t); answered(TYPE); }} accessibilityRole="button" accessibilityLabel={`주종 ${t}`}>

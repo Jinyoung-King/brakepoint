@@ -30,7 +30,7 @@ const mean = (rs: SessionRecord[]) =>
 
 export default function HistoryScreen() {
   const { state, clearHistory, addManualRecord, deleteRecord, updateRecord } = useAppState();
-  const { history, weeklyGoalSessions, limit, unit, monthlyBudget, drinkType } = state;
+  const { history, weeklyGoalSessions, limit, unit, monthlyBudget, drinkType, customDrinks } = state;
   const [monthOffset, setMonthOffset] = useState(0);
   const streak = limitStreak(history);
   const weekCount = sessionsThisWeek(history);
@@ -836,6 +836,7 @@ export default function HistoryScreen() {
         limit={limit}
         defaultType={drinkType}
         defaultUnit={unit}
+        drinkTypes={[...DRINK_TYPES, ...customDrinks.map((cd) => cd.name)]}
         onCancel={() => setManualOpen(false)}
         onSubmit={submitChat}
       />
@@ -861,7 +862,7 @@ export default function HistoryScreen() {
               </View>
               <Text style={styles.mLabel}>주종</Text>
               <View style={styles.mChips}>
-                {DRINK_TYPES.map((t) => {
+                {[...DRINK_TYPES, ...customDrinks.map((cd) => cd.name)].map((t) => {
                   const on = t === mType;
                   return (
                     <Pressable key={t} style={[styles.mChip, on && styles.mChipOn]} onPress={() => setMType(t)} accessibilityRole="button" accessibilityState={{ selected: on }} accessibilityLabel={`주종 ${t}`}>

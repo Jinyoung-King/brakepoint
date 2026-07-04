@@ -1,4 +1,5 @@
-import { alcoholGrams, estimateBac, hoursUntil, fmtHours, bacCurve, DRIVE_LIMIT, stdDrinks, sessionStdCount } from '../src/bac';
+import { alcoholGrams, estimateBac, hoursUntil, fmtHours, bacCurve, DRIVE_LIMIT, stdDrinks, sessionStdCount, gramsFromAbv } from '../src/bac';
+import type { CustomDrink } from '../src/storage';
 
 describe('alcoholGrams', () => {
   it('scales by count and uses type/unit table', () => {
@@ -10,6 +11,30 @@ describe('alcoholGrams', () => {
   });
   it('returns 0 for 0 count', () => {
     expect(alcoholGrams(0, '병', '양주')).toBe(0);
+  });
+});
+
+describe('gramsFromAbv (도수·용량 → 순알코올 g)', () => {
+  it('ml × abv% × 0.789, 소수1자리 반올림', () => {
+    expect(gramsFromAbv(16.9, 360)).toBeCloseTo(48, 0); // 소주 한 병 ≈ 48g
+    expect(gramsFromAbv(5, 500)).toBeCloseTo(19.7, 1); // 맥주 500ml
+    expect(gramsFromAbv(0, 500)).toBe(0);
+  });
+});
+
+describe('커스텀 주종 grams 해석', () => {
+  const customs: CustomDrink[] = [{ id: 'c1', name: '하이볼', abv: 7, ml: 350, grams: 19.3 }];
+  it('커스텀 이름이면 등록된 잔당 grams를 쓴다(단위 무시)', () => {
+    expect(alcoholGrams(2, '잔', '하이볼', customs)).toBeCloseTo(38.6);
+    expect(alcoholGrams(1, '병', '하이볼', customs)).toBeCloseTo(19.3); // 병이어도 잔당 g
+  });
+  it('커스텀 없거나 기본 주종이면 기존 표를 쓴다', () => {
+    expect(alcoholGrams(1, '잔', '소주', customs)).toBe(8);
+    expect(alcoholGrams(1, '잔', '하이볼', [])).toBe(8); // 미등록 → 폴백 8
+  });
+  it('sessionStdCount도 커스텀 반영', () => {
+    const events = [{ n: 2, type: '하이볼', unit: '잔' as const }];
+    expect(sessionStdCount(events, 2, '잔', '하이볼', customs)).toBeCloseTo(38.6 / 8);
   });
 });
 

@@ -1,7 +1,7 @@
 // 브레이크(인지게이트) 발동 지점 계산 — 순수 함수.
 // HomeScreen 탭 추가와 상시 알림의 "잔 +1" 액션이 같은 규칙을 쓰도록 한 곳에 모은다.
 import { alcoholGrams, stdDrinks, STD_GRAMS } from './bac';
-import type { DrinkEvent, DrinkType, DrinkUnit } from './storage';
+import type { CustomDrink, DrinkEvent, DrinkType, DrinkUnit } from './storage';
 
 // 다음날 일정이 있으면 임계값을 10%p 낮춰(최소 20%) 브레이크를 더 일찍 건다.
 export function effectiveBrakePercents(brakePercents: number[], morningTighten: boolean): number[] {
@@ -55,10 +55,11 @@ export function crossesBrakeOnAdd(opts: {
   brakePercents: number[];
   repeatEveryDrinks: number;
   morningTighten?: boolean;
+  customDrinks?: CustomDrink[];
 }): boolean {
-  const { drinkEvents, unit, drinkType, addN, limit, brakePercents, repeatEveryDrinks, morningTighten } = opts;
-  const prevStd = stdDrinks(drinkEvents, unit, drinkType);
-  const nextStd = prevStd + alcoholGrams(addN, unit, drinkType) / STD_GRAMS;
+  const { drinkEvents, unit, drinkType, addN, limit, brakePercents, repeatEveryDrinks, morningTighten, customDrinks = [] } = opts;
+  const prevStd = stdDrinks(drinkEvents, unit, drinkType, customDrinks);
+  const nextStd = prevStd + alcoholGrams(addN, unit, drinkType, customDrinks) / STD_GRAMS;
   const brakeCounts = brakeCountsFor(limit, effectiveBrakePercents(brakePercents, !!morningTighten));
   return crossesBrake({ prev: prevStd, next: nextStd, limit, brakeCounts, repeatEveryDrinks });
 }

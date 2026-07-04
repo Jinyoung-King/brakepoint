@@ -15,6 +15,7 @@ import {
   loadState,
   saveState,
 } from '../storage';
+import { gramsFromAbv } from '../bac';
 import * as reducers from './reducers';
 import { consumePendingWidgetAdds } from '../../modules/widget-bridge';
 
@@ -48,6 +49,8 @@ type AppStateContextValue = {
   setSex: (sex: Sex) => void;
   setWeightKg: (kg: number) => void;
   setDrinkType: (type: DrinkType) => void;
+  addCustomDrink: (name: string, abv: number, ml: number) => void;
+  removeCustomDrink: (id: string) => void;
   setHomeAddress: (addr: string) => void;
   setHomeCoords: (lat: number, lng: number) => void;
   setWaterEvery: (n: number) => void;
@@ -133,6 +136,21 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     setSex: (sex) => setState((s) => ({ ...s, sex })),
     setWeightKg: (weightKg) => setState((s) => ({ ...s, weightKg })),
     setDrinkType: (drinkType) => setState((s) => ({ ...s, drinkType })),
+    addCustomDrink: (name, abv, ml) =>
+      setState((s) => {
+        const cd = { id: `cd-${Date.now()}`, name: name.trim(), abv, ml, grams: gramsFromAbv(abv, ml) };
+        return { ...s, customDrinks: [...s.customDrinks, cd] };
+      }),
+    removeCustomDrink: (id) =>
+      setState((s) => {
+        const removed = s.customDrinks.find((cd) => cd.id === id);
+        return {
+          ...s,
+          customDrinks: s.customDrinks.filter((cd) => cd.id !== id),
+          // 현재 선택된 주종이 삭제되면 기본(소주)으로 되돌림
+          drinkType: removed && removed.name === s.drinkType ? '소주' : s.drinkType,
+        };
+      }),
     setHomeAddress: (homeAddress) => setState((s) => ({ ...s, homeAddress, homeLat: null, homeLng: null })),
     setHomeCoords: (homeLat, homeLng) => setState((s) => ({ ...s, homeLat, homeLng })),
     setWaterEvery: (waterEvery) => setState((s) => ({ ...s, waterEvery })),

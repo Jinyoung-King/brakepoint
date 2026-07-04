@@ -1,13 +1,20 @@
-import type { DrinkType, DrinkUnit, Sex } from './storage';
+import type { CustomDrink, DrinkType, DrinkUnit, Sex } from './storage';
 
 // 술 종류 × 단위별 순알코올 근사량(g). 추정치(대략적 표준 제공량 기준).
-const GRAMS: Record<DrinkType, Record<DrinkUnit, number>> = {
+const GRAMS: Record<string, Record<DrinkUnit, number>> = {
   소주: { 잔: 8, 병: 53, 캔: 53 }, // 소주 360ml 16.9% ≈ 48g, 잔 ≈ 8g
   맥주: { 잔: 10, 병: 20, 캔: 16 }, // 500ml 4.5% ≈ 18g
   와인: { 잔: 12, 병: 60, 캔: 12 }, // 750ml 12% ≈ 71g, 잔 150ml ≈ 14g
   양주: { 잔: 12, 병: 200, 캔: 12 }, // 위스키 45ml 40% ≈ 14g
   청하: { 잔: 5, 병: 31, 캔: 31 }, // 오리지널 청하 300ml 13% ≈ 31g, 잔(소주잔 50ml) ≈ 5g (별빛청하는 295ml·7%로 다름)
 };
+
+// 에탄올 밀도(g/ml). 도수·용량 → 순알코올 g 환산에 사용.
+export const ETHANOL_G_PER_ML = 0.789;
+// 도수(%)·용량(ml) → 1잔당 순알코올 g
+export function gramsFromAbv(abv: number, ml: number): number {
+  return Math.round(ml * (abv / 100) * ETHANOL_G_PER_ML * 10) / 10;
+}
 
 // 표준잔 1잔의 순알코올량(g). 소주 1잔 기준. 한도/브레이크를 잔수가 아닌 순알코올로
 // 환산할 때 쓴다 (청하·맥주 등 도수 다른 술이 한도에 정확히 반영되도록).
@@ -16,17 +23,25 @@ export const STD_GRAMS = 8;
 const ELIMINATION_PER_HOUR = 0.015; // %/시간 (대사 속도)
 export const DRIVE_LIMIT = 0.03; // 한국 면허정지 기준 %
 
-export function alcoholGrams(count: number, unit: DrinkUnit, type: DrinkType): number {
-  return count * (GRAMS[type]?.[unit] ?? 8);
+// 주종 한 단위(잔/병/캔)당 순알코올 g. 커스텀 주종이면 등록된 1잔당 g(단위 무시).
+function unitGrams(unit: DrinkUnit, type: DrinkType, customs: CustomDrink[]): number {
+  const custom = customs.find((cd) => cd.name === type);
+  if (custom) return custom.grams;
+  return GRAMS[type]?.[unit] ?? 8;
+}
+
+export function alcoholGrams(count: number, unit: DrinkUnit, type: DrinkType, customs: CustomDrink[] = []): number {
+  return count * unitGrams(unit, type, customs);
 }
 
 // 누적 표준잔(순알코올/8g). 한도·브레이크 판정 단위. events의 주종/단위로 합산.
 export function stdDrinks(
   events: { n: number; type?: DrinkType; unit?: DrinkUnit }[],
   unit: DrinkUnit,
-  type: DrinkType
+  type: DrinkType,
+  customs: CustomDrink[] = []
 ): number {
-  return events.reduce((sum, e) => sum + eventGrams(e, unit, type), 0) / STD_GRAMS;
+  return events.reduce((sum, e) => sum + eventGrams(e, unit, type, customs), 0) / STD_GRAMS;
 }
 
 // 세션 누적 표준잔(순알코올/8g). 잔 이벤트가 있으면 그걸로 합산, 없으면(구버전/이벤트 유실)
@@ -35,18 +50,22 @@ export function sessionStdCount(
   drinkEvents: { n: number; type?: DrinkType; unit?: DrinkUnit }[],
   count: number,
   unit: DrinkUnit,
-  type: DrinkType
+  type: DrinkType,
+  customs: CustomDrink[] = []
 ): number {
-  return drinkEvents.length ? stdDrinks(drinkEvents, unit, type) : alcoholGrams(count, unit, type) / STD_GRAMS;
+  return drinkEvents.length
+    ? stdDrinks(drinkEvents, unit, type, customs)
+    : alcoholGrams(count, unit, type, customs) / STD_GRAMS;
 }
 
 // 잔 이벤트의 순알코올량(g). 이벤트에 주종/단위가 있으면 그걸로, 없으면(구버전) 세션 기본값으로.
 export function eventGrams(
   e: { n: number; type?: DrinkType; unit?: DrinkUnit },
   unit: DrinkUnit,
-  type: DrinkType
+  type: DrinkType,
+  customs: CustomDrink[] = []
 ): number {
-  return alcoholGrams(e.n, e.unit ?? unit, e.type ?? type);
+  return alcoholGrams(e.n, e.unit ?? unit, e.type ?? type, customs);
 }
 
 // Widmark 추정. 반환: 혈중알코올농도 % (예: 0.05)

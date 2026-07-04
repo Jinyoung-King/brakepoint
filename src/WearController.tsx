@@ -25,7 +25,7 @@ export default function WearController() {
       const next = prev + n;
       addDrink(n);
       // 브레이크는 표준잔(순알코올) 기준
-      if (crossesBrakeOnAdd({ drinkEvents: s.drinkEvents, unit: s.unit, drinkType: s.drinkType, addN: n, limit: s.limit, brakePercents: s.brakePercents, repeatEveryDrinks: s.repeatEveryDrinks })) {
+      if (crossesBrakeOnAdd({ drinkEvents: s.drinkEvents, unit: s.unit, drinkType: s.drinkType, addN: n, limit: s.limit, brakePercents: s.brakePercents, repeatEveryDrinks: s.repeatEveryDrinks, customDrinks: s.customDrinks })) {
         navigateToGate();
       } else if (crossesWaterMark(prev, next, s.waterEvery, s.waterStartAt)) {
         notifyWater();
@@ -36,16 +36,16 @@ export default function WearController() {
   }, []);
 
   // 폰 → 워치: 상태 변화 시 현재 잔/한계/BAC 전송
-  const { count, limit, unit, drinkType, weightKg, sex, sessionStartMs, drinkEvents } = state;
+  const { count, limit, unit, drinkType, customDrinks, weightKg, sex, sessionStartMs, drinkEvents } = state;
   useEffect(() => {
     if (!ready || !wearBridgeAvailable) return;
     const hoursSince = sessionStartMs ? (Date.now() - sessionStartMs) / 3600000 : 0;
     const grams = drinkEvents.length
-      ? drinkEvents.reduce((a, e) => a + eventGrams(e, unit, drinkType), 0)
-      : alcoholGrams(count, unit, drinkType);
+      ? drinkEvents.reduce((a, e) => a + eventGrams(e, unit, drinkType, customDrinks), 0)
+      : alcoholGrams(count, unit, drinkType, customDrinks);
     const bac = estimateBac({ grams, weightKg, sex, hoursSinceStart: hoursSince });
     sendStateToWatch(count, limit, bac);
-  }, [ready, count, limit, unit, drinkType, weightKg, sex, sessionStartMs, drinkEvents]);
+  }, [ready, count, limit, unit, drinkType, customDrinks, weightKg, sex, sessionStartMs, drinkEvents]);
 
   return null;
 }

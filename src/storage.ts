@@ -22,7 +22,12 @@ export type WidgetTheme = 'dark' | 'light' | 'blue' | 'pink';
 
 export type Sex = 'male' | 'female';
 
-export type DrinkType = '소주' | '맥주' | '와인' | '양주' | '청하';
+// 기본 5종 + 사용자가 등록한 커스텀 주종(막걸리·하이볼 등). 커스텀은 이름이 곧 식별자라 string으로 연다.
+export type DrinkType = string;
+export const BUILTIN_DRINK_TYPES = ['소주', '맥주', '와인', '양주', '청하'] as const;
+
+// 사용자 정의 주종: 도수(%)·용량(ml)로 1잔당 순알코올 g을 계산해 저장.
+export type CustomDrink = { id: string; name: string; abv: number; ml: number; grams: number };
 
 // 마신 시각(epoch ms), 그때 추가한 양, 그리고 그때의 주종/단위(섞어 마실 때 BAC 정확도용).
 // type/unit은 구버전 기록 호환을 위해 optional — 없으면 세션 기본값으로 대체.
@@ -63,6 +68,7 @@ export type AppState = {
   sex: Sex; // BAC 추정용
   weightKg: number; // BAC 추정용 체중
   drinkType: DrinkType; // 술 종류 (BAC 알코올량 추정)
+  customDrinks: CustomDrink[]; // 사용자 등록 주종
   homeAddress: string; // 안전 귀가용 집 주소
   homeLat: number | null; // 집 좌표(지오코딩 캐시)
   homeLng: number | null;
@@ -109,6 +115,7 @@ export const DEFAULT_STATE: AppState = {
   sex: 'male',
   weightKg: 70,
   drinkType: '소주',
+  customDrinks: [],
   homeAddress: '',
   homeLat: null,
   homeLng: null,

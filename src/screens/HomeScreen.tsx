@@ -103,6 +103,7 @@ export default function HomeScreen({ navigation }: Props) {
     sex,
     weightKg,
     drinkType,
+    customDrinks,
     homeAddress,
     sessionStartMs,
     lastDrinkMs,
@@ -141,7 +142,7 @@ export default function HomeScreen({ navigation }: Props) {
 
   // 소비한 순알코올(g) → 표준잔(소주 1잔=8g) 환산. 한도/브레이크/게이지는 잔 개수가 아니라
   // 이 표준잔으로 판정한다(청하 1잔=0.6표준잔처럼 도수 차이가 정확히 반영됨). limit은 표준잔 단위.
-  const stdCount = sessionStdCount(drinkEvents, count, unit, drinkType); // 표준잔 환산 누적 (위젯과 공용)
+  const stdCount = sessionStdCount(drinkEvents, count, unit, drinkType, customDrinks); // 표준잔 환산 누적 (위젯과 공용)
   const consumedGrams = stdCount * STD_GRAMS; // BAC 추정용 순알코올(g)
   const pct = limit > 0 ? Math.min(stdCount / limit, 1) : 0;
   const brakeCounts = brakeCountsFor(limit, effPercents);
@@ -192,12 +193,12 @@ export default function HomeScreen({ navigation }: Props) {
   const bacPoints = useMemo(
     () =>
       bacCurve({
-        events: drinkEvents.map((e) => ({ t: e.t, grams: eventGrams(e, unit, drinkType) })),
+        events: drinkEvents.map((e) => ({ t: e.t, grams: eventGrams(e, unit, drinkType, customDrinks) })),
         weightKg,
         sex,
         nowMs: now,
       }),
-    [drinkEvents, unit, drinkType, weightKg, sex, now]
+    [drinkEvents, unit, drinkType, customDrinks, weightKg, sex, now]
   );
   // 이번 술자리 주종별 잔수 합계 (섞어 마셨을 때 분해 표시용)
   const mixByType = useMemo(() => {
@@ -247,7 +248,7 @@ export default function HomeScreen({ navigation }: Props) {
     const gap = lastDrinkMs ? now - lastDrinkMs : Infinity;
     addDrink(n);
     // 브레이크는 표준잔(순알코올) 기준 — 지금 마시는 주종의 알코올량만큼만 차오른다.
-    if (crossesBrakeOnAdd({ drinkEvents, unit, drinkType, addN: n, limit, brakePercents, repeatEveryDrinks, morningTighten: !!morning })) {
+    if (crossesBrakeOnAdd({ drinkEvents, unit, drinkType, addN: n, limit, brakePercents, repeatEveryDrinks, morningTighten: !!morning, customDrinks })) {
       navigation.navigate('CognitiveGate');
       return;
     }
@@ -478,7 +479,7 @@ export default function HomeScreen({ navigation }: Props) {
 
         {/* 지금 마시는 술 (섞어 마실 때 잔마다 주종 기록) */}
         <View style={styles.typeRow}>
-          {DRINK_TYPES.map((t) => {
+          {[...DRINK_TYPES, ...customDrinks.map((cd) => cd.name)].map((t) => {
             const on = t === drinkType;
             return (
               <Pressable
@@ -924,7 +925,7 @@ const makeStyles = (c: Palette) =>
     bacSummaryValue: { fontSize: 16, fontWeight: '800' },
     bacDetail: { width: '100%', backgroundColor: c.cardAlt, borderRadius: radius.md, padding: 14, gap: 4, marginTop: -8 },
     disclaimer: { fontSize: 11, color: c.textFaint, marginTop: 2 },
-    typeRow: { width: '100%', flexDirection: 'row', gap: 6 },
+    typeRow: { width: '100%', flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
     typeChip: { flex: 1, paddingVertical: 8, borderRadius: radius.sm, borderWidth: 1, borderColor: c.border, alignItems: 'center' },
     typeChipActive: { backgroundColor: c.blue, borderColor: c.blue },
     typeChipText: { fontSize: 13, fontWeight: '600', color: c.textMuted },
