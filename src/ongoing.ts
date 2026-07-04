@@ -2,18 +2,16 @@ import notifee, { AndroidImportance, type Notification } from '@notifee/react-na
 
 import type { AppState } from './storage';
 import { loadState, saveState } from './storage';
-import { addDrink } from './state/reducers';
 import { alcoholGrams, estimateBac, hoursUntil, fmtHours, DRIVE_LIMIT } from './bac';
-import { crossesBrakeOnAdd } from './brake';
 import { notifyWater } from './water';
-import { crossesWaterMark } from './waterMark';
+import { ACT_DRINK, ACT_END, planOngoingAction } from './ongoingPlan';
+
+export { ACT_DRINK, ACT_END } from './ongoingPlan';
 
 // 음주 중 상태표시줄에 상주하는 알림. 앱을 안 열고도 잔을 더하고 BAC를 본다.
 // 워치(Wear OS)에도 자동 미러링돼 워치에서 바로 잔 추가가 된다.
 export const ONGOING_CHANNEL = 'drinking-session';
 export const ONGOING_ID = 'drinking-session';
-export const ACT_DRINK = 'ongoing-drink';
-export const ACT_END = 'ongoing-end';
 
 // 브레이크 도달 시 잠금화면이어도 앱을 깨우는 알림 (가짜전화와 동일한 풀스크린 인텐트 방식).
 const GATE_CHANNEL = 'brake-gate';
@@ -116,38 +114,10 @@ export async function cancelGateAlert(): Promise<void> {
 // 주의: 백그라운드에선 "다음날 일정" 임계값 강화(morning tighten)를 알 수 없어
 // 기본 brakePercents 기준으로 브레이크를 판정한다(화면 탭은 강화 반영).
 export async function handleOngoingActionBg(actionId: string, now: number): Promise<void> {
-  if (actionId === ACT_END) {
-    // 종료는 launchActivity로 앱이 열리며, 장소·술값 입력 모달을 띄워야 하므로
-    // 헤드리스에서 끝내지 않고 플래그만 세운다(앱 복귀 후 HomeScreen이 처리).
-    const s = await loadState();
-    if (s.drinkingMode) await saveState({ ...s, pendingEnd: true });
-    return;
-  }
-  if (actionId !== ACT_DRINK) return;
-
   const s = await loadState();
-  if (!s.drinkingMode) return;
-  const prev = s.count;
-  const next = prev + 1;
-  // 브레이크는 표준잔(순알코올) 기준 — 추가 전 이벤트로 판정.
-  const crossed = crossesBrakeOnAdd({
-    drinkEvents: s.drinkEvents,
-    unit: s.unit,
-    drinkType: s.drinkType,
-    addN: 1,
-    limit: s.limit,
-    brakePercents: s.brakePercents,
-    repeatEveryDrinks: s.repeatEveryDrinks,
-  });
-  let ns = addDrink(s, 1, now);
-  if (crossed) ns = { ...ns, pendingGate: true };
-  await saveState(ns);
-
-  // 물 알림: waterEvery 배수를 넘으면 헤드업 (초반 waterStartAt까지 스킵, 화면 탭과 동일 규칙)
-  if (crossesWaterMark(prev, next, ns.waterEvery, ns.waterStartAt)) {
-    await notifyWater();
-  }
-
-  if (crossed) await displayGateAlert();
-  await displayOngoing(ns, now);
+  const plan = planOngoingAction(s, actionId, now); // 순수 결정 → 아래는 IO만
+  if (plan.save) await saveState(plan.save);
+  if (plan.notifyWater) await notifyWater();
+  if (plan.gate) await displayGateAlert();
+  if (plan.refreshOngoing) await displayOngoing(plan.save ?? s, now);
 }
