@@ -13,7 +13,8 @@ import { DRINK_TYPES, DRINK_UNITS, WEEKDAYS } from '../constants';
 import ManualAddChat from './ManualAddChat';
 import { radius, type Palette } from '../theme';
 import { useColors } from '../useColors';
-import { limitStreak, sessionsThisWeek, dailyTotals, monthSpend, monthlyReport, hourlyTotals, peakHour, placeStats, typeTotals, dryStats, monthDryDays, computeGoals } from '../stats';
+import { limitStreak, sessionsThisWeek, dailyTotals, monthSpend, monthlyReport, hourlyTotals, peakHour, placeStats, typeTotals, dryStats, monthDryDays, computeGoals, alcoholKcal, spendEquivalents, kcalEquivalents } from '../stats';
+import { sessionStdCount, STD_GRAMS } from '../bac';
 
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -292,6 +293,19 @@ export default function HistoryScreen() {
 
   // 비용/장소
   const spend = monthSpend(history, calYear, calMonth);
+  // 이번 달 섭취 순알코올(g)→kcal. 기록별 표준잔×8g 합산(커스텀 주종 반영).
+  const monthGrams = history
+    .filter((r) => {
+      const d = new Date(r.endedAt);
+      return d.getFullYear() === calYear && d.getMonth() === calMonth;
+    })
+    .reduce(
+      (a, r) => a + sessionStdCount(r.events ?? [], r.count, r.unit ?? unit, r.events?.[0]?.type ?? drinkType, customDrinks) * STD_GRAMS,
+      0
+    );
+  const monthKcal = alcoholKcal(monthGrams);
+  const spendEq = spendEquivalents(spend);
+  const kcalEq = kcalEquivalents(monthKcal);
   const places = placeStats(history);
   const byType = typeTotals(history);
   const typeMax = Math.max(1, ...byType.map((t) => t.count));
@@ -600,6 +614,37 @@ export default function HistoryScreen() {
               </Text>
               {monthlyBudget > 0 && spend > monthlyBudget && (
                 <Text style={[styles.muted, styles.statNumWarn]}>예산을 {won(spend - monthlyBudget)}원 초과했어요</Text>
+              )}
+            </View>
+          )}
+
+          {/* 비교 인사이트: 술값·칼로리를 친숙한 것으로 환산 */}
+          {(spendEq.length > 0 || kcalEq.length > 0) && (
+            <View style={styles.chartCard}>
+              <Text style={styles.chartTitle}>이번 달, 이만큼이에요</Text>
+              {spendEq.length > 0 && (
+                <View style={styles.eqRow}>
+                  <Text style={styles.eqLead}>술값이면</Text>
+                  <View style={styles.eqChips}>
+                    {spendEq.map((e) => (
+                      <View key={e.label} style={styles.eqChip}>
+                        <Text style={styles.eqChipText}>{e.label} {e.n}{e.label === '치킨' ? '마리' : e.label === '영화' ? '편' : '잔'}</Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              )}
+              {kcalEq.length > 0 && (
+                <View style={styles.eqRow}>
+                  <Text style={styles.eqLead}>알코올 {won(monthKcal)}kcal ≈</Text>
+                  <View style={styles.eqChips}>
+                    {kcalEq.map((e) => (
+                      <View key={e.label} style={styles.eqChip}>
+                        <Text style={styles.eqChipText}>{e.label} {e.n}{e.label === '밥 공기' ? '공기' : '개'}</Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
               )}
             </View>
           )}
@@ -1108,6 +1153,11 @@ const makeStyles = (c: Palette) => StyleSheet.create({
   hourAxisLabel: { fontSize: 10, color: c.textFaint },
   placeName: { fontSize: 14, color: c.text, fontWeight: '600', flex: 1 },
   chartTitle: { fontSize: 13, color: c.textMuted },
+  eqRow: { gap: 6 },
+  eqLead: { fontSize: 14, color: c.text, fontWeight: '600' },
+  eqChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  eqChip: { backgroundColor: c.cardAlt, borderRadius: radius.sm, paddingVertical: 6, paddingHorizontal: 10 },
+  eqChipText: { fontSize: 14, color: c.text, fontWeight: '700' },
   typeStatRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   typeStatName: { width: 40, fontSize: 14, color: c.text, fontWeight: '600' },
   typeStatTrack: { flex: 1, height: 10, backgroundColor: c.cardAlt, borderRadius: 5, overflow: 'hidden' },

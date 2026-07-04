@@ -7,6 +7,24 @@ export function alcoholKcal(grams: number): number {
   return Math.round(grams * 7.1);
 }
 
+// 비교 인사이트: 술값·칼로리를 친숙한 것으로 환산(동기부여). n>=1인 것만, 큰 것부터.
+export type Equivalent = { label: string; n: number };
+const SPEND_ITEMS = [
+  { label: '치킨', won: 22000 },
+  { label: '영화', won: 15000 },
+  { label: '편의점 커피', won: 1700 },
+];
+const KCAL_ITEMS = [
+  { label: '밥 공기', kcal: 300 },
+  { label: '라면', kcal: 500 },
+];
+export function spendEquivalents(won: number): Equivalent[] {
+  return SPEND_ITEMS.map((i) => ({ label: i.label, n: Math.floor(won / i.won) })).filter((e) => e.n >= 1);
+}
+export function kcalEquivalents(kcal: number): Equivalent[] {
+  return KCAL_ITEMS.map((i) => ({ label: i.label, n: Math.floor(kcal / i.kcal) })).filter((e) => e.n >= 1);
+}
+
 export type Hangover = { level: '낮음' | '보통' | '높음'; tip: string };
 
 // hydrated=true(잔 사이 물을 충분히 마심)면 위험도를 한 단계 낮춘다.

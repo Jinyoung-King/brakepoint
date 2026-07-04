@@ -17,6 +17,8 @@ import {
   dryStats,
   monthDryDays,
   computeGoals,
+  spendEquivalents,
+  kcalEquivalents,
 } from '../src/stats';
 import type { SessionRecord } from '../src/storage';
 
@@ -136,6 +138,25 @@ describe('monthlyReport', () => {
     expect(r.withinRate).toBe(0);
     expect(r.topWeekday).toBeNull();
     expect(r.deltaPct).toBeNull();
+  });
+});
+
+describe('spend/kcal Equivalents (비교 인사이트)', () => {
+  it('술값을 품목 개수로 환산, n>=1만 큰 것부터', () => {
+    const eq = spendEquivalents(50000);
+    expect(eq.find((e) => e.label === '치킨')?.n).toBe(2); // 50000/22000
+    expect(eq[0].label).toBe('치킨'); // 비싼 것 먼저
+    expect(eq.every((e) => e.n >= 1)).toBe(true);
+  });
+  it('적은 금액은 살 수 있는 것만(0개 제외)', () => {
+    expect(spendEquivalents(2000)).toEqual([{ label: '편의점 커피', n: 1 }]);
+    expect(spendEquivalents(0)).toEqual([]);
+  });
+  it('칼로리를 밥 공기/라면으로 환산', () => {
+    const eq = kcalEquivalents(1500);
+    expect(eq.find((e) => e.label === '밥 공기')?.n).toBe(5); // 1500/300
+    expect(eq.find((e) => e.label === '라면')?.n).toBe(3); // 1500/500
+    expect(kcalEquivalents(100)).toEqual([]);
   });
 });
 
