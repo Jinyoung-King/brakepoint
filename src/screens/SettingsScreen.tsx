@@ -93,7 +93,13 @@ function Section({
 }) {
   return (
     <View style={styles.section}>
-      <Pressable style={styles.accHeader} onPress={onToggle} hitSlop={6}>
+      <Pressable
+        style={styles.accHeader}
+        onPress={onToggle}
+        hitSlop={6}
+        accessibilityRole="button"
+        accessibilityState={{ expanded: open }}
+      >
         <Text style={styles.sectionTitle}>{title}</Text>
         <Ionicons name={open ? 'chevron-up' : 'chevron-down'} size={20} color={c.textMuted} />
       </Pressable>

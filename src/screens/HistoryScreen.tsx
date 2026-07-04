@@ -105,7 +105,7 @@ export default function HistoryScreen() {
   useLayoutEffect(() => {
     navigation.setOptions({
       headerRight: () => (
-        <Pressable onPress={() => openManual()} hitSlop={10}>
+        <Pressable onPress={() => openManual()} hitSlop={10} accessibilityRole="button" accessibilityLabel="수동 기록 추가">
           <Ionicons name="add" size={26} color={c.text} />
         </Pressable>
       ),
@@ -337,7 +337,12 @@ export default function HistoryScreen() {
     const u = item.unit ?? '잔';
     const meta = [item.place, item.cigs ? `담배 ${item.cigs}개비` : null].filter(Boolean).join('  ·  ');
     return (
-      <Pressable style={styles.row} onPress={() => setSelected(item)}>
+      <Pressable
+        style={styles.row}
+        onPress={() => setSelected(item)}
+        accessibilityRole="button"
+        accessibilityLabel={`${fmtDate(item.endedAt)}, ${item.count}${u} 기록. 탭하면 상세`}
+      >
         <View style={styles.rowLeft}>
           <Text style={styles.rowCount}>
             {item.count}{' '}
@@ -453,7 +458,7 @@ export default function HistoryScreen() {
           {/* 음주 달력 */}
           <View style={styles.chartCard}>
             <View style={styles.calHead}>
-              <Pressable onPress={() => setMonthOffset((m) => m - 1)} hitSlop={10}>
+              <Pressable onPress={() => setMonthOffset((m) => m - 1)} hitSlop={10} accessibilityRole="button" accessibilityLabel="이전 달">
                 <Ionicons name="chevron-back" size={20} color={c.textMuted} />
               </Pressable>
               <Text style={styles.calTitle}>
@@ -463,6 +468,9 @@ export default function HistoryScreen() {
                 onPress={() => setMonthOffset((m) => Math.min(0, m + 1))}
                 hitSlop={10}
                 disabled={monthOffset >= 0}
+                accessibilityRole="button"
+                accessibilityLabel="다음 달"
+                accessibilityState={{ disabled: monthOffset >= 0 }}
               >
                 <Ionicons name="chevron-forward" size={20} color={monthOffset >= 0 ? c.border : c.textMuted} />
               </Pressable>
@@ -480,6 +488,8 @@ export default function HistoryScreen() {
                       <Pressable
                         style={[styles.calCell, { backgroundColor: cellBg(totals[day]) }]}
                         onPress={() => openDay(day)}
+                        accessibilityRole="button"
+                        accessibilityLabel={`${day}일, 음주 ${totals[day]}잔. 탭하면 상세`}
                       >
                         <Text style={[styles.calDay, styles.calDayOn]}>{day}</Text>
                       </Pressable>
@@ -491,6 +501,8 @@ export default function HistoryScreen() {
                       <Pressable
                         style={[styles.calCell, { backgroundColor: cellBg(totals[day]) }]}
                         onPress={() => openManualForDate(day)}
+                        accessibilityRole="button"
+                        accessibilityLabel={`${day}일, 기록 없음. 탭하면 기록 추가`}
                       >
                         <Text style={styles.calDay}>{day}</Text>
                       </Pressable>
