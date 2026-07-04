@@ -88,7 +88,12 @@ export type AppState = {
   ongoingNotifEnabled: boolean; // 음주 중 상시 알림(잔/BAC + 잔+1·종료 액션)
   pendingGate: boolean; // 백그라운드에서 알림으로 잔 추가 시 브레이크 도달 → 앱 복귀 후 게이트
   pendingEnd: boolean; // 알림 "종료" 액션 → 앱 복귀 후 종료 모달 열기
+  schemaVersion: number; // 저장 스키마 버전 (마이그레이션 기준점)
 };
+
+// 저장 스키마 버전. 필드 이름 변경/타입 변경/데이터 변형이 필요할 때 올리고 MIGRATIONS에 단계 추가.
+// (단순 필드 추가는 DEFAULT_STATE 병합이 처리하므로 버전을 안 올려도 됨)
+export const SCHEMA_VERSION = 1;
 
 export const DEFAULT_STATE: AppState = {
   limit: 5,
@@ -135,21 +140,45 @@ export const DEFAULT_STATE: AppState = {
   ongoingNotifEnabled: true,
   pendingGate: false,
   pendingEnd: false,
+  schemaVersion: SCHEMA_VERSION,
 };
 
 const KEY = 'brakepoint:appState';
+
+// 버전별 마이그레이션: key = 도달 목표 버전. 이전 버전 데이터를 받아 그 버전으로 올린다.
+// 예) 필드 rename: 2: (s) => ({ ...s, newName: s.oldName, oldName: undefined })
+const MIGRATIONS: Record<number, (s: Record<string, unknown>) => Record<string, unknown>> = {
+  // 아직 실제 마이그레이션 없음. 스키마가 바뀌면 여기에 단계별로 추가.
+};
+
+// 저장 데이터(구버전 포함) → 현재 스키마의 AppState. 순수 함수(테스트 가능).
+// 1) 버전을 순차로 올리며 MIGRATIONS 적용 → 2) 기본값 병합으로 누락/손상 필드 방어.
+export function migrateAppState(raw: unknown): AppState {
+  let s: Record<string, unknown> = raw && typeof raw === 'object' ? { ...(raw as object) } : {};
+  let v = typeof s.schemaVersion === 'number' ? s.schemaVersion : 0;
+  while (v < SCHEMA_VERSION) {
+    const fn = MIGRATIONS[v + 1];
+    if (fn) s = fn(s);
+    v += 1;
+  }
+  const fakeCall = s.fakeCall && typeof s.fakeCall === 'object' ? s.fakeCall : {};
+  return {
+    ...DEFAULT_STATE,
+    ...s,
+    schemaVersion: SCHEMA_VERSION,
+    // 중첩/배열은 형태가 깨져 있어도 기본값으로 방어 (부분 손상 대비).
+    fakeCall: { ...DEFAULT_STATE.fakeCall, ...(fakeCall as object) },
+    history: Array.isArray(s.history) ? (s.history as AppState['history']) : [],
+    drinkEvents: Array.isArray(s.drinkEvents) ? (s.drinkEvents as AppState['drinkEvents']) : [],
+    customDrinks: Array.isArray(s.customDrinks) ? (s.customDrinks as AppState['customDrinks']) : [],
+  };
+}
 
 export async function loadState(): Promise<AppState> {
   try {
     const raw = await AsyncStorage.getItem(KEY);
     if (!raw) return DEFAULT_STATE;
-    // 저장된 값 위에 기본값을 깔아 누락 필드를 방어 (스키마 확장 대비).
-    const parsed = JSON.parse(raw) as Partial<AppState>;
-    return {
-      ...DEFAULT_STATE,
-      ...parsed,
-      fakeCall: { ...DEFAULT_STATE.fakeCall, ...(parsed.fakeCall ?? {}) },
-    };
+    return migrateAppState(JSON.parse(raw));
   } catch {
     return DEFAULT_STATE;
   }

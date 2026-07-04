@@ -1,5 +1,5 @@
 // 백업 직렬화/파싱 (순수 — 네이티브 의존성 없음 → 테스트 가능).
-import { DEFAULT_STATE, type AppState } from './storage';
+import { migrateAppState, type AppState } from './storage';
 
 export const BACKUP_FORMAT = 'brakepoint-backup';
 export const BACKUP_VERSION = 1;
@@ -36,10 +36,6 @@ export function parseBackup(text: string): AppState {
   ) {
     throw new Error('브레이크포인트 백업 파일이 아니에요.');
   }
-  const state = backup.state as Partial<AppState>;
-  return {
-    ...DEFAULT_STATE,
-    ...state,
-    fakeCall: { ...DEFAULT_STATE.fakeCall, ...(state.fakeCall ?? {}) },
-  };
+  // 구버전 백업도 저장 로직과 동일한 마이그레이션을 태워 복원.
+  return migrateAppState(backup.state);
 }
