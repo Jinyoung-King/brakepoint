@@ -26,6 +26,7 @@ import { radius, type Palette } from '../theme';
 import { useColors } from '../useColors';
 import { eventGrams, estimateBac, hoursUntil, fmtHours, bacCurve, DRIVE_LIMIT, STD_GRAMS, sessionStdCount } from '../bac';
 import { effectiveBrakePercents, brakeCountsFor, crossesBrakeOnAdd } from '../brake';
+import { drinkingPace } from '../pace';
 import BacChart from '../BacChart';
 import GaugeBar from '../GaugeBar';
 import TipsyFace from '../TipsyFace';
@@ -157,6 +158,10 @@ export default function HomeScreen({ navigation }: Props) {
     active &&
     !overLimit &&
     crossesBrakeOnAdd({ drinkEvents, unit, drinkType, addN: 1, limit, brakePercents, repeatEveryDrinks, morningTighten: !!morning, customDrinks });
+  // 음주 페이스: 최근 한 시간 표준잔 환산이 기준(2잔/시간) 초과면 '빠름'.
+  // 브레이크 예고가 뜨면 그쪽이 더 급하니 페이스 배너는 양보.
+  const pace = drinkingPace({ drinkEvents, unit, drinkType, customDrinks, now });
+  const paceFast = active && pace.fast && !nextBrakeSoon && !overLimit;
   const streak = limitStreak(history); // 시작 전 카드용
   const weekCount = sessionsThisWeek(history);
   // 위험 요일: 평소 오늘 요일에 더 많이 마셨으면 경고 배너
@@ -422,9 +427,11 @@ export default function HomeScreen({ navigation }: Props) {
       ? '한계 초과 — 천천히, 물 한 잔'
       : nextBrakeSoon
         ? `취기 ${tipsy}% · 한 잔 더면 브레이크`
-        : inBrake
-          ? `브레이크 구간 · 취기 ${tipsy}%`
-          : `취기 ${tipsy}%${nextDrinkMin > 0 ? ` · 다음 잔 ${nextDrinkMin}분 뒤` : ' · 지금 마셔도 OK'}`;
+        : paceFast
+          ? `취기 ${tipsy}% · 페이스 빠름`
+          : inBrake
+            ? `브레이크 구간 · 취기 ${tipsy}%`
+            : `취기 ${tipsy}%${nextDrinkMin > 0 ? ` · 다음 잔 ${nextDrinkMin}분 뒤` : ' · 지금 마셔도 OK'}`;
 
   return (
     <View style={styles.root}>
@@ -517,6 +524,15 @@ export default function HomeScreen({ navigation }: Props) {
           <View style={styles.brakeHint}>
             <Ionicons name="water-outline" size={16} color={c.blue} />
             <Text style={styles.brakeHintText}>한 잔 더 마시면 브레이크가 걸려요. 물 한 잔 먼저 어때요?</Text>
+          </View>
+        )}
+        {/* 페이스 경고 (최근 한 시간 너무 빠를 때) */}
+        {paceFast && (
+          <View style={[styles.brakeHint, { borderColor: c.amber }]}>
+            <Ionicons name="speedometer-outline" size={16} color={c.amber} />
+            <Text style={styles.brakeHintText}>
+              페이스가 빨라요 — 최근 한 시간에 {pace.stdLastHour.toFixed(1)}잔 페이스. 잠깐 쉬면서 물 한 잔 어때요?
+            </Text>
           </View>
         )}
         {/* +1잔 / +1병 */}
