@@ -88,6 +88,8 @@ export function endSession(s: AppState, extra: EndSessionExtra | undefined, now:
     sessionStartMs: null,
     lastDrinkMs: null,
     drinkEvents: [],
+    idleSnoozeMs: 0,
+    pendingIdlePrompt: false,
     history: [rec, ...s.history],
   };
 }

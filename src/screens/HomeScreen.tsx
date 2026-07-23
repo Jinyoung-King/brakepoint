@@ -85,7 +85,7 @@ const geocodeTransientMsg = (reason: 'rate-limited' | 'network' | 'error' | stri
 };
 
 export default function HomeScreen({ navigation }: Props) {
-  const { state, addDrink, undoDrink, addCig, addWater, endSession, setDrinkingMode, setHomeCoords, setHomeAddress, setPendingEnd, setGaugeStyle, setDrinkType, setMorningLog, setPendingMorningCheck } =
+  const { state, addDrink, undoDrink, addCig, addWater, endSession, setDrinkingMode, setHomeCoords, setHomeAddress, setPendingEnd, setGaugeStyle, setDrinkType, setMorningLog, setPendingMorningCheck, snoozeIdle, setPendingIdlePrompt } =
     useAppState();
   const insets = useSafeAreaInsets();
   const c = useColors();
@@ -130,6 +130,7 @@ export default function HomeScreen({ navigation }: Props) {
   const [safeOpen, setSafeOpen] = useState(false);
   const [styleOpen, setStyleOpen] = useState(false);
   const [morningTarget, setMorningTarget] = useState<SessionRecord | null>(null);
+  const [idlePromptOpen, setIdlePromptOpen] = useState(false);
   const [briefOpen, setBriefOpen] = useState(false);
 
   // 시간 기반 표시(BAC·잔 간격)를 1분마다 갱신
@@ -302,6 +303,14 @@ export default function HomeScreen({ navigation }: Props) {
     onEndSession();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.pendingEnd]);
+
+  // 방치 감지(pendingIdlePrompt): 앱이 열려 있을 때 "술자리 끝났어요?" 확인 창을 연다.
+  useEffect(() => {
+    if (!state.pendingIdlePrompt) return;
+    setPendingIdlePrompt(false);
+    setIdlePromptOpen(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.pendingIdlePrompt]);
 
   // 아침 컨디션 알림 탭으로 복귀(pendingMorningCheck): 최근 24h 내 아직 기록 안 된 술자리를 찾아 시트를 연다.
   useEffect(() => {
@@ -714,6 +723,39 @@ export default function HomeScreen({ navigation }: Props) {
           </View>
         )}
       </ScrollView>
+
+      {/* 방치 감지 — 술자리 종료 확인 창 */}
+      <Modal visible={idlePromptOpen} transparent animationType="fade" onRequestClose={() => setIdlePromptOpen(false)}>
+        <View style={styles.modalBg}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>술자리 끝났어요?</Text>
+            <Text style={styles.muted}>
+              {pace.minsSinceLast != null ? `마지막 잔 이후 ${pace.minsSinceLast}분째 조용하네요. ` : ''}
+              끝났으면 정리해서 기록할게요.
+            </Text>
+            <View style={styles.modalBtns}>
+              <Pressable
+                onPress={() => {
+                  snoozeIdle();
+                  setIdlePromptOpen(false);
+                }}
+                hitSlop={8}
+              >
+                <Text style={styles.link}>아직 마시는 중</Text>
+              </Pressable>
+              <Pressable
+                style={styles.saveBtn}
+                onPress={() => {
+                  setIdlePromptOpen(false);
+                  onEndSession();
+                }}
+              >
+                <Text style={styles.saveBtnText}>종료하고 정리</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       {/* 다음날 아침 컨디션 체크인 시트 */}
       <MorningCheckSheet

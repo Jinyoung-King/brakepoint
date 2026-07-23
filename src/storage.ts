@@ -92,6 +92,10 @@ export type AppState = {
   monthlyDryGoal: number; // 월 금주일 목표 (이 일수 이상 안 마시기, 0=끔)
   checkinEnabled: boolean; // 귀가 체크인 알림
   checkinDelayMin: number; // 음주모드 종료 후 체크인까지(분)
+  idleEndMin: number; // 마지막 잔 후 이 시간(분) 조용하면 방치 확인/종료 (0=끔)
+  idleAutoEnd: boolean; // 방치 감지 시 (앱 열려 있으면) 확인 없이 자동 종료
+  idleSnoozeMs: number; // "아직 마시는 중" 스누즈 기준 시각 (방치 타이머 리셋용)
+  pendingIdlePrompt: boolean; // 방치 감지(앱 포그라운드) → 종료 확인 창 열기
   morningCheckEnabled: boolean; // 다음날 아침 컨디션 체크인 알림
   morningCheckHour: number; // 아침 체크인 알림 시각(0~23시)
   pendingMorningCheck: boolean; // 아침 알림 탭 → 앱 복귀 후 컨디션 기록 시트 열기
@@ -148,6 +152,10 @@ export const DEFAULT_STATE: AppState = {
   monthlyDryGoal: 0,
   checkinEnabled: true,
   checkinDelayMin: 60,
+  idleEndMin: 120,
+  idleAutoEnd: false,
+  idleSnoozeMs: 0,
+  pendingIdlePrompt: false,
   morningCheckEnabled: true,
   morningCheckHour: 9,
   pendingMorningCheck: false,

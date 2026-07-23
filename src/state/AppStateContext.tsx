@@ -60,6 +60,10 @@ type AppStateContextValue = {
   setMonthlyDryGoal: (n: number) => void;
   setCheckinEnabled: (on: boolean) => void;
   setCheckinDelayMin: (min: number) => void;
+  setIdleEndMin: (min: number) => void;
+  setIdleAutoEnd: (on: boolean) => void;
+  snoozeIdle: () => void; // "아직 마시는 중" — 방치 타이머 리셋
+  setPendingIdlePrompt: (on: boolean) => void;
   setMorningCheckEnabled: (on: boolean) => void;
   setMorningCheckHour: (hour: number) => void;
   setPendingMorningCheck: (on: boolean) => void;
@@ -165,6 +169,11 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     setMonthlyDryGoal: (monthlyDryGoal) => setState((s) => ({ ...s, monthlyDryGoal })),
     setCheckinEnabled: (checkinEnabled) => setState((s) => ({ ...s, checkinEnabled })),
     setCheckinDelayMin: (checkinDelayMin) => setState((s) => ({ ...s, checkinDelayMin })),
+    setIdleEndMin: (idleEndMin) => setState((s) => ({ ...s, idleEndMin })),
+    setIdleAutoEnd: (idleAutoEnd) => setState((s) => ({ ...s, idleAutoEnd })),
+    snoozeIdle: () => setState((s) => ({ ...s, idleSnoozeMs: Date.now(), pendingIdlePrompt: false })),
+    setPendingIdlePrompt: (pendingIdlePrompt) =>
+      setState((s) => (s.pendingIdlePrompt === pendingIdlePrompt ? s : { ...s, pendingIdlePrompt })),
     setMorningCheckEnabled: (morningCheckEnabled) => setState((s) => ({ ...s, morningCheckEnabled })),
     setMorningCheckHour: (morningCheckHour) => setState((s) => ({ ...s, morningCheckHour })),
     setPendingMorningCheck: (pendingMorningCheck) =>

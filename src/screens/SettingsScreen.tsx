@@ -133,6 +133,8 @@ export default function SettingsScreen() {
     setMonthlyDryGoal,
     setCheckinEnabled,
     setCheckinDelayMin,
+    setIdleEndMin,
+    setIdleAutoEnd,
     setSmokingEnabled,
     setMonthlyBudget,
     setWeeklyReportEnabled,
@@ -144,7 +146,7 @@ export default function SettingsScreen() {
     addCustomDrink,
     removeCustomDrink,
   } = useAppState();
-  const { limit, difficulty, fakeCall, brakePercents, repeatEveryDrinks, unit, calendarSync, theme, sex, weightKg, drinkType, homeAddress, bottleToGlasses, waterEvery, waterStartAt, weeklyGoalSessions, monthlyDryGoal, customDrinks, checkinEnabled, checkinDelayMin, smokingEnabled, monthlyBudget, weeklyReportEnabled, morningCheckEnabled, morningCheckHour, ongoingNotifEnabled, gaugeStyle, widgetTheme, tipsyFaceEnabled } =
+  const { limit, difficulty, fakeCall, brakePercents, repeatEveryDrinks, unit, calendarSync, theme, sex, weightKg, drinkType, homeAddress, bottleToGlasses, waterEvery, waterStartAt, weeklyGoalSessions, monthlyDryGoal, customDrinks, checkinEnabled, checkinDelayMin, idleEndMin, idleAutoEnd, smokingEnabled, monthlyBudget, weeklyReportEnabled, morningCheckEnabled, morningCheckHour, ongoingNotifEnabled, gaugeStyle, widgetTheme, tipsyFaceEnabled } =
     state;
   const c = useColors();
   const styles = useMemo(() => makeStyles(c), [c]);
@@ -167,6 +169,7 @@ export default function SettingsScreen() {
   const [ndMl, setNdMl] = useState('');
   const [budgetText, setBudgetText] = useState(monthlyBudget ? String(monthlyBudget) : '');
   const [morningHourText, setMorningHourText] = useState(String(morningCheckHour));
+  const [idleText, setIdleText] = useState(String(idleEndMin));
 
   // 잠금화면 위 통화(풀스크린 인텐트) 권한 상태. 설정에서 돌아올 때마다 다시 확인.
   const [fsiAllowed, setFsiAllowed] = useState(true);
@@ -650,6 +653,29 @@ export default function SettingsScreen() {
         </View>
         <Text style={styles.help}>
           음주모드를 켜면 상태표시줄에 잔/혈중알코올이 뜨고, 앱을 안 열어도 "+1잔·종료"를 누를 수 있어요. 워치에도 그대로 표시돼요.
+        </Text>
+
+        <Text style={styles.subTitle}>술자리 방치 감지</Text>
+        <Text style={styles.label}>마지막 잔 후 조용하면 확인 (분, 0=끔)</Text>
+        <TextInput
+          style={styles.input}
+          keyboardType="number-pad"
+          value={idleText}
+          onChangeText={(t) => {
+            setIdleText(t);
+            commitNum(t, setIdleEndMin, 0, 360);
+          }}
+          placeholder="120"
+          placeholderTextColor={c.textFaint}
+        />
+        {idleEndMin > 0 && (
+          <View style={styles.toggleRow}>
+            <Text style={styles.label}>조용하면 자동 종료</Text>
+            <Switch value={idleAutoEnd} onValueChange={setIdleAutoEnd} />
+          </View>
+        )}
+        <Text style={styles.help}>
+          잔이 한동안 안 늘면 "술자리 끝났어요?"를 물어봐요. 자동 종료는 앱이 열려 있을 때만 동작하고, 닫혀 있으면 알림으로 확인해요.
         </Text>
       </Section>
 
