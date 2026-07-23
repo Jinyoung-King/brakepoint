@@ -34,6 +34,7 @@ type AppStateContextValue = {
   importState: (next: AppState) => void; // 백업 복원 (전체 교체)
   deleteRecord: (id: string) => void;
   updateRecord: (id: string, patch: reducers.RecordPatch) => void;
+  setMorningLog: (id: string, log: import('../storage').MorningLog) => void; // 아침 컨디션 기록 저장/수정
   setLimit: (limit: number) => void;
   setDrinkingMode: (on: boolean) => void;
   setDifficulty: (difficulty: Difficulty) => void;
@@ -59,6 +60,9 @@ type AppStateContextValue = {
   setMonthlyDryGoal: (n: number) => void;
   setCheckinEnabled: (on: boolean) => void;
   setCheckinDelayMin: (min: number) => void;
+  setMorningCheckEnabled: (on: boolean) => void;
+  setMorningCheckHour: (hour: number) => void;
+  setPendingMorningCheck: (on: boolean) => void;
   setWeeklyReportEnabled: (on: boolean) => void;
   setOngoingNotifEnabled: (on: boolean) => void;
   clearPendingGate: () => void;
@@ -122,6 +126,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     importState: (next) => setState(() => next),
     deleteRecord: (id) => setState((s) => reducers.deleteRecord(s, id)),
     updateRecord: (id, patch) => setState((s) => reducers.updateRecord(s, id, patch)),
+    setMorningLog: (id, log) => setState((s) => reducers.setMorningLog(s, id, log)),
     setLimit: (limit) => setState((s) => ({ ...s, limit })),
     setDrinkingMode: (drinkingMode) => setState((s) => ({ ...s, drinkingMode })),
     setDifficulty: (difficulty) => setState((s) => ({ ...s, difficulty })),
@@ -160,6 +165,10 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     setMonthlyDryGoal: (monthlyDryGoal) => setState((s) => ({ ...s, monthlyDryGoal })),
     setCheckinEnabled: (checkinEnabled) => setState((s) => ({ ...s, checkinEnabled })),
     setCheckinDelayMin: (checkinDelayMin) => setState((s) => ({ ...s, checkinDelayMin })),
+    setMorningCheckEnabled: (morningCheckEnabled) => setState((s) => ({ ...s, morningCheckEnabled })),
+    setMorningCheckHour: (morningCheckHour) => setState((s) => ({ ...s, morningCheckHour })),
+    setPendingMorningCheck: (pendingMorningCheck) =>
+      setState((s) => (s.pendingMorningCheck === pendingMorningCheck ? s : { ...s, pendingMorningCheck })),
     setWeeklyReportEnabled: (weeklyReportEnabled) => setState((s) => ({ ...s, weeklyReportEnabled })),
     setOngoingNotifEnabled: (ongoingNotifEnabled) => setState((s) => ({ ...s, ongoingNotifEnabled })),
     clearPendingGate: () => setState((s) => (s.pendingGate ? { ...s, pendingGate: false } : s)),

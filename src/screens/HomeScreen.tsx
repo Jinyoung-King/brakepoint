@@ -31,13 +31,14 @@ import GaugeBar from '../GaugeBar';
 import TipsyFace from '../TipsyFace';
 import { isLoaded as isFontLoaded } from 'expo-font';
 import { PIXEL_FONT } from '../fonts';
-import type { GaugeStyle } from '../storage';
+import type { GaugeStyle, SessionRecord } from '../storage';
 import { DRINK_TYPES, WEEKDAYS } from '../constants';
 import { alcoholKcal, hangoverForecast, limitStreak, sessionsThisWeek, weekdayRisk } from '../stats';
 import { cancelCheckin } from '../checkin';
 import { geocodeAddress } from '../geocode';
 import { getCurrentPlace, getCurrentCoords } from '../location';
 import { buildSafeReturnMessage } from '../share';
+import MorningCheckSheet from '../MorningCheckSheet';
 import { openFullScreenIntentSettings } from '../fakeCall/notifications';
 import { canUseFullScreenIntent } from '../../modules/fsi-permission';
 import { addHaptic, tapHaptic } from '../haptics';
@@ -83,7 +84,7 @@ const geocodeTransientMsg = (reason: 'rate-limited' | 'network' | 'error' | stri
 };
 
 export default function HomeScreen({ navigation }: Props) {
-  const { state, addDrink, undoDrink, addCig, addWater, endSession, setDrinkingMode, setHomeCoords, setHomeAddress, setPendingEnd, setGaugeStyle, setDrinkType } =
+  const { state, addDrink, undoDrink, addCig, addWater, endSession, setDrinkingMode, setHomeCoords, setHomeAddress, setPendingEnd, setGaugeStyle, setDrinkType, setMorningLog, setPendingMorningCheck } =
     useAppState();
   const insets = useSafeAreaInsets();
   const c = useColors();
@@ -127,6 +128,7 @@ export default function HomeScreen({ navigation }: Props) {
   const [bacOpen, setBacOpen] = useState(false);
   const [safeOpen, setSafeOpen] = useState(false);
   const [styleOpen, setStyleOpen] = useState(false);
+  const [morningTarget, setMorningTarget] = useState<SessionRecord | null>(null);
   const [briefOpen, setBriefOpen] = useState(false);
 
   // 시간 기반 표시(BAC·잔 간격)를 1분마다 갱신
@@ -295,6 +297,16 @@ export default function HomeScreen({ navigation }: Props) {
     onEndSession();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.pendingEnd]);
+
+  // 아침 컨디션 알림 탭으로 복귀(pendingMorningCheck): 최근 24h 내 아직 기록 안 된 술자리를 찾아 시트를 연다.
+  useEffect(() => {
+    if (!state.pendingMorningCheck) return;
+    setPendingMorningCheck(false);
+    const cutoff = Date.now() - 24 * 3600_000;
+    const target = state.history.find((r) => r.endedAt >= cutoff && !r.morning) ?? null;
+    setMorningTarget(target);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.pendingMorningCheck]);
 
   // 앱 스킴 시도 → 실패 시 웹으로 폴백
   const openExternal = (appUrl: string, webUrl: string) => {
@@ -686,6 +698,16 @@ export default function HomeScreen({ navigation }: Props) {
           </View>
         )}
       </ScrollView>
+
+      {/* 다음날 아침 컨디션 체크인 시트 */}
+      <MorningCheckSheet
+        record={morningTarget}
+        onSave={(id, log) => {
+          setMorningLog(id, log);
+          setMorningTarget(null);
+        }}
+        onClose={() => setMorningTarget(null)}
+      />
 
       {/* 술자리 종료 모달 */}
       <Modal visible={endOpen} transparent animationType="fade" onRequestClose={() => setEndOpen(false)}>

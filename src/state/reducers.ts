@@ -1,6 +1,6 @@
 // AppState 전이(transition) 순수 함수. Provider는 이걸 호출만 한다.
 // `now`(epoch ms)를 인자로 받아 테스트가 결정적이도록 한다.
-import type { AppState, DrinkType, DrinkUnit, SessionRecord } from '../storage';
+import type { AppState, DrinkType, DrinkUnit, MorningLog, SessionRecord } from '../storage';
 
 export type EndSessionExtra = { place?: string; memo?: string; cost?: number };
 
@@ -90,6 +90,12 @@ export function endSession(s: AppState, extra: EndSessionExtra | undefined, now:
     drinkEvents: [],
     history: [rec, ...s.history],
   };
+}
+
+// 특정 기록에 다음날 아침 컨디션 로그를 붙인다(있으면 덮어씀). 없는 id면 그대로.
+export function setMorningLog(s: AppState, id: string, log: MorningLog): AppState {
+  if (!s.history.some((r) => r.id === id)) return s;
+  return { ...s, history: s.history.map((r) => (r.id === id ? { ...r, morning: log } : r)) };
 }
 
 // 기록 1건 삭제 (id 일치). 없으면 그대로.

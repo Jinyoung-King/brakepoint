@@ -136,13 +136,15 @@ export default function SettingsScreen() {
     setSmokingEnabled,
     setMonthlyBudget,
     setWeeklyReportEnabled,
+    setMorningCheckEnabled,
+    setMorningCheckHour,
     setOngoingNotifEnabled,
     importState,
     resetAll,
     addCustomDrink,
     removeCustomDrink,
   } = useAppState();
-  const { limit, difficulty, fakeCall, brakePercents, repeatEveryDrinks, unit, calendarSync, theme, sex, weightKg, drinkType, homeAddress, bottleToGlasses, waterEvery, waterStartAt, weeklyGoalSessions, monthlyDryGoal, customDrinks, checkinEnabled, checkinDelayMin, smokingEnabled, monthlyBudget, weeklyReportEnabled, ongoingNotifEnabled, gaugeStyle, widgetTheme, tipsyFaceEnabled } =
+  const { limit, difficulty, fakeCall, brakePercents, repeatEveryDrinks, unit, calendarSync, theme, sex, weightKg, drinkType, homeAddress, bottleToGlasses, waterEvery, waterStartAt, weeklyGoalSessions, monthlyDryGoal, customDrinks, checkinEnabled, checkinDelayMin, smokingEnabled, monthlyBudget, weeklyReportEnabled, morningCheckEnabled, morningCheckHour, ongoingNotifEnabled, gaugeStyle, widgetTheme, tipsyFaceEnabled } =
     state;
   const c = useColors();
   const styles = useMemo(() => makeStyles(c), [c]);
@@ -164,6 +166,7 @@ export default function SettingsScreen() {
   const [ndAbv, setNdAbv] = useState('');
   const [ndMl, setNdMl] = useState('');
   const [budgetText, setBudgetText] = useState(monthlyBudget ? String(monthlyBudget) : '');
+  const [morningHourText, setMorningHourText] = useState(String(morningCheckHour));
 
   // 잠금화면 위 통화(풀스크린 인텐트) 권한 상태. 설정에서 돌아올 때마다 다시 확인.
   const [fsiAllowed, setFsiAllowed] = useState(true);
@@ -711,6 +714,27 @@ export default function SettingsScreen() {
           <Switch value={weeklyReportEnabled} onValueChange={setWeeklyReportEnabled} />
         </View>
         <Text style={styles.help}>매주 월요일 9시에 지난주 술자리·한도 준수·술값 요약을 알려줘요.</Text>
+        <View style={styles.toggleRow}>
+          <Text style={styles.label}>다음날 아침 컨디션 체크인</Text>
+          <Switch value={morningCheckEnabled} onValueChange={setMorningCheckEnabled} />
+        </View>
+        {morningCheckEnabled && (
+          <>
+            <Text style={styles.label}>아침 알림 시각 (0~23시)</Text>
+            <TextInput
+              style={styles.input}
+              keyboardType="number-pad"
+              value={morningHourText}
+              onChangeText={(t) => {
+                setMorningHourText(t);
+                commitNum(t, setMorningCheckHour, 0, 23);
+              }}
+              placeholder="9"
+              placeholderTextColor={c.textFaint}
+            />
+          </>
+        )}
+        <Text style={styles.help}>술자리 다음날 아침에 "컨디션 어때요?"를 물어봐요. 숙취·마신 양 상관이 기록 탭에 쌓여요.</Text>
         <Text style={styles.label}>월 술값 예산 (원, 0=끔)</Text>
         <TextInput
           style={styles.input}

@@ -11,6 +11,7 @@ import { navigationRef, flushPendingNavigation } from './src/navigation/navigati
 import { AppStateProvider, useAppState } from './src/state/AppStateContext';
 import FakeCallController from './src/fakeCall/FakeCallController';
 import CheckinController from './src/CheckinController';
+import MorningCheckController from './src/MorningCheckController';
 import WeeklyReportController from './src/WeeklyReportController';
 import OngoingController from './src/OngoingController';
 import WearController from './src/WearController';
@@ -44,6 +45,7 @@ function Root() {
     <NavigationContainer ref={navigationRef} theme={navTheme} onReady={flushPendingNavigation}>
       <FakeCallController />
       <CheckinController />
+      <MorningCheckController />
       <WeeklyReportController />
       <OngoingController />
       <WearController />

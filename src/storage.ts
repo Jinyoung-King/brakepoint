@@ -33,6 +33,16 @@ export type CustomDrink = { id: string; name: string; abv: number; ml: number; g
 // type/unit은 구버전 기록 호환을 위해 optional — 없으면 세션 기본값으로 대체.
 export type DrinkEvent = { t: number; n: number; type?: DrinkType; unit?: DrinkUnit };
 
+// 다음날 아침 컨디션 기록. 술자리 다음날 알림 → 탭 몇 번으로 남긴다.
+// hangover: 0=쌩쌩 1=약간 2=꽤 3=최악. sleep: 0=푹잤다 1=그럭저럭 2=설쳤다.
+export type MorningLog = {
+  at: number; // 기록한 시각(epoch ms)
+  hangover: 0 | 1 | 2 | 3;
+  sleep?: 0 | 1 | 2;
+  regret?: boolean; // "다음엔 덜 마실래" 체크
+  note?: string; // 한줄 메모(선택)
+};
+
 export type SessionRecord = {
   id: string;
   endedAt: number; // 종료 시각 (epoch ms)
@@ -46,6 +56,7 @@ export type SessionRecord = {
   round?: number; // 그날 N차
   events?: DrinkEvent[]; // 시점별 음주 타임라인
   cost?: number; // 술값(원)
+  morning?: MorningLog; // 다음날 아침 컨디션 기록
 };
 
 export type AppState = {
@@ -81,6 +92,9 @@ export type AppState = {
   monthlyDryGoal: number; // 월 금주일 목표 (이 일수 이상 안 마시기, 0=끔)
   checkinEnabled: boolean; // 귀가 체크인 알림
   checkinDelayMin: number; // 음주모드 종료 후 체크인까지(분)
+  morningCheckEnabled: boolean; // 다음날 아침 컨디션 체크인 알림
+  morningCheckHour: number; // 아침 체크인 알림 시각(0~23시)
+  pendingMorningCheck: boolean; // 아침 알림 탭 → 앱 복귀 후 컨디션 기록 시트 열기
   monthlyBudget: number; // 월 술값 예산(원, 0=끔)
   weeklyReportEnabled: boolean; // 매주 월요일 아침 지난주 요약 알림
   gaugeStyle: GaugeStyle; // 홈 진행률 게이지 스타일
@@ -134,6 +148,9 @@ export const DEFAULT_STATE: AppState = {
   monthlyDryGoal: 0,
   checkinEnabled: true,
   checkinDelayMin: 60,
+  morningCheckEnabled: true,
+  morningCheckHour: 9,
+  pendingMorningCheck: false,
   monthlyBudget: 0,
   weeklyReportEnabled: true,
   gaugeStyle: 'classic',

@@ -305,3 +305,32 @@ export function placeStats(
     .sort((a, b) => b.sessions - a.sessions)
     .slice(0, topN);
 }
+
+// 다음날 아침 컨디션(숙취) ↔ 마신 양 상관. 컨디션이 기록된 술자리만 대상으로,
+// 숙취 심함(2~3)인 날과 적음(0~1)인 날의 평균 잔수를 나눠 돌려준다.
+// 표본이 적으면(기록 3건 미만) null — 섣부른 단정 방지.
+export type MorningInsight = {
+  logged: number; // 컨디션 기록된 술자리 수
+  hardAvg: number; // 숙취 심했던(2~3) 날 평균 잔수
+  easyAvg: number; // 숙취 적었던(0~1) 날 평균 잔수
+  hardN: number;
+  easyN: number;
+  regretN: number; // "다음엔 덜 마실래" 누른 횟수
+};
+
+export function morningInsight(history: SessionRecord[]): MorningInsight | null {
+  const logged = history.filter((r) => r.morning);
+  if (logged.length < 3) return null;
+  const hard = logged.filter((r) => (r.morning!.hangover ?? 0) >= 2);
+  const easy = logged.filter((r) => (r.morning!.hangover ?? 0) <= 1);
+  const avg = (arr: SessionRecord[]) =>
+    arr.length ? arr.reduce((a, r) => a + r.count, 0) / arr.length : 0;
+  return {
+    logged: logged.length,
+    hardAvg: avg(hard),
+    easyAvg: avg(easy),
+    hardN: hard.length,
+    easyN: easy.length,
+    regretN: logged.filter((r) => r.morning!.regret).length,
+  };
+}

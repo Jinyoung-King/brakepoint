@@ -13,7 +13,8 @@ import { DRINK_TYPES, DRINK_UNITS, WEEKDAYS } from '../constants';
 import ManualAddChat from './ManualAddChat';
 import { radius, type Palette } from '../theme';
 import { useColors } from '../useColors';
-import { limitStreak, sessionsThisWeek, dailyTotals, monthSpend, monthlyReport, hourlyTotals, peakHour, placeStats, typeTotals, dryStats, monthDryDays, computeGoals, alcoholKcal, spendEquivalents, kcalEquivalents } from '../stats';
+import { limitStreak, sessionsThisWeek, dailyTotals, monthSpend, monthlyReport, hourlyTotals, peakHour, placeStats, typeTotals, dryStats, monthDryDays, computeGoals, alcoholKcal, spendEquivalents, kcalEquivalents, morningInsight } from '../stats';
+import MorningCheckSheet from '../MorningCheckSheet';
 import { sessionStdCount, STD_GRAMS } from '../bac';
 
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
@@ -29,8 +30,12 @@ function fmtDate(ms: number): string {
 const mean = (rs: SessionRecord[]) =>
   rs.length ? rs.reduce((a, r) => a + r.count, 0) / rs.length : 0;
 
+const HANGOVER_LABELS = ['쌩쌩', '약간', '꽤', '최악'] as const;
+const SLEEP_LABELS = ['푹 잤다', '그럭저럭', '설쳤다'] as const;
+const hangoverLabel = (h: number) => HANGOVER_LABELS[Math.min(3, Math.max(0, h))];
+
 export default function HistoryScreen() {
-  const { state, clearHistory, addManualRecord, deleteRecord, updateRecord } = useAppState();
+  const { state, clearHistory, addManualRecord, deleteRecord, updateRecord, setMorningLog } = useAppState();
   const { history, weeklyGoalSessions, monthlyDryGoal, limit, unit, monthlyBudget, drinkType, customDrinks } = state;
   const [monthOffset, setMonthOffset] = useState(0);
   const streak = limitStreak(history);
@@ -39,6 +44,7 @@ export default function HistoryScreen() {
   const styles = useMemo(() => makeStyles(c), [c]);
   const navigation = useNavigation();
   const [selected, setSelected] = useState<SessionRecord | null>(null);
+  const [condTarget, setCondTarget] = useState<SessionRecord | null>(null);
   // 달력 날짜 탭 → 그 날 세션 목록
   const [dayOpen, setDayOpen] = useState(false);
   const [statKey, setStatKey] = useState<string | null>(null);
@@ -308,6 +314,7 @@ export default function HistoryScreen() {
   const kcalEq = kcalEquivalents(monthKcal);
   const places = placeStats(history);
   const byType = typeTotals(history);
+  const mInsight = morningInsight(history);
   const typeMax = Math.max(1, ...byType.map((t) => t.count));
   // 금주 현황
   const dry = dryStats(history, nowMs);
@@ -371,6 +378,11 @@ export default function HistoryScreen() {
           </Text>
           {!!meta && <Text style={styles.rowMeta}>{meta}</Text>}
           {!!item.memo && <Text style={styles.rowMemo}>“{item.memo}”</Text>}
+          {item.morning && (
+            <Text style={[styles.rowMeta, { color: [c.green, c.green, c.amber, c.red][item.morning.hangover] }]}>
+              다음날 숙취 {hangoverLabel(item.morning.hangover)}
+            </Text>
+          )}
         </View>
         <View style={styles.rowRight}>
           {over ? (
@@ -649,6 +661,27 @@ export default function HistoryScreen() {
             </View>
           )}
 
+          {/* 다음날 컨디션 인사이트: 숙취 ↔ 마신 양 상관 */}
+          {mInsight && (
+            <View style={styles.chartCard}>
+              <Text style={styles.chartTitle}>다음날 컨디션</Text>
+              {mInsight.hardN > 0 && mInsight.easyN > 0 && mInsight.hardAvg - mInsight.easyAvg >= 0.5 ? (
+                <Text style={styles.morningLead}>
+                  숙취 심했던 날은 평균 <Text style={{ color: c.red, fontWeight: '700' }}>{mInsight.hardAvg.toFixed(1)}잔</Text>,
+                  {' '}괜찮았던 날은 <Text style={{ color: c.green, fontWeight: '700' }}>{mInsight.easyAvg.toFixed(1)}잔</Text>.
+                  {' '}약 {(mInsight.hardAvg - mInsight.easyAvg).toFixed(1)}잔 차이예요.
+                </Text>
+              ) : (
+                <Text style={styles.morningLead}>
+                  컨디션을 {mInsight.logged}번 기록했어요. 조금씩 패턴이 보일 거예요.
+                </Text>
+              )}
+              {mInsight.regretN > 0 && (
+                <Text style={styles.muted}>“다음엔 덜 마실래” {mInsight.regretN}번 눌렀어요</Text>
+              )}
+            </View>
+          )}
+
           {/* 주종별 섭취 */}
           {byType.length > 0 && (
             <View style={styles.chartCard}>
@@ -755,6 +788,36 @@ export default function HistoryScreen() {
                   </Text>
                 )}
                 {!!selected.memo && <Text style={styles.detailMemo}>“{selected.memo}”</Text>}
+
+                {(() => {
+                  const m = history.find((r) => r.id === selected.id)?.morning;
+                  return (
+                    <>
+                      {m && (
+                        <View style={styles.morningBox}>
+                          <Text style={styles.morningBoxText}>
+                            다음날 숙취 <Text style={{ color: [c.green, c.green, c.amber, c.red][m.hangover], fontWeight: '700' }}>{hangoverLabel(m.hangover)}</Text>
+                            {m.sleep != null ? ` · 수면 ${SLEEP_LABELS[m.sleep]}` : ''}
+                            {m.regret ? ' · 다음엔 덜' : ''}
+                          </Text>
+                          {!!m.note && <Text style={styles.detailMemo}>“{m.note}”</Text>}
+                        </View>
+                      )}
+                      <Pressable
+                        style={styles.morningBtn}
+                        onPress={() => {
+                          const fresh = history.find((r) => r.id === selected.id) ?? selected;
+                          setSelected(null);
+                          setCondTarget(fresh);
+                        }}
+                        accessibilityRole="button"
+                      >
+                        <Ionicons name="sunny-outline" size={16} color={c.blue} />
+                        <Text style={styles.morningBtnText}>{m ? '다음날 컨디션 수정' : '다음날 컨디션 기록'}</Text>
+                      </Pressable>
+                    </>
+                  );
+                })()}
 
                 <Text style={styles.detailSection}>시점별 음주</Text>
                 {selected.events && selected.events.length > 0 ? (
@@ -1025,6 +1088,16 @@ export default function HistoryScreen() {
           />
         )}
       </Modal>
+
+      {/* 다음날 컨디션 기록/수정 시트 (기록 상세에서 진입) */}
+      <MorningCheckSheet
+        record={condTarget}
+        onSave={(id, log) => {
+          setMorningLog(id, log);
+          setCondTarget(null);
+        }}
+        onClose={() => setCondTarget(null)}
+      />
     </View>
   );
 }
@@ -1075,6 +1148,21 @@ const makeStyles = (c: Palette) => StyleSheet.create({
   detailMeta: { fontSize: 14, color: c.textMuted, marginTop: 2 },
   detailMemo: { fontSize: 14, color: c.text, fontStyle: 'italic', marginTop: 2 },
   detailSection: { fontSize: 13, color: c.textFaint, fontWeight: '600', marginTop: 12 },
+  morningLead: { fontSize: 14, color: c.text, lineHeight: 21 },
+  morningBox: { backgroundColor: c.cardAlt, borderRadius: radius.sm, padding: 12, marginTop: 10, gap: 2 },
+  morningBoxText: { fontSize: 14, color: c.text },
+  morningBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    marginTop: 10,
+    paddingVertical: 11,
+    borderRadius: radius.sm,
+    borderWidth: 1,
+    borderColor: c.blue,
+  },
+  morningBtnText: { fontSize: 15, fontWeight: '600', color: c.blue },
   timeline: { marginTop: 4 },
   tlRow: { flexDirection: 'row', alignItems: 'baseline', gap: 10, paddingVertical: 5, borderBottomWidth: 1, borderBottomColor: c.border },
   tlTime: { fontSize: 15, fontWeight: '700', color: c.text, width: 52 },
